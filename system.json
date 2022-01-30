@@ -1,19 +1,19 @@
 {
-  "name": "betterangels",
-  "title": "Better Angels",
-  "description": "An implementation of the One Roll Engine by Greg Stolze: Play a supervillain compelled to do EEEEVIL by a demon riding your soul!",
+  "name": "orex",
+  "title": "ORE-X",
+  "description": "An implementation of the One Roll Engine for Foundry Virtual Tabletop",
   "version": "0.0.1-prealpha",
   "author": "Eunomiac",
   "minimumCoreVersion": "0.8",
   "compatibleCoreVersion": "~0.8",
   "esmodules": [
-    "scripts/betterangels.mjs",
+    "scripts/orex.mjs",
     "greensock/esm/all.js",
     "fuse.js/dist/fuse.esm.js",
     "hyphenopoly/min/Hyphenopoly.js"
   ],
   "styles": [
-    "css/betterangels.css"
+    "css/orex.css"
   ],
   "scripts": [],
   "packs": [],

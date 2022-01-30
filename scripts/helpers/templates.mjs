@@ -1,15 +1,7 @@
-const getPath = (fileTitle, subPath) => `/systems/betterangels/templates/${subPath}/${fileTitle}.hbs`
-	.replace(/(\..{2,})\.hbs$/, "$1").split(/[\\/]+/).join("/");
-const TEMPLATES = {
-	actorPartials: [  // Actor Partials
-		"actor-human",
-		"actor-demon",
-		"actor-assets",
-		"actor-notes"
-	].map((title) => getPath(title, "actor/parts")),
-	dragCircle: getPath("dragCircle", "game")
-};
+const getPath = (fileTitle, subPath) => `/systems/orex/templates/${subPath}/${fileTitle}.hbs`
+    .replace(/(\..{2,})\.hbs$/, "$1").split(/[\\/]+/).join("/");
+const TEMPLATES = {};
 
-export default async () => loadTemplates([
-	...TEMPLATES.actorPartials
+export default async() => loadTemplates([
+    ...Object.values(TEMPLATES.actorPartials).flat()
 ]);

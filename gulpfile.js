@@ -162,11 +162,13 @@ const padHeaderLines = (match) => {
 // #endregion ▮▮▮▮[UTILITY]▮▮▮▮
 
 const ISDEPLOYING = false;
+const SYSTEM = "orex";
+const SYSTEMNAME = "ORE-X";
 
 // #region ████████ CONFIGURATION: Banner Headers, Source/Destination Globs, Build Behavior ████████
 const BANNERTEMPLATE = {
 	full: `/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\\
-|*     ▌█░░░░░░░░░ Better Angels for Foundry VTT ░░░░░░░░░░░█▐     *|
+|*     ▌█░░░░░░░░░ ${SYSTEMNAME} for Foundry VTT ░░░░░░░░░░░█▐     *|
 |*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
 |*     ▌█ <%= package.license %> License █ v<%= package.version %> █ ${
 	ISDEPLOYING
@@ -186,18 +188,18 @@ const BANNERTEMPLATE = {
 };
 const BUILDFILES = {
 	js: {
-		"./dist/betterangels/scripts/": ["scripts/**/*.mjs", "scripts/**/*.js"]
+		`./dist/${SYSTEM}/scripts/`: ["scripts/**/*.mjs", "scripts/**/*.js"]
 	},
 	css: {
-		"./dist/betterangels/css/": ["scss/**/*.scss"],
+		`./dist/${SYSTEM}/css/`: ["scss/**/*.scss"],
 		"./css/": ["scss/**/*.scss"]
 	},
 	hbs: {
-		"./dist/betterangels/templates/": ["templates/**/*.hbs"]
+		`./dist/${SYSTEM}/templates/`: ["templates/**/*.hbs"]
 	},
 	assets: {
-		"./dist/betterangels/assets/": ["assets/**/*.*"],
-		"./dist/betterangels/": ["system.json", "template.json", "LICENSE.txt", "package.json"]
+		`./dist/${SYSTEM}/assets/`: ["assets/**/*.*"],
+		`./dist/${SYSTEM}/`: ["system.json", "template.json", "LICENSE.txt", "package.json"]
 	}
 };
 const REGEXPPATTERNS = {
