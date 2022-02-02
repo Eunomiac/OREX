@@ -1,13 +1,17 @@
-// #region ████████ IMPORTS ████████ ~
+/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\
+|*     ▌█████████░░░░░░░░░░░░░░░░ ORE-X for Foundry VTT ░░░░░░░░░░░░░░░░░░█████████▐     *|
+|*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
+|*     ▌█████████████████████ MIT License █ v0.0.1-prealpha █  ████████████████████▐     *|
+|*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
+\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
+
+// ████████ IMPORTS ████████
 import {
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+	// ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮
 	gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animation Platform
-	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
+	// ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 	U,
-	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "./bundler.mjs";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 /* const TESTCIRCLES = {
 	zeroed: [0, 0],
@@ -46,7 +50,7 @@ export default class {
 		// this._isDBActive = false;
 	}
 
-	// #region ████████ Test Circle Generation: Creating XCircles & Populating with XDice ████████ ~
+	// ████████ Test Circle Generation: Creating XCircles & Populating with XDice ████████
 	generateCircles(circles = {center: 5}) {
 		window.CIRCLES = window.CIRCLES ?? [];
 		const circleTyper = U.makeCycler(Object.values(XCircle.TYPES));
@@ -57,9 +61,8 @@ export default class {
 			window.CIRCLES.push(thisCircle);
 		}
 	}
-	// #endregion ▄▄▄▄▄ Test Circle Generation ▄▄▄▄▄
 
-	// #region ████████ SHOW ANGLES: Showing Angles & Path Positions Along XCircles ████████ ~
+	// ████████ SHOW ANGLES: Showing Angles & Path Positions Along XCircles ████████
 	get isShowingAnglesFor() { return (this._isShowingAngles = this._isShowingAngles ?? []) }
 	getStraightenFunc(circle) {
 		return {
@@ -106,9 +109,8 @@ export default class {
 		gsap.ticker.remove(circle._dbAngleStraightener);
 		$(`#${circle.id} .angle-marker`).remove();
 	}
-	// #endregion ▄▄▄▄▄ SHOW ANGLES ▄▄▄▄▄
 
-	// #region ████████ XCircles: Testing & Manipulation of XCircles ████████ ~
+	// ████████ XCircles: Testing & Manipulation of XCircles ████████
 	swapSlots(slot1, slot2 = 0, circle = null) {
 		circle = circle
       ?? (this._dbCircle = this._dbCircle ?? XElem.ALL.find((elem) => elem instanceof XCircle));
@@ -117,9 +119,8 @@ export default class {
 			circle.distributeSlots(10, "expo.out");
 		}
 	}
-	// #endregion ▄▄▄▄▄ XCircles ▄▄▄▄▄
 
-	// #region ████████ XDie: Testing & Manipulation of XDice ████████ ~
+	// ████████ XDie: Testing & Manipulation of XDice ████████
 	get dieWatchData() { return (this._dieWatchData = this._dieWatchData ?? []) }
 	getDieUpdateFunc(circle) {
 		const _this = this;
@@ -180,8 +181,7 @@ export default class {
 		gsap.ticker.remove(circle._dbDieDataFunc);
 	}
 
-	// #endregion ▄▄▄▄▄ XDie ▄▄▄▄▄
-	// #region ████████ PING: Ping Notification Display ████████ ~
+	// ████████ PING: Ping Notification Display ████████
 	ping({x, y}, {radius = 20, color = "yellow", contextElem} = {}) {
 		const [pingElem] = $(`<svg class="db" height="100%" width="100%">
       <circle cx="${radius}" cy="${radius}" r="${radius}" fill="${color}" stroke="none" />
@@ -218,9 +218,8 @@ export default class {
 			this.ping(point, {color: circle.type === "basic" ? "lime" : circle.type});
 		});
 	}
-	// #endregion ▄▄▄▄▄ PING ▄▄▄▄▄
 
-	// #region ████████ REPORTS: To-Console Data Reporting ████████ ~
+	// ████████ REPORTS: To-Console Data Reporting ████████
 	getPathReport(circle) {
 		const pathData = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1].map((pathPos) => {
 			const {x, y, angle} = MotionPathPlugin.getPositionOnPath(circle.snap.path, pathPos, true);
@@ -234,5 +233,4 @@ export default class {
 		});
 		console.log(pathData);
 	}
-	// #endregion ▄▄▄▄▄ REPORTS ▄▄▄▄▄
 } */

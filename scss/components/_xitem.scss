@@ -1,0 +1,12 @@
+&, * {
+	position: absolute;
+	pointer-events: none;
+	transform-origin: 50% 50%;
+}
+
+&#x-container {
+	height: 100%;
+	width: calc(100% - var(--sidebar-width));
+	top: 0;
+	left: 0;
+}

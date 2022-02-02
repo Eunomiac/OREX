@@ -1,23 +1,26 @@
-// #region ████████ IMPORTS ████████ ~
-import {
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
-	gsap, Dragger, InertiaPlugin, MotionPathPlugin, /*DEVCODE*/ GSDevTools, /*!DEVCODE*/ // GreenSock Animation Platform
-	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-	U
-	// #endregion ▮▮▮▮[Utility]▮▮▮▮
-} from "./bundler.mjs";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\
+|*     ▌█████████░░░░░░░░░░░░░░░░ ORE-X for Foundry VTT ░░░░░░░░░░░░░░░░░░█████████▐     *|
+|*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
+|*     ▌█████████████████████ MIT License █ v0.0.1-prealpha █  ████████████████████▐     *|
+|*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
+\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
 
-// #region ████████ FACTORY: "MIX" Class Factory for Applying Mixins ████████ ~
+// ████████ IMPORTS ████████
+import {
+	// ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮
+	gsap, Dragger, InertiaPlugin, MotionPathPlugin, // GreenSock Animation Platform
+	// ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
+	U
+} from "./bundler.mjs";
+
+// ████████ FACTORY: "MIX" Class Factory for Applying Mixins ████████
 class MixinBuilder {
 	constructor(superclass) { this.superclass = superclass }
 	with(...mixins) { return mixins.reduce((cls, mixin = (x) => x) => mixin(cls), this.superclass) }
 }
-export const MIX = (superclass = class {}) => new MixinBuilder(superclass); /* eslint-disable-line import/prefer-default-export */
-// #endregion ▄▄▄▄▄ FACTORY ▄▄▄▄▄
+export const MIX = (superclass = class {}) => new MixinBuilder(superclass);
 
-// #region ████████ MIXINS ████████
+// ████████ MIXINS ████████
 /* export const HasMotionPath = (superclass) => class extends superclass {
 	get path() { return this._path }
 	set path(elem) {
@@ -254,4 +257,3 @@ export const SnapsToCircle = (superclass) => class extends IsDraggable(superclas
 	}
 
 }; */
-// #endregion ▄▄▄▄▄ MIXINS ▄▄▄▄▄

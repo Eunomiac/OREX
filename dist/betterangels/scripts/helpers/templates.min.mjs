@@ -1,1 +1,0 @@
-const t=(t,a)=>`/systems/betterangels/templates/${a}/${t}.html`.replace(/(\..{2,})\.html$/,"$1").split(/[\\/]+/).join("/"),a={t:["actor-human","actor-demon","actor-assets","actor-notes"].map((a=>t(a,"actor/parts"))),o:t("dragCircle","game")};export default async()=>loadTemplates([...a.t]);

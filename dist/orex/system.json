@@ -1,0 +1,32 @@
+{
+  "name": "orex",
+  "title": "ORE-X",
+  "description": "An implementation of the One Roll Engine for Foundry Virtual Tabletop",
+  "version": "0.0.1-prealpha",
+  "author": "Eunomiac",
+  "minimumCoreVersion": "0.8",
+  "compatibleCoreVersion": "~0.8",
+  "esmodules": [
+    "scripts/orex.mjs",
+    "greensock/esm/all.js",
+    "fuse.js/dist/fuse.esm.js",
+    "hyphenopoly/min/Hyphenopoly.js"
+  ],
+  "styles": [
+    "css/orex.css"
+  ],
+  "scripts": [],
+  "packs": [],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "socket": true,
+  "url": "",
+  "manifest": "",
+  "download": "",
+  "license": "LICENSE.txt"
+}

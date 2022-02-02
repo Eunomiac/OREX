@@ -1,0 +1,1 @@
+export default class extends Actor{t(){super.t()}p(){}h(){const a=this.data,{data:t}=a;this.o(a)}o(a){if("character"!==a.type)return;const{data:t}=a}D(){const a=super.D();return this.i(a),a}i(a){"character"===this.data.type&&a.attributes.level&&(a.l=a.attributes.level.value??0)}}

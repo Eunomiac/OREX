@@ -1,11 +1,17 @@
-// #region ████████ IMPORTS ████████ ~
-/* eslint-disable import/no-unresolved */
+/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\
+|*     ▌█████████░░░░░░░░░░░░░░░░ ORE-X for Foundry VTT ░░░░░░░░░░░░░░░░░░█████████▐     *|
+|*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
+|*     ▌█████████████████████ MIT License █ v0.0.1-prealpha █  ████████████████████▐     *|
+|*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
+\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
+
+// ████████ IMPORTS ████████
+
 import gsap from "/scripts/greensock/esm/all.js";
 // import Fuse from "/scripts/fuse.js/dist/fuse.esm.js"; // https://fusejs.io/api/options.html
 // import Hyphenopoly from "/scripts/hyphenopoly/min/Hyphenopoly.js"; // https://github.com/mnater/Hyphenopoly/blob/master/docs/Node-Module.md
-/* eslint-enable import/no-unresolved */
 
-// #region ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮ ~
+// ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮
 const _hyph = (str) => str; /* Hyphenopoly.config(
   {
     require: ["en-us"],
@@ -48,11 +54,9 @@ const _hyph = (str) => str; /* Hyphenopoly.config(
     }
   }
 ).get("en-us"); */
-// #endregion ▮▮▮▮[IMPORT CONFIG]▮▮▮▮
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-// #region ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮ ~
-/* eslint-disable array-element-newline, object-property-newline */
+// ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮
+
 const _noCapWords = [ // Regexp tests that should not be capitalized when converting to title case.
 	"above", "after", "at", "below", "by", "down", "for", "from", "in", "onto", "of", "off", "on", "out",
 	"to", "under", "up", "with", "for", "and", "nor", "but", "or", "yet", "so", "the", "an", "a"
@@ -280,14 +284,11 @@ const _parseSearchFunc = (obj, searchFunc) => {
 	}
 	return searchFunc;
 };
-/* eslint-enable array-element-newline, object-property-newline */
-// #endregion ▮▮▮▮[HELPERS]▮▮▮▮
 
-// #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
+// ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 const GMID = () => game.users.find((user) => user.isGM)?.id ?? false;
-// #endregion ▄▄▄▄▄ GETTERS ▄▄▄▄▄
 
-// #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
+// ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const getType = (ref) => {
 	const baseType = Object.prototype.toString.call(ref).slice(8, -1).toLowerCase();
 	if (baseType === "number") {
@@ -362,10 +363,9 @@ const degToRad = (deg, isConstrained = true) => {
 	deg *= Math.PI / 180;
 	return deg;
 };
-// #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
 
-// #region ████████ STRINGS: String Parsing, Manipulation, Conversion, Regular Expressions ████████ ~
-// #region ░░░░░░░[Case Conversion]░░░░ Upper, Lower, Sentence & Title Case ░░░░░░░ ~
+// ████████ STRINGS: String Parsing, Manipulation, Conversion, Regular Expressions ████████
+// ░░░░░░░[Case Conversion]░░░░ Upper, Lower, Sentence & Title Case ░░░░░░░
 const uCase = (str) => `${str ?? ""}`.toUpperCase();
 const lCase = (str) => `${str ?? ""}`.toLowerCase();
 const sCase = (str) => {
@@ -379,8 +379,7 @@ const sCase = (str) => {
 const tCase = (str) => `${str ?? ""}`.split(/\s/)
 	.map((word, i) => (i && testRegExp(word, _noCapWords) ? lCase(word) : sCase(word)))
 	.join(" ").trim();
-// #endregion ░░░░[Case Conversion]░░░░
-// #region ░░░░░░░[RegExp]░░░░ Regular Expressions ░░░░░░░ ~
+// ░░░░░░░[RegExp]░░░░ Regular Expressions ░░░░░░░
 const testRegExp = (str, patterns = [], flags = "gui", isTestingAll = false) => patterns.map(
 	(pattern) => (getType(pattern) === "regexp"
 		? pattern
@@ -392,8 +391,7 @@ const regExtract = (ref, pattern, flags = "u") => {
 	const matches = ref.match(pattern) || [];
 	return isGrouping ? matches.slice(1) : matches.pop();
 };
-// #endregion ░░░░[REGEXP]░░░░
-// #region ░░░░░░░[Formatting]░░░░ Hyphenation, Pluralization, "a"/"an" Fixing ░░░░░░░ ~
+// ░░░░░░░[Formatting]░░░░ Hyphenation, Pluralization, "a"/"an" Fixing ░░░░░░░
 const hyphenate = (string) => (/^<|\u00AD|\u200B/.test(string) ? string : _hyph(string));
 const unhyphenate = (string) => string.replace(/\u00AD|\u200B/gu, "");
 const parseArticles = (str) => `${str}`.replace(/\b(a|A)\s([aeiouAEIOU])/gu, "$1n $2");
@@ -411,7 +409,7 @@ const oxfordize = (items, useOxfordComma = true) => {
 	].join("");
 };
 const ellipsize = (text, maxLength) => (`${text}`.length > maxLength ? `${text.slice(0, maxLength - 3)}…` : text);
-// #region ========== Numbers: Formatting Numbers Into Strings =========== ~
+// ========== Numbers: Formatting Numbers Into Strings ===========
 const signNum = (num, delim = "") => `${pFloat(num) < 0 ? "-" : "+"}${delim}${Math.abs(pFloat(num))}`;
 const padNum = (num, numDecDigits) => {
 	const [leftDigits, rightDigits] = `${pFloat(num)}`.split(/\./);
@@ -547,9 +545,8 @@ const romanizeNum = (num, isUsingGroupedChars = true) => {
 		? romanNum.replace(/ⅩⅠ/gu, "Ⅺ").replace(/ⅩⅡ/gu, "Ⅻ")
 		: romanNum;
 };
-// #endregion _______ Numbers _______
-// #endregion ░░░░[Formatting]░░░░
-// #region ░░░░░░░[Content]░░░░ Lorem Ipsum, Random Content Generation ░░░░░░░ ~
+
+// ░░░░░░░[Content]░░░░ Lorem Ipsum, Random Content Generation ░░░░░░░
 const loremIpsum = (numWords = 200) => {
 	const lrWordList = _loremIpsumText.split(/\n?\s+/g);
 	const words = [...lrWordList[randNum(0, lrWordList.length - 1)]];
@@ -560,8 +557,7 @@ const loremIpsum = (numWords = 200) => {
 	return `${sCase(words.join(" ")).trim().replace(/[^a-z\s]*$/ui, "")}.`;
 };
 const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)].map(() => randElem(wordList)).join(" ");
-// #endregion ░░░░[Content]░░░░
-// #region ░░░░░░░[Localization]░░░░ Simplified Localization Functionality ░░░░░░░ ~
+// ░░░░░░░[Localization]░░░░ Simplified Localization Functionality ░░░░░░░
 /* const Loc = (locRef, formatDict = {}) => {
   if (/^"?scion\./u.test(JSON.stringify(locRef)) && typeof game.i18n.localize(locRef) === "string") {
     for (const [key, val] of Object.entries(formatDict)) {
@@ -571,10 +567,8 @@ const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)]
   }
   return locRef;
 }; */
-// #endregion ░░░░[Localization]░░░░
-// #endregion ▄▄▄▄▄ STRINGS ▄▄▄▄▄
 
-// #region ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████ ~
+// ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████
 const isIn = (needle, haystack = [], fuzziness = 0) => {
 	// Looks for needle in haystack using fuzzy matching, then returns value as it appears in haystack.
 
@@ -627,26 +621,23 @@ const isIn = (needle, haystack = [], fuzziness = 0) => {
 	return stackType === "list" ? haystack[searchStack[matchIndex]] : haystack[matchIndex];
 };
 const isInExact = (needle, haystack) => isIn(needle, haystack, 0);
-// #endregion ▄▄▄▄▄ SEARCHING ▄▄▄▄▄
 
-// #region ████████ NUMBERS: Number Casting, Mathematics, Conversion ████████ ~
+// ████████ NUMBERS: Number Casting, Mathematics, Conversion ████████
 const randNum = (min, max, snap = 0) => gsap.utils.random(min, max, snap);
 const randInt = (min, max) => randNum(min, max, 1);
 const coinFlip = () => randNum(0, 1, 1) === 1;
 const cycleNum = (num, [min = 0, max = Infinity] = []) => gsap.utils.wrap(min, max, num);
 const cycleAngle = (angle) => cycleNum(angle, [-180, 180]);
 const roundNum = (num, sigDigits = 0) => (sigDigits === 0 ? pInt(num) : pFloat(num, sigDigits));
-// #region ░░░░░░░[Positioning]░░░░ Relationships On 2D Cartesian Plane ░░░░░░░ ~
+// ░░░░░░░[Positioning]░░░░ Relationships On 2D Cartesian Plane ░░░░░░░
 const getDistance = ({x: x1, y: y1}, {x: x2, y: y2}) => ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5;
 const getAngle = ({x: x1, y: y1}, {x: x2, y: y2}, {x: xO = 0, y: yO = 0} = {}) => {
 	x1 -= xO; y1 -= yO; x2 -= xO; y2 -= yO;
 	return cycleAngle(radToDeg(Math.atan2(y2 - y1, x2 - x1)));
 };
 const getAngleDelta = (angleStart, angleEnd) => cycleAngle(angleEnd - angleStart);
-// #endregion ░░░░[Positioning]░░░░
-// #endregion ▄▄▄▄▄ NUMBERS ▄▄▄▄▄
 
-// #region ████████ ARRAYS: Array Manipulation ████████ ~
+// ████████ ARRAYS: Array Manipulation ████████
 const randElem = (array) => gsap.utils.random(array);
 const randIndex = (array) => randInt(0, array.length - 1);
 const makeCycler = (array, index = 0) => {
@@ -667,39 +658,8 @@ const unique = (array) => {
 	array.forEach((item) => { if (!returnArray.includes(item)) { returnArray.push(item) } });
 	return returnArray;
 };
-/*~ #region TO PROCESS: ARRAY FUNCTIONS: Last, Flip, Insert, Change, Remove
-export const Last = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : undefined);
-export const Flip = (arr) => Clone(arr).reverse();
-export const Insert = (arr, val, index) => { // MUTATOR
-  arr[ pInt(index)] = val;
-  return arr;
-};
-export const Change = (arr, findFunc = (e, i, a) => true, changeFunc = (e, i, a) => e) => { // MUTATOR
-  const index = arr.findIndex(findFunc);
-  if (index >= 0) {
-    arr[index] = changeFunc(arr[index], index, arr);
-    return arr;
-  } else {
-    return false;
-  }
-};
-export const Remove = (arr, findFunc = (e, i, a) => true) => {
-  const index = arr.findIndex(findFunc);
-  if (index >= 0) {
-    const elem = arr[index];
-    delete arr[index];
-    for (let i = index; i < arr.length - 1; i++) {
-      arr[i] = arr[i + 1];
-    }
-    arr.length -= 1;
-    return elem;
-  }
-  return false;
-};
-// #endregion ~*/
-// #endregion ▄▄▄▄▄ ARRAYS ▄▄▄▄▄
 
-// #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
+// ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
 // Given an object and a predicate function, returns array of two objects:
 //   one with entries that pass, one with entries that fail.
 const partition = (obj, predicate = (v, k) => true) => [
@@ -778,138 +738,17 @@ const replace = (obj, searchFunc, repVal) => {
 	}
 	return true;
 };
-/*~ #region TO PROCESS: RemoveFirst, PullElement, PullIndex, Clone, Merge, Expand, Flatten, SumVals, MakeDict, NestedValues
-const removeFirst = (array, element) => array.splice(array.findIndex((v) => v === element));
-const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkFunc(_v, _i, _a) }) => {
-  const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
-  return index !== -1 && array.splice(index, 1).pop();
-};
-const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
-export const Clone = (obj) => {
-  let cloneObj;
-  try {
-    cloneObj = JSON.parse(JSON.stringify(obj));
-  } catch (err) {
-    // THROW({obj, err}, "ERROR: U.Clone()");
-    cloneObj = {...obj};
-  }
-  return cloneObj;
-};
-export const Merge = (target, source, {isMergingArrays = true, isOverwritingArrays = true} = {}) => {
-  target = Clone(target);
-  const isObject = (obj) => obj && typeof obj === "object";
 
-  if (!isObject(target) || !isObject(source)) {
-    return source;
-  }
-
-  Object.keys(source).forEach((key) => {
-    const targetValue = target[key];
-    const sourceValue = source[key];
-
-    if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
-      if (isOverwritingArrays) {
-        target[key] = sourceValue;
-      } else if (isMergingArrays) {
-        target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : Merge(x, sourceValue[i], {isMergingArrays, isOverwritingArrays})));
-        if (sourceValue.length > targetValue.length) {
-          target[key] = target[key].concat(sourceValue.slice(targetValue.length));
-        }
-      } else {
-        target[key] = targetValue.concat(sourceValue);
-      }
-    } else if (isObject(targetValue) && isObject(sourceValue)) {
-      target[key] = Merge({...targetValue}, sourceValue, {isMergingArrays, isOverwritingArrays});
-    } else {
-      target[key] = sourceValue;
-    }
-  });
-
-  return target;
-};
-export const Expand = (obj) => {
-  const expObj = {};
-  for (let [key, val] of Object.entries(obj)) {
-    if (getType(val) === "Object") {
-      val = Expand(val);
-    }
-    setProperty(expObj, key, val);
-  }
-  return expObj;
-};
-export const Flatten = (obj) => {
-  const flatObj = {};
-  for (const [key, val] of Object.entries(obj)) {
-    if (getType(val) === "Object") {
-      if (isObjectEmpty(val)) {
-        flatObj[key] = val;
-      } else {
-        for (const [subKey, subVal] of Object.entries(Flatten(val))) {
-          flatObj[`${key}.${subKey}`] = subVal;
-        }
-      }
-    } else {
-      flatObj[key] = val;
-    }
-  }
-  return flatObj;
-};
-export const SumVals = (...objs) => {
-  const valKey = objs.pop();
-  if (typeof valKey === "object") {
-    objs.push(valKey);
-  }
-  return objs.reduce(
-    (tot, obj) => tot + Object.values(obj).reduce((subTot, val) => subTot + (typeof val === "object" && valKey in val ? val[valKey] : val), 0),
-    0
-  );
-};
-export const MakeDict = (objRef, valFunc = (v) => v, keyFunc = (k) => k) => {
-  const newDict = {};
-  for (const key of Object.keys(objRef)) {
-    const val = objRef[key];
-    const newKey = keyFunc(key, val);
-    let newVal = valFunc(val, key);
-    if (typeof newVal === "object" && !Array.isArray(newVal)) {
-      const newValProp = ((nVal) => ["label", "name", "value"].find((x) => x in nVal))(newVal);
-      newVal = newValProp && newVal[newValProp];
-    }
-    if (["string", "number"].includes(typeof newVal)) {
-      newDict[newKey] = Loc(newVal);
-    }
-  }
-  return newDict;
-};
-
-export const NestedValues = (obj, flatVals = []) => {
-  if (obj && typeof obj === "object") {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key];
-      if (val && typeof val === "object") {
-        flatVals.push(...NestedValues(val));
-      } else {
-        flatVals.push(val);
-      }
-    }
-    return flatVals;
-  }
-  return [obj].flat();
-};
-#endregion ~*/
-// #endregion ▄▄▄▄▄ OBJECTS ▄▄▄▄▄
-
-// #region ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████ ~
+// ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
 const getDynamicFunc = (funcName, func, context) => {
 	const dFunc = {[funcName](...args) { return func(...args) }}[funcName];
 	return context ? dFunc.bind(context) : dFunc;
 };
-// #endregion ▄▄▄▄▄ FUNCTIONS ▄▄▄▄▄
 
-// #region ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████ ~
-// #region ░░░░░░░[GreenSock]░░░░ Wrappers for GreenSock Functions ░░░░░░░ ~
+// ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████
+// ░░░░░░░[GreenSock]░░░░ Wrappers for GreenSock Functions ░░░░░░░
 const get = (...args) => gsap.getProperty(...args);
 const set = (...args) => gsap.set(...args);
-// #endregion ░░░░[GreenSock]░░░░
 const getRawCirclePath = (r, {x: xO, y: yO} = {}) => {
 	[r, xO, yO] = [r, xO, yO].map((val) => parseInt(val)); // roundNum(val, 2));
 	const [b1, b2] = [0.4475 * r, (1 - 0.4475) * r];
@@ -935,14 +774,13 @@ const drawCirclePath = (radius, origin) => {
 const formatAsClass = (str) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^-/, "").trim().toLowerCase();
 const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
 const getTemplatePath = (fileRelativePath) => {
-	fileRelativePath = `${fileRelativePath}.hbs`
-		.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1");
+	fileRelativePath = `${fileRelativePath}.html`
+		.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.html$/g, "$1");
 	return `/systems/orex/templates/${fileRelativePath}`;
 };
-// #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 
-// #region ████████ EXPORTS ████████ ~
-/* eslint-disable object-property-newline, sort-keys */
+// ████████ EXPORTS ████████
+
 export default {
 	// ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 	GMID,
@@ -968,7 +806,6 @@ export default {
 	// ░░░░░░░ Content ░░░░░░░
 	loremIpsum, randWord,
 	// ░░░░░░░ Localization ░░░░░░░
-	//~ loc,
 
 	// ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████
 	isIn, isInExact,
@@ -1004,4 +841,3 @@ export default {
 	getGSAngleDelta,
 	getTemplatePath
 };
-// #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

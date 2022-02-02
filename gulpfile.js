@@ -3,6 +3,7 @@
 const {src, dest, watch, series, parallel} = require("gulp");
 const plumber = require("lazypipe");
 const plunger = require("gulp-plumber");
+const merger = require("merge2");
 const logger = require("fancy-log");
 const debug = require("gulp-debug");
 
@@ -11,6 +12,7 @@ const renamer = require("gulp-rename");
 const header = require("gulp-header");
 const replacer = require("gulp-replace");
 
+const typescript = require("gulp-typescript");
 const terser = require("gulp-terser");
 
 const sasser = require("gulp-sass")(require("node-sass"));
@@ -73,6 +75,7 @@ const ANSICOLORS = {
 };
 const STREAMSTYLES = {
 	gulp: ["grey", "█", "(gulp)"],
+	tsInit: ["blue", "░", " TS "],
 	jsFull: ["bmagenta", "█", " JS "],
 	jsMin: ["magenta", "░", " js "],
 	cssFull: ["byellow", "█", " SCSS "],
@@ -187,19 +190,22 @@ const BANNERTEMPLATE = {
 	].join(" ║ ")
 };
 const BUILDFILES = {
+	ts: {
+		"./scripts/": ["ts/**/*.ts"]
+	},
 	js: {
-		`./dist/${SYSTEM}/scripts/`: ["scripts/**/*.mjs", "scripts/**/*.js"]
+		[`./dist/${SYSTEM}/scripts/`]: ["scripts/**/*.mjs", "scripts/**/*.js"]
 	},
 	css: {
-		`./dist/${SYSTEM}/css/`: ["scss/**/*.scss"],
+		[`./dist/${SYSTEM}/css/`]: ["scss/**/*.scss"],
 		"./css/": ["scss/**/*.scss"]
 	},
 	hbs: {
-		`./dist/${SYSTEM}/templates/`: ["templates/**/*.hbs"]
+		[`./dist/${SYSTEM}/templates/`]: ["templates/**/*.hbs"]
 	},
 	assets: {
-		`./dist/${SYSTEM}/assets/`: ["assets/**/*.*"],
-		`./dist/${SYSTEM}/`: ["system.json", "template.json", "LICENSE.txt", "package.json"]
+		[`./dist/${SYSTEM}/assets/`]: ["assets/**/*.*"],
+		[`./dist/${SYSTEM}/`]: ["system.json", "template.json", "LICENSE.txt", "package.json"]
 	}
 };
 const REGEXPPATTERNS = {
@@ -209,6 +215,7 @@ const REGEXPPATTERNS = {
 		[/(\r?\n?)[ \t]*\/\*[*~](?:.|\r?\n|\r)*?\*\/[ \t]*(\r?\n?)/g, "$1$2"], // Strip multi-line comments beginning with '/*~' or '/**'
 		[/(\r?\n?)[ \t]*\/\/~.*?$/gm, "$1"], // Strip single-line comments beginning with '//~'
 		[/[ \t]*\/\/[ \t]*eslint.*$/gm, ""], // Strip eslint enable/disable single-line comments
+		[/[ \t]*\/\/[ \t]*@ts.*$/gm, ""], // Strip TypeScript expect-error comments
 		[/[ \t]*\/\*[ \t]*eslint[^*]*\*\/[ \t]*/g, ""], // Strip eslint enable/disable mult-line comments
 		[/[ \t]*\/\/ no default.*$/gm, ""], // Strip '// no default'
 		[/[ \t]*\/\/ falls through.*$/gm, ""], // Strip '// falls through'
@@ -248,6 +255,7 @@ const PIPES = {
 		}
 		return pipeline;
 	},
+	tsProject: typescript.createProject("tsconfig.json", {declaration: true, allowJS: false}),
 	terser: () => plumber().pipe(terser, {
 		parse: {},
 		compress: {},
@@ -278,6 +286,15 @@ const PLUMBING = {
 		for (const [type, globs] of Object.entries(BUILDFILES)) {
 			Object.values(globs ?? {}).forEach((glob) => watch(glob, BUILDFUNCS[type]));
 		}
+	},
+	tsInit: (source, destination) => function pipeTypeScript() {
+		const tsStream = src(source)
+			.pipe(PIPES.openPipe("tsInit")())
+			.pipe(PIPES.tsProject());
+		return merger([
+			tsStream.dts.pipe(PIPES.closePipe("tsInit", source, `${destination}/definitions`)),
+			tsStream.js.pipe(PIPES.closePipe("tsInit", source, destination))
+		]);
 	},
 	jsFull: (source, destination) => function pipeFullJS() {
 		return src(source)
@@ -334,6 +351,17 @@ const BUILDFUNCS = {};
 // #endregion ▒▒▒▒[INITIALIZATION]▒▒▒▒
 
 // #region ████████ JS: Compiling Javascript ████████ ~
+BUILDFUNCS.ts = parallel(
+	...((buildFiles) => {
+		const funcs = [];
+		for (const [destGlob, sourceGlobs] of Object.entries(buildFiles)) {
+			sourceGlobs.forEach((sourceGlob) => {
+				funcs.push(PLUMBING.tsInit(sourceGlob, destGlob));
+			});
+		}
+		return funcs;
+	})(BUILDFILES.ts)
+);
 BUILDFUNCS.js = parallel(
 	...((buildFiles) => {
 		const funcs = [];
@@ -394,5 +422,5 @@ BUILDFUNCS.assets = parallel(
 // #endregion ▄▄▄▄▄ ASSETS ▄▄▄▄▄
 
 // #region ▒░▒░▒░▒[EXPORTS]▒░▒░▒░▒ ~
-exports.default = series(PLUMBING.init, parallel(...Object.values(BUILDFUNCS)), PLUMBING.watch);
+exports.default = series(PLUMBING.init, BUILDFUNCS.ts, parallel(...Object.values(BUILDFUNCS)), PLUMBING.watch);
 // #endregion ▒▒▒▒[EXPORTS]▒▒▒▒

@@ -20,7 +20,7 @@ import {
 	XGroup,
 	XDie
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
-} from "./helpers/bundler.mjs";
+} from "../scripts/helpers/bundler.mjs";
 /*DEVCODE*/
 // import DB from "./helpers/debug.mjs";
 /*!DEVCODE*/
@@ -32,6 +32,7 @@ Hooks.once("init", async () => {
 	/*DEVCODE*/console.log("STARTING ORE-X"); /*!DEVCODE*/
 
 	// #region ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
+	var CONFIG: any = CONFIG;
 	CONFIG.OREX = MAIN;
 	// #endregion ▮▮▮▮[Configuration]▮▮▮▮
 
@@ -39,17 +40,21 @@ Hooks.once("init", async () => {
 	return preloadTemplates();
 	// #endregion ▮▮▮▮[Handlebar Templates]▮▮▮▮
 });
+
 // #endregion ▄▄▄▄▄ ON INIT ▄▄▄▄▄
 
 /*DEVCODE*/
 Hooks.once("ready", () => {
-	window.REF = game.OREX;
+	// window.REF = game.OREX;
 	// window.DB = new DB({
 	// 	topLeft: 10,
 	// 	botLeft: 5,
 	// 	topRight: 6,
 	// 	botRight: 4
 	// });
+
+	var window: any = window;
+	
 	Object.entries({
 		U,
 		XItem,
@@ -63,7 +68,6 @@ Hooks.once("ready", () => {
 	}).forEach(([key, ref]) => {
 		window[key] = ref;
 	});
-
 	window.XITEM = new XItem({id: "test-item", template: U.getTemplatePath("xcontainer.hbs")});
 });
 /*!DEVCODE*/

@@ -1,7 +1,12 @@
-const getPath = (fileTitle, subPath) => `/systems/orex/templates/${subPath}/${fileTitle}.hbs`
-    .replace(/(\..{2,})\.hbs$/, "$1").split(/[\\/]+/).join("/");
-const TEMPLATES = {};
+// #region ████████ IMPORTS ████████ ~
+import {
+	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
+	U
+	// #endregion ▮▮▮▮[Utility]▮▮▮▮
+} from "./bundler.mjs";
+// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-export default async() => loadTemplates([
-    ...Object.values(TEMPLATES.actorPartials).flat()
-]);
+export default async () => loadTemplates(Object.values({
+	xContainer: U.getTemplatePath("xcontainer.hbs")
+	// Template Paths by Category; use U.getTemplatePath(fileName, subPath)
+}).flat());

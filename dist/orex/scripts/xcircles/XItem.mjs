@@ -1,23 +1,25 @@
-// #region ████████ IMPORTS ████████ ~
+/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\
+|*     ▌█████████░░░░░░░░░░░░░░░░ ORE-X for Foundry VTT ░░░░░░░░░░░░░░░░░░█████████▐     *|
+|*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
+|*     ▌█████████████████████ MIT License █ v0.0.1-prealpha █  ████████████████████▐     *|
+|*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
+\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
+
+// ████████ IMPORTS ████████
 import {
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+	// ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮
 	gsap, Dragger, InertiaPlugin, MotionPathPlugin, // GreenSock Animation Platform
-	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
+	// ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 	U,
-	// #endregion ▮▮▮▮[Utility]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[XCircles]▮▮▮▮▮▮▮ ~
+	// ▮▮▮▮▮▮▮[XCircles]▮▮▮▮▮▮▮
 	XElem,
 	XCircle,
-	// #endregion ▮▮▮▮[XCircles]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[Mixins]▮▮▮▮▮▮▮ ~
+	// ▮▮▮▮▮▮▮[Mixins]▮▮▮▮▮▮▮
 	MIX, IsDraggable, SnapsToCircle
-	// #endregion ▮▮▮▮[Mixins]▮▮▮▮
 } from "../helpers/bundler.mjs";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 class XItem extends XElem {
-	// #region ████████ STATIC: Static Getters, Setters, Methods ████████ ~
+	// ████████ STATIC: Static Getters, Setters, Methods ████████
 	static get DEFAULT_DATA() {
 		return {
 			...super.DEFAULT_DATA,
@@ -29,9 +31,8 @@ class XItem extends XElem {
 			}
 		};
 	}
-	// #endregion ▄▄▄▄▄ STATIC ▄▄▄▄▄
 
-	// #region ████████ GETTERS & SETTERS ████████ ~
+	// ████████ GETTERS & SETTERS ████████
 	get slot() {
 		const {slot} = this.circle?.getSlotPos(this) ?? {};
 		return slot;
@@ -52,15 +53,13 @@ class XItem extends XElem {
 
 	get isMoving() { return this._isMoving }
 	set isMoving(v) { this._isMoving = Boolean(v) }
-	// #endregion ▄▄▄▄▄ GETTERS & SETTERS ▄▄▄▄▄
 
-	// #region ████████ PRIVATE METHODS ████████ ~
+	// ████████ PRIVATE METHODS ████████
 	straighten() { this.set({rotation: -1 * (this.parent?.rotation ?? 0)}) }
-	// #endregion ▄▄▄▄▄ PRIVATE METHODS ▄▄▄▄▄
 }
 
 class XDie extends MIX(XItem).with(IsDraggable, SnapsToCircle) {
-	// #region ████████ STATIC: Static Getters, Setters, Methods ████████ ~
+	// ████████ STATIC: Static Getters, Setters, Methods ████████
 	static get DEFAULT_DATA() {
 		return {
 			...super.DEFAULT_DATA,
@@ -72,7 +71,6 @@ class XDie extends MIX(XItem).with(IsDraggable, SnapsToCircle) {
 			}
 		};
 	}
-	// #endregion ▄▄▄▄▄ STATIC ▄▄▄▄▄
 
 	constructor(options = {}) {
 		super($("<div></div>"), {
@@ -81,18 +79,10 @@ class XDie extends MIX(XItem).with(IsDraggable, SnapsToCircle) {
 		});
 	}
 
-	/*DEVCODE*/
-	// #region ████████ DEBUG HELPERS ████████ ~
-	get dbAbsAngle() { return U.roundNum(this.circle?.getAbsAngleTo(this)) }
-	get dbRelAngle() { return U.roundNum(this.circle?.getRelAngleTo(this)) }
-	get dbAbsPos() { return Object.values(this.absPos).map((val) => U.roundNum(val)).join(", ") }
-	get dbRelPos() { return Object.values(this.pos).map((val) => U.roundNum(val)).join(", ") }
-	// #endregion ▄▄▄▄▄ DEBUG HELPERS ▄▄▄▄▄
-	/*!DEVCODE*/
 }
 
 class XSnap extends MIX(XItem).with(SnapsToCircle) {
-	// #region ████████ STATIC: Static Getters, Setters, Methods ████████ ~
+	// ████████ STATIC: Static Getters, Setters, Methods ████████
 	static get DEFAULT_DATA() {
 		return {
 			...super.DEFAULT_DATA,
@@ -102,9 +92,8 @@ class XSnap extends MIX(XItem).with(SnapsToCircle) {
 			MAXWEIGHT: 3
 		};
 	}
-	// #endregion ▄▄▄▄▄ STATIC ▄▄▄▄▄
 
-	// #region ████████ CONSTRUCTOR ████████ ~
+	// ████████ CONSTRUCTOR ████████
 	constructor(snapTarget, {
 		properties = {},
 		parent = snapTarget.circle,
@@ -128,7 +117,6 @@ class XSnap extends MIX(XItem).with(SnapsToCircle) {
 		});
 		this._snapTarget = snapTarget;
 	}
-	// #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
 
 	get curSlot() { return this.circle.slots.findIndex((slotItem) => slotItem.name === this.name) }
 	get targetSlot() { return this.circle.getNearestSlot(this.snapTarget) }
@@ -137,10 +125,9 @@ class XSnap extends MIX(XItem).with(SnapsToCircle) {
 	get targetDistance() { return Math.max(0, U.getDistance(this.circle, this.snapTarget) - this.circle.path.radius) }
 }
 
-// #region ████████ EXPORTS ████████ ~
+// ████████ EXPORTS ████████
 export {
 	XItem,
 	XDie,
 	XSnap
 };
-// #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

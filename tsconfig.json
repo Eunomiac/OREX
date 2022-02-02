@@ -1,0 +1,26 @@
+{
+	"extends": "@tsconfig/node16/tsconfig.json",
+	"compilerOptions": {
+		"allowUmdGlobalAccess": true,
+		"allowJs": true,
+		"checkJs": false,
+		"module": "ES6",
+		"moduleResolution": "node",
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"plugins": [
+			{
+				"name": "typescript-eslint-language-service"
+			}
+		],
+		"strictNullChecks": true,
+		"outDir": "scripts",
+		"rootDir": ".",
+		"types": ["@league-of-foundry-developers/foundry-vtt-types/index-lenient"],
+		"typeRoots": ["./node_modules/@types/", "./types/"]
+	},
+	"exclude": ["dist/**", "scripts/**", "gulpfile.js", "note_modules/**", ".eslintrc.js", ".gitignore", ".htmlhintrc", ".npmignore", ".prettierrc.js", "stylelint.config.js"],
+	"references": []	
+}

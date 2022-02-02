@@ -1,0 +1,18 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap");
+/* Global styles */
+.window-app {
+  font-family: "Roboto", sans-serif; }
+
+/* Styles for created DOM objects */
+.x-item, .x-item * {
+  position: absolute;
+  pointer-events: none;
+  -webkit-transform-origin: 50% 50%;
+  -ms-transform-origin: 50% 50%;
+  transform-origin: 50% 50%; }
+
+.x-item#x-container {
+  height: 100%;
+  width: calc(100% - var(--sidebar-width));
+  top: 0;
+  left: 0; }
