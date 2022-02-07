@@ -1,1 +1,0 @@
-import{MAIN as o,gsap as r,Dragger as s,InertiaPlugin as e,MotionPathPlugin as i,GSDevTools as m,RoughEase as n,preloadTemplates as l,U as p,XItem as t,XGroup as a,XDie as b}from"./helpers/bundler.mjs";r.o(s,e,i,m),Hooks.once("init",(async()=>(CONFIG.OREX=o,l())));

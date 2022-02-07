@@ -194,7 +194,7 @@ const BUILDFILES = {
 		"./scripts/": ["ts/**/*.ts"]
 	},
 	js: {
-		[`./dist/${SYSTEM}/scripts/`]: ["scripts/**/*.mjs", "scripts/**/*.js"]
+		[`./dist/${SYSTEM}/scripts/`]: ["scripts/**/*.js", "scripts/**/*.js"]
 	},
 	css: {
 		[`./dist/${SYSTEM}/css/`]: ["scss/**/*.scss"],
@@ -209,6 +209,9 @@ const BUILDFILES = {
 	}
 };
 const REGEXPPATTERNS = {
+	ts: new Map([
+		[/from "gsap\/all"/g, "from \"/scripts/greensock/esm/all.js\""]
+	]),
 	js: new Map([
 		[/(\r?\n?)[ \t]*\/\*DEVCODE\*\/(?:.|\r?\n)*?\/\*!DEVCODE\*\/(\r?\n?)/gs, "$1$2"], // Strip developer code
 		[/\/\* \*{4}▌.*?▐\*{4} \*\//s, padHeaderLines], // Pad header lines to same length
@@ -255,7 +258,7 @@ const PIPES = {
 		}
 		return pipeline;
 	},
-	tsProject: typescript.createProject("tsconfig.json", {declaration: true, allowJS: false}),
+	tsProject: typescript.createProject("tsconfig.json", {declaration: true}),
 	terser: () => plumber().pipe(terser, {
 		parse: {},
 		compress: {},
@@ -276,7 +279,7 @@ const PIPES = {
 const PLUMBING = {
 	init: function initDist(done) {
 		try {
-			cleaner.sync(["./dist/"]);
+			cleaner.sync(["./dist/", "./scripts/"]);
 		} catch (err) {
 			return done();
 		}
@@ -292,8 +295,11 @@ const PLUMBING = {
 			.pipe(PIPES.openPipe("tsInit")())
 			.pipe(PIPES.tsProject());
 		return merger([
-			tsStream.dts.pipe(PIPES.closePipe("tsInit", source, `${destination}/definitions`)),
-			tsStream.js.pipe(PIPES.closePipe("tsInit", source, destination))
+			tsStream.dts
+				.pipe(PIPES.closePipe("tsInit", source, `${destination}/definitions`)),
+			tsStream.js
+				.pipe(PIPES.replacer("ts")())
+				.pipe(PIPES.closePipe("tsInit", source, destination))
 		]);
 	},
 	jsFull: (source, destination) => function pipeFullJS() {
@@ -422,5 +428,7 @@ BUILDFUNCS.assets = parallel(
 // #endregion ▄▄▄▄▄ ASSETS ▄▄▄▄▄
 
 // #region ▒░▒░▒░▒[EXPORTS]▒░▒░▒░▒ ~
-exports.default = series(PLUMBING.init, BUILDFUNCS.ts, parallel(...Object.values(BUILDFUNCS)), PLUMBING.watch);
+const {ts, js, ...parallelBuildFuncs} = BUILDFUNCS;
+
+exports.default = series(PLUMBING.init, parallel(series(ts, js), ...Object.values(parallelBuildFuncs)), PLUMBING.watch);
 // #endregion ▒▒▒▒[EXPORTS]▒▒▒▒

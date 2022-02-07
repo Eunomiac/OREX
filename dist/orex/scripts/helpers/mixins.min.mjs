@@ -1,1 +1,0 @@
-import{gsap as s,Dragger as t,InertiaPlugin as r,MotionPathPlugin as o,U as c}from"./bundler.mjs";class n{constructor(s){this.t=s}o(...s){return s.reduce(((s,t=(s=>s))=>t(s)),this.t)}}export const MIX=(s=class{})=>new n(s);

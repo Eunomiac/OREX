@@ -1,1 +1,0 @@
-import{U as e}from"./bundler.mjs";export default async()=>loadTemplates(Object.values({t:e.o("xcontainer.html")}).flat());

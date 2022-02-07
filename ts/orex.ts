@@ -8,8 +8,7 @@ import {
 	Dragger,
 	InertiaPlugin,
 	MotionPathPlugin,
-	GSDevTools,
-	RoughEase, // GreenSock Animation Platform
+	GSDevTools, // GreenSock Animation Platform
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	preloadTemplates,
@@ -20,9 +19,10 @@ import {
 	XGroup,
 	XDie
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
-} from "../scripts/helpers/bundler.mjs";
+} from "./helpers/bundler.js";
 /*DEVCODE*/
-// import DB from "./helpers/debug.mjs";
+// import DB from "./helpers/debug.js";
+
 /*!DEVCODE*/
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
@@ -32,7 +32,7 @@ Hooks.once("init", async () => {
 	/*DEVCODE*/console.log("STARTING ORE-X"); /*!DEVCODE*/
 
 	// #region ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
-	var CONFIG: any = CONFIG;
+	// Object.assign(CONFIG, {OREX: MAIN as list});
 	CONFIG.OREX = MAIN;
 	// #endregion ▮▮▮▮[Configuration]▮▮▮▮
 
@@ -45,17 +45,8 @@ Hooks.once("init", async () => {
 
 /*DEVCODE*/
 Hooks.once("ready", () => {
-	// window.REF = game.OREX;
-	// window.DB = new DB({
-	// 	topLeft: 10,
-	// 	botLeft: 5,
-	// 	topRight: 6,
-	// 	botRight: 4
-	// });
-
-	var window: any = window;
-	
-	Object.entries({
+	console.log({
+		"this": this,
 		U,
 		XItem,
 		XGroup,
@@ -63,11 +54,12 @@ Hooks.once("ready", () => {
 		gsap,
 		MotionPathPlugin,
 		GSDevTools,
-		pause: () => gsap.globalTimeline.pause(),
-		play: () => gsap.globalTimeline.play()
-	}).forEach(([key, ref]) => {
-		window[key] = ref;
-	});
-	window.XITEM = new XItem({id: "test-item", template: U.getTemplatePath("xcontainer.hbs")});
+		"pause": () => gsap.globalTimeline.pause(),
+		"play": () => gsap.globalTimeline.play()
+	} as list);
+
+
+	const TestXItem = new XItem({id: "test-item", template: U.getTemplatePath("xcontainer.hbs"), parent: XItem.XCONTAINER});
+	console.log(TestXItem);
 });
 /*!DEVCODE*/

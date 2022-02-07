@@ -4,6 +4,10 @@
 		"allowUmdGlobalAccess": true,
 		"allowJs": true,
 		"checkJs": false,
+		"lib": [
+			"ES6",
+			"DOM"
+		],
 		"module": "ES6",
 		"moduleResolution": "node",
 		"noImplicitAny": true,
@@ -18,9 +22,10 @@
 		"strictNullChecks": true,
 		"outDir": "scripts",
 		"rootDir": ".",
-		"types": ["@league-of-foundry-developers/foundry-vtt-types/index-lenient"],
-		"typeRoots": ["./node_modules/@types/", "./types/"]
+		"target": "ES6",
+		"types": ["@league-of-foundry-developers/foundry-vtt-types/index-lenient", "ts/@types", "ts/@types/gsap"],
+		"typeRoots": ["./node_modules/@types/", "./"]
 	},
-	"exclude": ["dist/**", "scripts/**", "gulpfile.js", "note_modules/**", ".eslintrc.js", ".gitignore", ".htmlhintrc", ".npmignore", ".prettierrc.js", "stylelint.config.js"],
+	"exclude": ["dist/**", "scripts/**", "gulpfile.js", "node_modules/**", ".eslintrc.js", ".gitignore", ".htmlhintrc", ".npmignore", ".prettierrc.js", "stylelint.config.js"],
 	"references": []	
 }
