@@ -30,6 +30,7 @@ gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
 // ████████ ON INIT: On-Initialization Hook ████████
 Hooks.once("init", () => __awaiter(void 0, void 0, void 0, function* () {
 
+    // CONFIG.debug.hooks = true;
     // ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
     // Object.assign(CONFIG, {OREX: MAIN as list});
     CONFIG.OREX = MAIN;

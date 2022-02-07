@@ -3,7 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type list = {[key: string]: any};
 type stringLike = string | number | boolean | null | undefined;
+type anyArray = Array<unknown>;
+type anyList = Record<string | number,unknown>;
+
+
 type sFunc = (([key, val]: [number | string, any]) => boolean) | ((val: any, key: number) => boolean);
+type keyMapFunc = (key: string | number, val?: unknown) => string | number;
+type valMapFunc = (val: unknown, key?: number | string) => unknown;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 type int = number; // Soft assertion that number is integer

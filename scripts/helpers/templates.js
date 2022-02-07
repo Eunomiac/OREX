@@ -16,7 +16,8 @@ U
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 export default () => __awaiter(void 0, void 0, void 0, function* () {
     return loadTemplates(Object.values({
-        xContainer: U.getTemplatePath("xcontainer.hbs")
+        xContainer: U.getTemplatePath("xcontainer.hbs"),
+        xDie: U.getTemplatePath("xdie.hbs")
         // Template Paths by Category; use U.getTemplatePath(fileName, subPath)
     }).flat());
 });

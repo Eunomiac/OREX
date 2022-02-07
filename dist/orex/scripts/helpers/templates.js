@@ -21,7 +21,8 @@ U
  } from "./bundler.js";
 export default () => __awaiter(void 0, void 0, void 0, function* () {
     return loadTemplates(Object.values({
-        xContainer: U.getTemplatePath("xcontainer.html")
+        xContainer: U.getTemplatePath("xcontainer.html"),
+        xDie: U.getTemplatePath("xdie.html")
         // Template Paths by Category; use U.getTemplatePath(fileName, subPath)
     }).flat());
 });

@@ -258,7 +258,7 @@ const _romanNumerals = {
 // }
 
 
-const _parseSearchFunc = (obj: list | Array<unknown>, searchFunc: sFunc | RegExp | number | string): sFunc => {
+const _parseSearchFunc = (obj: anyList | anyArray, searchFunc: sFunc | RegExp | number | string): sFunc => {
 	// Transforms a variety of values into a search/test function for use with utility object and array functions.
 	// Can include regexp patterns, element indices, key names, functions, or the strings "first", "last" and "random".
 	if (typeof searchFunc === "function") {
@@ -299,16 +299,16 @@ const GMID = (): string | false => game?.users?.find((user) => user.isGM)?.id ??
 
 // #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
 const isNumber = (ref: unknown): ref is number => typeof ref === "number" && !isNaN(ref);
-const isList = (ref: unknown): ref is list => Object.getPrototypeOf(ref) === Object.prototype;
-const isArray = (ref: unknown): ref is Array<unknown> => Array.isArray(ref);
+const isList = (ref: unknown): ref is anyList => Object.getPrototypeOf(ref) === Object.prototype;
+const isArray = (ref: unknown): ref is anyArray => Array.isArray(ref);
 const isInt = (ref: unknown): ref is int => isNumber(ref) && Math.round(ref) === ref;
 const isFloat = (ref: unknown): ref is float => isNumber(ref) && Math.round(ref) !== ref;
 const isPosInt = (ref: unknown): ref is posInt => isInt(ref) && ref >= 0;
 const isIterable = (ref: unknown): ref is Iterable<unknown> => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
 const isHTMLCode = (ref: unknown): ref is HTMLCode => typeof ref === "string" && /^<.*>$/u.test(ref);
-const hasItems = (ref: unknown): ref is list | Array<unknown> => (Array.isArray(ref) || isList(ref)) && Object.keys(ref).length > 0;
-const areEqual = (...refs: Array<unknown>) => {
+const hasItems = (ref: unknown): ref is anyList | anyArray => (Array.isArray(ref) || isList(ref)) && Object.keys(ref).length > 0;
+const areEqual = (...refs: anyArray) => {
 	function checkEquality(ref1: unknown, ref2: unknown): boolean {
 		if (typeof ref1 !== typeof ref2) { return false }
 		if ([ref1, ref2].includes(null)) { return ref1 === ref2 }
@@ -669,9 +669,9 @@ const getAngleDelta = (angleStart: number, angleEnd: number) => cycleAngle(angle
 // #endregion ▄▄▄▄▄ NUMBERS ▄▄▄▄▄
 
 // #region ████████ ARRAYS: Array Manipulation ████████ ~
-const randElem = (array: Array<unknown>): unknown => gsap.utils.random(array);
-const randIndex = (array: Array<unknown>): posInt => randInt(0, array.length - 1);
-const makeCycler = (array: Array<unknown>, index = 0): Generator => {
+const randElem = (array: anyArray): unknown => gsap.utils.random(array);
+const randIndex = (array: anyArray): posInt => randInt(0, array.length - 1);
+const makeCycler = (array: anyArray, index = 0): Generator => {
 	// Given an array and a starting index, returns a generator function that can be used
 	// to iterate over the array indefinitely, or wrap out-of-bounds index values
 	const wrapper = gsap.utils.wrap(array);
@@ -683,9 +683,9 @@ const makeCycler = (array: Array<unknown>, index = 0): Generator => {
 		}
 	}());
 };
-const getLast = (array: Array<unknown>) => (array.length ? array[array.length - 1] : undefined);
-const unique = (array: Array<unknown>) => {
-	const returnArray: Array<unknown> = [];
+const getLast = (array: anyArray) => (array.length ? array[array.length - 1] : undefined);
+const unique = (array: anyArray) => {
+	const returnArray: anyArray = [];
 	array.forEach((item) => { if (!returnArray.includes(item)) { returnArray.push(item) } });
 	return returnArray;
 };
@@ -724,39 +724,49 @@ export const Remove = (arr, findFunc = (e, i, a) => true) => {
 // #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
 // Given an object and a predicate function, returns array of two objects:
 //   one with entries that pass, one with entries that fail.
-const partition = (obj: list, predicate: (val: unknown, key: unknown) => boolean = () => true): [list, list] => [
+const partition = (obj: anyList | anyArray, predicate: (val: unknown, key: unknown) => boolean = () => true): [anyList | anyArray, anyList | anyArray] => [
 	objFilter(obj, predicate),
-	objFilter(obj, (v, k) => !predicate(v, k))
+	objFilter(obj, (v: unknown, k: unknown) => !predicate(v, k))
 ];
-const objMap = (obj: list, keyFunc: undefined | null | ((key: unknown, val?: unknown) => unknown), valFunc?: null | ((val: unknown, key?: unknown) => unknown)): list => {
+function objMap(obj: anyList | anyArray, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): anyList | anyArray {
 	// An object-equivalent Array.map() function, which accepts mapping functions to transform both keys and values.
 	// If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-	[valFunc, keyFunc] = [valFunc, keyFunc].filter((x) => ["function", "boolean"].includes(typeof x));
-	if (getType(obj) === "array") { return obj.map(valFunc) }
-	const kFunc = keyFunc || ((k) => k);
-	const vFunc = valFunc || ((v) => v);
-	return Object.fromEntries(Object.entries(obj).map(([key, val]) => [kFunc(key, val), vFunc(val, key)]));
-};
-const objFilter = (obj: list, keyFunc: undefined | null | ((key: unknown, val?: unknown) => unknown), valFunc?: null | ((val: unknown, key?: unknown) => unknown)): list => {
+	if (!valFunc) {
+		valFunc = keyFunc as valMapFunc;
+		keyFunc = false;
+	}
+	if (!keyFunc) {
+		keyFunc = ((k: unknown) => k);
+	}
+	if (Array.isArray(obj)) { return obj.map(valFunc) }
+	return Object.fromEntries(Object.entries(obj).map(([key, val]) => [(keyFunc as keyMapFunc)(key, val), (valFunc as valMapFunc)(val, key)]));
+}
+const objFilter = (obj: anyList | anyArray, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): anyList | anyArray => {
 	// An object-equivalent Array.filter() function, which accepts filter functions for both keys and/or values.
 	// If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-	[valFunc, keyFunc] = [valFunc, keyFunc].filter((x) => ["function", "boolean"].includes(typeof x));
-	if (getType(obj) === "array") { return obj.filter(valFunc) }
+	if (!valFunc) {
+		valFunc = keyFunc as valMapFunc;
+		keyFunc = false;
+	}
+	if (!keyFunc) {
+		keyFunc = ((k: unknown) => k);
+	}
+	if (Array.isArray(obj)) { return obj.filter(valFunc) }
 	const kFunc = keyFunc || (() => true);
 	const vFunc = valFunc || (() => true);
 	return Object.fromEntries(Object.entries(obj).filter(([key, val]) => kFunc(key) && vFunc(val)));
 };
-const objForEach = (obj: list, func: (key?: stringLike, val?: stringLike) => unknown): void => {
+const objForEach = (obj: anyList, func: (val: unknown, key?: number | string) => void): void => {
 	// An object-equivalent Array.forEach() function, which accepts one function(val, key) to perform for each member.
-	if (getType(obj) === "array") {
+	if (Array.isArray(obj)) {
 		obj.forEach(func);
 	} else {
 		Object.entries(obj).forEach(([key, val]) => func(val, key));
 	}
 };
 	// Prunes an object of certain values (undefined by default)
-const objCompact = (obj: list, exclude: Array<stringLike> = [undefined]) => objFilter(obj, (val: unknown) => !exclude.includes(`${val}`));
-const remove = (obj: list | Array<unknown>, searchFunc: sFunc) => {
+const objCompact = (obj: anyList, preserve: Array<stringLike> = []) => objFilter(obj, (val: unknown) => preserve.includes(`${val}`));
+const remove = (obj: anyList | anyArray, searchFunc: sFunc) => {
 	// Given an array or list and a search function, will remove the first matching element and return it.
 	if (isArray(obj)) {
 		// @ts-expect-error Hopefully just temporary to get this to compile: Need to figure out how to properly define sFunc (keyFunc/valFunc types?)
@@ -783,147 +793,110 @@ const remove = (obj: list | Array<unknown>, searchFunc: sFunc) => {
 	}
 	return false;
 };
-const replace = (obj: list, searchFunc: sFunc, repVal: unknown) => {
+const replace = (obj: anyList | anyArray, searchFunc: sFunc, repVal: unknown) => {
 	// As remove, except instead replaces the element with the provided value.
 	// Returns true/false to indicate whether the replace action succeeded.
-	const objType = getType(obj);
 	let repKey;
-	if (objType === "list") {
+	if (isList(obj)) {
 		[repKey] = Object.entries(obj).find(_parseSearchFunc(obj, searchFunc)) || [false];
 		if (repKey === false) { return false }
-	} else if (objType === "array") {
+	} else if (isArray(obj)) {
+		// @ts-expect-error Hopefully just temporary to get this to compile: Need to figure out how to properly define sFunc (keyFunc/valFunc types?)
 		repKey = obj.findIndex(_parseSearchFunc(obj, searchFunc));
 		if (repKey === -1) { return false }
 	}
+	if (typeof repKey !== "number") {
+		repKey = `${repKey}`;
+	}
 	if (typeof repVal === "function") {
+		// @ts-expect-error Hopefully just temporary to get this to compile: Need to figure out how to properly define sFunc (keyFunc/valFunc types?)
 		obj[repKey] = repVal(obj[repKey], repKey);
 	} else {
+		// @ts-expect-error Hopefully just temporary to get this to compile: Need to figure out how to properly define sFunc (keyFunc/valFunc types?)
 		obj[repKey] = repVal;
 	}
 	return true;
 };
-/*~ #region TO PROCESS: RemoveFirst, PullElement, PullIndex, Clone, Merge, Expand, Flatten, SumVals, MakeDict, NestedValues
-const removeFirst = (array, element) => array.splice(array.findIndex((v) => v === element));
-const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkFunc(_v, _i, _a) }) => {
-  const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
-  return index !== -1 && array.splice(index, 1).pop();
+const removeFirst = (array: anyArray, element: unknown) => array.splice(array.findIndex((v) => v === element));
+const pullElement = (array: anyArray, checkFunc = (_v: unknown = true, _i = 0, _a: anyArray = []) => { checkFunc(_v, _i, _a) }) => {
+	const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
+	return index !== -1 && array.splice(index, 1).pop();
 };
-const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
-export const Clone = (obj) => {
-  let cloneObj;
-  try {
-    cloneObj = JSON.parse(JSON.stringify(obj));
-  } catch (err) {
-    // THROW({obj, err}, "ERROR: U.Clone()");
-    cloneObj = {...obj};
-  }
-  return cloneObj;
+const pullIndex = (array: anyArray, index: number) => pullElement(array, (v, i) => i === index);
+const objClone = (obj: unknown): unknown => {
+	let cloneObj;
+	try {
+		cloneObj = JSON.parse(JSON.stringify(obj));
+	} catch (err) {
+		if (isIterable(obj)) {
+			cloneObj = {...obj};
+		}
+	}
+	return cloneObj;
 };
-export const Merge = (target, source, {isMergingArrays = true, isOverwritingArrays = true} = {}) => {
-  target = Clone(target);
-  const isObject = (obj) => obj && typeof obj === "object";
+const objMerge = (target: unknown, source: unknown, {isMergingArrays = true, isOverwritingArrays = true}: {isMergingArrays: boolean, isOverwritingArrays: boolean}) => {
+	target = objClone(target);
 
-  if (!isObject(target) || !isObject(source)) {
-    return source;
-  }
+	if (!isList(target) || !isList(source)) { return source }
 
-  Object.keys(source).forEach((key) => {
-    const targetValue = target[key];
-    const sourceValue = source[key];
+	Object.keys(source).forEach((key: string) => {
+		/*DEVCODE*/if (isList(target)) {/*!DEVCODE*/
+			const targetValue: unknown = target[key];
+			const sourceValue: unknown = source[key];
 
-    if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
-      if (isOverwritingArrays) {
-        target[key] = sourceValue;
-      } else if (isMergingArrays) {
-        target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : Merge(x, sourceValue[i], {isMergingArrays, isOverwritingArrays})));
-        if (sourceValue.length > targetValue.length) {
-          target[key] = target[key].concat(sourceValue.slice(targetValue.length));
-        }
-      } else {
-        target[key] = targetValue.concat(sourceValue);
-      }
-    } else if (isObject(targetValue) && isObject(sourceValue)) {
-      target[key] = Merge({...targetValue}, sourceValue, {isMergingArrays, isOverwritingArrays});
-    } else {
-      target[key] = sourceValue;
-    }
-  });
+			if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
+				if (isOverwritingArrays) {
+					target[key] = sourceValue;
+				} else if (isMergingArrays) {
+					target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : objMerge(x, sourceValue[i], {isMergingArrays, isOverwritingArrays})));
+					if (sourceValue.length > targetValue.length) {
+						// @ts-expect-error Hopefully just temporary to get this to compile: Need to figure out how to properly define sFunc (keyFunc/valFunc types?)
+						target[key] = target[key].concat(sourceValue.slice(targetValue.length));
+					}
+				} else {
+					target[key] = targetValue.concat(sourceValue);
+				}
+			} else if (isList(targetValue) && isList(sourceValue)) {
+				target[key] = objMerge({...targetValue}, sourceValue, {isMergingArrays, isOverwritingArrays});
+			} else {
+				target[key] = sourceValue;
+			}
+		/*DEVCODE*/}/*!DEVCODE*/
+	});
 
-  return target;
+	return target;
 };
-export const Expand = (obj) => {
-  const expObj = {};
-  for (let [key, val] of Object.entries(obj)) {
-    if (getType(val) === "Object") {
-      val = Expand(val);
-    }
-    setProperty(expObj, key, val);
-  }
-  return expObj;
+const objExpand = (obj: anyList) => {
+	const expObj = {};
+	for (let [key, val] of Object.entries(obj)) {
+		if (isList(val)) {
+			val = objExpand(val);
+		}
+		setProperty(expObj, key, val);
+	}
+	return expObj;
 };
-export const Flatten = (obj) => {
-  const flatObj = {};
-  for (const [key, val] of Object.entries(obj)) {
-    if (getType(val) === "Object") {
-      if (isObjectEmpty(val)) {
-        flatObj[key] = val;
-      } else {
-        for (const [subKey, subVal] of Object.entries(Flatten(val))) {
-          flatObj[`${key}.${subKey}`] = subVal;
-        }
-      }
-    } else {
-      flatObj[key] = val;
-    }
-  }
-  return flatObj;
+const objFlatten = (obj: anyList) => {
+	const flatObj: anyList = {};
+	for (const [key, val] of Object.entries(obj)) {
+		if (isList(val)) {
+			if (isObjectEmpty(val)) {
+				flatObj[key] = val;
+			} else {
+				for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
+					flatObj[`${key}.${subKey}`] = subVal;
+				}
+			}
+		} else {
+			flatObj[key] = val;
+		}
+	}
+	return flatObj;
 };
-export const SumVals = (...objs) => {
-  const valKey = objs.pop();
-  if (typeof valKey === "object") {
-    objs.push(valKey);
-  }
-  return objs.reduce(
-    (tot, obj) => tot + Object.values(obj).reduce((subTot, val) => subTot + (typeof val === "object" && valKey in val ? val[valKey] : val), 0),
-    0
-  );
-};
-export const MakeDict = (objRef, valFunc = (v) => v, keyFunc = (k) => k) => {
-  const newDict = {};
-  for (const key of Object.keys(objRef)) {
-    const val = objRef[key];
-    const newKey = keyFunc(key, val);
-    let newVal = valFunc(val, key);
-    if (typeof newVal === "object" && !Array.isArray(newVal)) {
-      const newValProp = ((nVal) => ["label", "name", "value"].find((x) => x in nVal))(newVal);
-      newVal = newValProp && newVal[newValProp];
-    }
-    if (["string", "number"].includes(typeof newVal)) {
-      newDict[newKey] = Loc(newVal);
-    }
-  }
-  return newDict;
-};
-
-export const NestedValues = (obj, flatVals = []) => {
-  if (obj && typeof obj === "object") {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key];
-      if (val && typeof val === "object") {
-        flatVals.push(...NestedValues(val));
-      } else {
-        flatVals.push(val);
-      }
-    }
-    return flatVals;
-  }
-  return [obj].flat();
-};
-#endregion ~*/
 // #endregion ▄▄▄▄▄ OBJECTS ▄▄▄▄▄
 
 // #region ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████ ~
-const getDynamicFunc = (funcName: string, func: (...args: Array<unknown>) => unknown, context: object) => {
+const getDynamicFunc = (funcName: string, func: (...args: anyArray) => unknown, context: object) => {
 	if (typeof func === "function") {
 		const dFunc = {[funcName](...args: Array<stringLike>) { return func(...args) }}[funcName];
 		return context ? dFunc.bind(context) : dFunc;
@@ -981,7 +954,6 @@ const getTemplatePath = (fileRelativePath: string) => {
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 
 // #region ████████ EXPORTS ████████ ~
-/* eslint-disable sort-keys */
 export default {
 	// ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 	GMID,
@@ -1028,7 +1000,8 @@ export default {
 	// ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
 	partition,
 	objMap, objFilter, objForEach, objCompact,
-	remove, replace,
+	remove, replace, removeFirst, pullElement, pullIndex,
+	objClone, objMerge, objExpand, objFlatten,
 
 	// ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
 	getDynamicFunc,

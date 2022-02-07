@@ -29,9 +29,11 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-var _XItem_instances, _a, _XItem_XCONTAINER, _XItem_parent, _XItem_classes_get;
+var _XItem_instances, _a, _XItem_XCONTAINER, _XItem_parent, _XItem_positionData, _XItem_setQueue, _XItem_classes_get;
 // #region ████████ IMPORTS ████████ ~
 import { 
+// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+gsap, 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 U, XElem
@@ -43,6 +45,8 @@ export default class XItem extends Application {
         super(options);
         _XItem_instances.add(this);
         _XItem_parent.set(this, void 0);
+        _XItem_positionData.set(this, void 0);
+        _XItem_setQueue.set(this, {});
         __classPrivateFieldSet(this, _XItem_parent, parent, "f");
         this.render(true);
     }
@@ -68,6 +72,17 @@ export default class XItem extends Application {
         context.classes = __classPrivateFieldGet(this, _XItem_instances, "a", _XItem_classes_get).join(" ");
         return context;
     }
+    set(properties) {
+        if (this.rendered) {
+            return gsap.set(this.elem, properties);
+        }
+        Object.assign(__classPrivateFieldGet(this, _XItem_setQueue, "f"), properties);
+        return false;
+    }
+    applyGSAPSets() {
+        gsap.set(this.elem, __classPrivateFieldGet(this, _XItem_setQueue, "f"));
+        __classPrivateFieldSet(this, _XItem_setQueue, {}, "f");
+    }
     _render(force, options) {
         const _super = Object.create(null, {
             _render: { get: () => super._render }
@@ -77,11 +92,13 @@ export default class XItem extends Application {
             if (this.parent) {
                 $(this.elem).appendTo(this.parent.elem);
             }
-            this.pos = new XElem(this.elem, this);
+            __classPrivateFieldSet(this, _XItem_positionData, new XElem(this.elem, this), "f");
+            this.applyGSAPSets();
         });
     }
     get elem() { return this.element[0]; }
     get parent() { return __classPrivateFieldGet(this, _XItem_parent, "f"); }
+    get positionData() { return __classPrivateFieldGet(this, _XItem_positionData, "f"); }
 }
-_a = XItem, _XItem_parent = new WeakMap(), _XItem_instances = new WeakSet(), _XItem_classes_get = function _XItem_classes_get() { return this.options.classes; };
+_a = XItem, _XItem_parent = new WeakMap(), _XItem_positionData = new WeakMap(), _XItem_setQueue = new WeakMap(), _XItem_instances = new WeakSet(), _XItem_classes_get = function _XItem_classes_get() { return this.options.classes; };
 _XItem_XCONTAINER = { value: void 0 };

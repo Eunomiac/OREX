@@ -296,7 +296,7 @@ const _parseSearchFunc = (obj, searchFunc) => {
 };
 
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
-const GMID = () => { var _a, _b, _c; return (_c = (_b = (_a = game === null || game === void 0 ? void 0 : game.users) === null || _a === void 0 ? void 0 : _a.find((user) => user.isGM)) === null || _b === void 0 ? void 0 : _b.id) !== null && _c !== void 0 ? _c : false; };
+const GMID = () => { var _b, _c, _d; return (_d = (_c = (_b = game === null || game === void 0 ? void 0 : game.users) === null || _b === void 0 ? void 0 : _b.find((user) => user.isGM)) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : false; };
 // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isList = (ref) => Object.getPrototypeOf(ref) === Object.prototype;
@@ -341,7 +341,7 @@ const areEqual = (...refs) => {
                 try {
                     return JSON.stringify(ref1) === JSON.stringify(ref2);
                 }
-                catch (_a) {
+                catch (_b) {
                     return false;
                 }
             }
@@ -451,7 +451,7 @@ const padNum = (num, numDecDigits) => {
     return `${leftDigits}.${"0".repeat(numDecDigits)}`;
 };
 const stringifyNum = (num) => {
-    var _a;
+    var _b;
     // Can take string representations of numbers, either in standard or scientific/engineering notation.
     // Returns a string representation of the number in standard notation.
     if (pFloat(num) === 0) {
@@ -463,7 +463,7 @@ const stringifyNum = (num) => {
     if (typeof base === "string" && typeof exp === "string") {
         let baseInts = regExtract(base, /^-?(\d+)/), baseDecs = regExtract(base, /\.(\d+)/);
         if (isArray(baseInts) && isArray(baseDecs)) {
-            baseInts = (_a = baseInts.pop()) === null || _a === void 0 ? void 0 : _a.replace(/^0+/, "");
+            baseInts = (_b = baseInts.pop()) === null || _b === void 0 ? void 0 : _b.replace(/^0+/, "");
             baseDecs = lCase(baseDecs === null || baseDecs === void 0 ? void 0 : baseDecs.pop()).replace(/0+$/, "");
             if (!isUndefined(baseInts) && !isUndefined(baseDecs)) {
                 const numFinalInts = Math.max(0, baseInts.length + exp);
@@ -492,7 +492,7 @@ const stringifyNum = (num) => {
     return `${num}`;
 };
 const verbalizeNum = (num) => {
-    var _a, _b;
+    var _b, _c;
     num = stringifyNum(num);
     const getTier = (trioNum) => {
         if (trioNum < _numberWords.tiers.length) {
@@ -532,8 +532,8 @@ const verbalizeNum = (num) => {
         numWords.push("negative");
     }
     const [integers, decimals] = num.replace(/[,|\s|-]/g, "").split(".");
-    const intArray = (_b = (_a = integers.split("").reverse().join("")
-        .match(/.{1,3}/g)) === null || _a === void 0 ? void 0 : _a.map((v) => v.split("").reverse().join(""))) !== null && _b !== void 0 ? _b : [];
+    const intArray = (_c = (_b = integers.split("").reverse().join("")
+        .match(/.{1,3}/g)) === null || _b === void 0 ? void 0 : _b.map((v) => v.split("").reverse().join(""))) !== null && _c !== void 0 ? _c : [];
     const intStrings = [];
     while (intArray.length) {
         const thisTrio = intArray.pop();
@@ -557,10 +557,10 @@ const verbalizeNum = (num) => {
     return numWords.join(" ");
 };
 const ordinalizeNum = (num, isReturningWords = false) => {
-    var _a, _b;
+    var _b, _c;
     if (isReturningWords) {
-        const [numText, suffix] = (_a = lCase(verbalizeNum(num)).match(/.*?[-|\s]?(\w*?)$/)) !== null && _a !== void 0 ? _a : ["", ""];
-        return numText.replace(new RegExp(`${suffix}$`), (_b = _ordinals[suffix]) !== null && _b !== void 0 ? _b : `${suffix}th`);
+        const [numText, suffix] = (_b = lCase(verbalizeNum(num)).match(/.*?[-|\s]?(\w*?)$/)) !== null && _b !== void 0 ? _b : ["", ""];
+        return numText.replace(new RegExp(`${suffix}$`), (_c = _ordinals[suffix]) !== null && _c !== void 0 ? _c : `${suffix}th`);
     }
     if (/\.|1[1-3]$/.test(`${num}`)) {
         return `${num}th`;
@@ -647,7 +647,7 @@ const isIn = (needle, haystack = [], fuzziness = 0) => {
         try {
             return Array.from(haystack);
         }
-        catch (_a) {
+        catch (_b) {
             throw new Error(`Haystack type must be [list, array], not ${typeof haystack}: ${JSON.stringify(haystack)}`);
         }
     })();
@@ -718,22 +718,32 @@ const partition = (obj, predicate = () => true) => [
     objFilter(obj, predicate),
     objFilter(obj, (v, k) => !predicate(v, k))
 ];
-const objMap = (obj, keyFunc, valFunc) => {
+function objMap(obj, keyFunc, valFunc) {
     // An object-equivalent Array.map() function, which accepts mapping functions to transform both keys and values.
     // If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-    [valFunc, keyFunc] = [valFunc, keyFunc].filter((x) => ["function", "boolean"].includes(typeof x));
-    if (getType(obj) === "array") {
+    if (!valFunc) {
+        valFunc = keyFunc;
+        keyFunc = false;
+    }
+    if (!keyFunc) {
+        keyFunc = ((k) => k);
+    }
+    if (Array.isArray(obj)) {
         return obj.map(valFunc);
     }
-    const kFunc = keyFunc || ((k) => k);
-    const vFunc = valFunc || ((v) => v);
-    return Object.fromEntries(Object.entries(obj).map(([key, val]) => [kFunc(key, val), vFunc(val, key)]));
-};
+    return Object.fromEntries(Object.entries(obj).map(([key, val]) => [keyFunc(key, val), valFunc(val, key)]));
+}
 const objFilter = (obj, keyFunc, valFunc) => {
     // An object-equivalent Array.filter() function, which accepts filter functions for both keys and/or values.
     // If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-    [valFunc, keyFunc] = [valFunc, keyFunc].filter((x) => ["function", "boolean"].includes(typeof x));
-    if (getType(obj) === "array") {
+    if (!valFunc) {
+        valFunc = keyFunc;
+        keyFunc = false;
+    }
+    if (!keyFunc) {
+        keyFunc = ((k) => k);
+    }
+    if (Array.isArray(obj)) {
         return obj.filter(valFunc);
     }
     const kFunc = keyFunc || (() => true);
@@ -742,7 +752,7 @@ const objFilter = (obj, keyFunc, valFunc) => {
 };
 const objForEach = (obj, func) => {
     // An object-equivalent Array.forEach() function, which accepts one function(val, key) to perform for each member.
-    if (getType(obj) === "array") {
+    if (Array.isArray(obj)) {
         obj.forEach(func);
     }
     else {
@@ -750,9 +760,9 @@ const objForEach = (obj, func) => {
     }
 };
 // Prunes an object of certain values (undefined by default)
-const objCompact = (obj, exclude = [undefined]) => objFilter(obj, (val) => !exclude.includes(`${val}`));
+const objCompact = (obj, preserve = []) => objFilter(obj, (val) => preserve.includes(`${val}`));
 const remove = (obj, searchFunc) => {
-    var _a;
+    var _b;
     // Given an array or list and a search function, will remove the first matching element and return it.
     if (isArray(obj)) {
 
@@ -771,7 +781,7 @@ const remove = (obj, searchFunc) => {
         }
     }
     else if (isList(obj)) {
-        const [remKey] = (_a = Object.entries(obj).find(_parseSearchFunc(obj, searchFunc))) !== null && _a !== void 0 ? _a : [];
+        const [remKey] = (_b = Object.entries(obj).find(_parseSearchFunc(obj, searchFunc))) !== null && _b !== void 0 ? _b : [];
         if (remKey) {
             const remVal = obj[remKey];
             // const {[remKey]: remVal} = obj;
@@ -784,29 +794,114 @@ const remove = (obj, searchFunc) => {
 const replace = (obj, searchFunc, repVal) => {
     // As remove, except instead replaces the element with the provided value.
     // Returns true/false to indicate whether the replace action succeeded.
-    const objType = getType(obj);
     let repKey;
-    if (objType === "list") {
+    if (isList(obj)) {
         [repKey] = Object.entries(obj).find(_parseSearchFunc(obj, searchFunc)) || [false];
         if (repKey === false) {
             return false;
         }
     }
-    else if (objType === "array") {
+    else if (isArray(obj)) {
+
         repKey = obj.findIndex(_parseSearchFunc(obj, searchFunc));
         if (repKey === -1) {
             return false;
         }
     }
+    if (typeof repKey !== "number") {
+        repKey = `${repKey}`;
+    }
     if (typeof repVal === "function") {
+
         obj[repKey] = repVal(obj[repKey], repKey);
     }
     else {
+
         obj[repKey] = repVal;
     }
     return true;
 };
+const removeFirst = (array, element) => array.splice(array.findIndex((v) => v === element));
+const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkFunc(_v, _i, _a); }) => {
+    const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
+    return index !== -1 && array.splice(index, 1).pop();
+};
+const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
+const objClone = (obj) => {
+    let cloneObj;
+    try {
+        cloneObj = JSON.parse(JSON.stringify(obj));
+    }
+    catch (err) {
+        if (isIterable(obj)) {
+            cloneObj = Object.assign({}, obj);
+        }
+    }
+    return cloneObj;
+};
+const objMerge = (target, source, { isMergingArrays = true, isOverwritingArrays = true }) => {
+    target = objClone(target);
+    if (!isList(target) || !isList(source)) {
+        return source;
+    }
+    Object.keys(source).forEach((key) => {
 
+            const targetValue = target[key];
+            const sourceValue = source[key];
+            if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
+                if (isOverwritingArrays) {
+                    target[key] = sourceValue;
+                }
+                else if (isMergingArrays) {
+                    target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : objMerge(x, sourceValue[i], { isMergingArrays, isOverwritingArrays })));
+                    if (sourceValue.length > targetValue.length) {
+
+                        target[key] = target[key].concat(sourceValue.slice(targetValue.length));
+                    }
+                }
+                else {
+                    target[key] = targetValue.concat(sourceValue);
+                }
+            }
+            else if (isList(targetValue) && isList(sourceValue)) {
+                target[key] = objMerge(Object.assign({}, targetValue), sourceValue, { isMergingArrays, isOverwritingArrays });
+            }
+            else {
+                target[key] = sourceValue;
+            }
+
+    });
+    return target;
+};
+const objExpand = (obj) => {
+    const expObj = {};
+    for (let [key, val] of Object.entries(obj)) {
+        if (isList(val)) {
+            val = objExpand(val);
+        }
+        setProperty(expObj, key, val);
+    }
+    return expObj;
+};
+const objFlatten = (obj) => {
+    const flatObj = {};
+    for (const [key, val] of Object.entries(obj)) {
+        if (isList(val)) {
+            if (isObjectEmpty(val)) {
+                flatObj[key] = val;
+            }
+            else {
+                for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
+                    flatObj[`${key}.${subKey}`] = subVal;
+                }
+            }
+        }
+        else {
+            flatObj[key] = val;
+        }
+    }
+    return flatObj;
+};
 // ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
 const getDynamicFunc = (funcName, func, context) => {
     if (typeof func === "function") {
@@ -858,7 +953,6 @@ const getTemplatePath = (fileRelativePath) => {
     return `/systems/orex/templates/${fileRelativePath}`;
 };
 // ████████ EXPORTS ████████
-
 export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
     GMID,
@@ -898,7 +992,8 @@ export default {
     // ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
     partition,
     objMap, objFilter, objForEach, objCompact,
-    remove, replace,
+    remove, replace, removeFirst, pullElement, pullIndex,
+    objClone, objMerge, objExpand, objFlatten,
     // ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
     getDynamicFunc,
     // ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████

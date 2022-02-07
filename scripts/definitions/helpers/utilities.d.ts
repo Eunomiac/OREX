@@ -1,3 +1,5 @@
+/// <reference types="ts/@types" />
+declare function objMap(obj: anyList | anyArray, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): anyList | anyArray;
 declare function get(target: gsap.TweenTarget, property: string, unit: string): number;
 declare function get(target: gsap.TweenTarget, property: string): string | number;
 declare const _default: {
@@ -6,8 +8,8 @@ declare const _default: {
     isPosInt: (ref: unknown) => ref is number;
     isIterable: (ref: unknown) => ref is Iterable<unknown>;
     isHTMLCode: (ref: unknown) => ref is string;
-    hasItems: (ref: unknown) => ref is list | unknown[];
-    areEqual: (...refs: unknown[]) => boolean;
+    hasItems: (ref: unknown) => ref is anyList | anyArray;
+    areEqual: (...refs: anyArray) => boolean;
     pFloat: (ref: unknown, sigDigits?: number | undefined, isStrict?: boolean) => number;
     pInt: (ref: unknown, isStrict?: boolean) => number;
     radToDeg: (rad: number, isConstrained?: boolean) => number;
@@ -32,8 +34,8 @@ declare const _default: {
     romanizeNum: (num: number, isUsingGroupedChars?: boolean) => string;
     loremIpsum: (numWords?: number) => string;
     randWord: (numWords?: number, wordList?: string[]) => string;
-    isIn: (needle: stringLike, haystack?: stringLike[], fuzziness?: number) => stringLike;
-    isInExact: (needle: stringLike, haystack: stringLike[]) => stringLike;
+    isIn: (needle: stringLike, haystack?: stringLike[], fuzziness?: number) => unknown;
+    isInExact: (needle: stringLike, haystack: stringLike[]) => unknown;
     randNum: (min: number, max: number, snap?: number) => number;
     randInt: (min: number, max: number) => number;
     coinFlip: () => boolean;
@@ -43,19 +45,29 @@ declare const _default: {
     getDistance: ({ x: x1, y: y1 }: point, { x: x2, y: y2 }: point) => number;
     getAngle: ({ x: x1, y: y1 }: point, { x: x2, y: y2 }: point, { x: xO, y: yO }?: point) => number;
     getAngleDelta: (angleStart: number, angleEnd: number) => number;
-    randElem: (array: unknown[]) => unknown;
-    randIndex: (array: unknown[]) => number;
-    makeCycler: (array: unknown[], index?: number) => Generator<unknown, any, unknown>;
-    getLast: (array: unknown[]) => unknown;
-    unique: (array: unknown[]) => unknown[];
-    partition: (obj: list, predicate?: (val: unknown, key: unknown) => boolean) => [list, list];
-    objMap: (obj: list, keyFunc: ((key: unknown, val?: unknown) => unknown) | null | undefined, valFunc?: ((val: unknown, key?: unknown) => unknown) | null | undefined) => list;
-    objFilter: (obj: list, keyFunc: ((key: unknown, val?: unknown) => unknown) | null | undefined, valFunc?: ((val: unknown, key?: unknown) => unknown) | null | undefined) => list;
-    objForEach: (obj: list, func: (key?: stringLike, val?: stringLike) => unknown) => void;
-    objCompact: (obj: list, exclude?: stringLike[]) => list;
-    remove: (obj: list | unknown[], searchFunc: sFunc) => any;
-    replace: (obj: list, searchFunc: sFunc, repVal: unknown) => boolean;
-    getDynamicFunc: (funcName: string, func: (...args: unknown[]) => unknown, context: object) => false | ((...args: stringLike[]) => unknown);
+    randElem: (array: anyArray) => unknown;
+    randIndex: (array: anyArray) => number;
+    makeCycler: (array: anyArray, index?: number) => Generator<unknown, any, unknown>;
+    getLast: (array: anyArray) => unknown;
+    unique: (array: anyArray) => anyArray;
+    partition: (obj: anyList | anyArray, predicate?: (val: unknown, key: unknown) => boolean) => [anyList | anyArray, anyList | anyArray];
+    objMap: typeof objMap;
+    objFilter: (obj: anyList | anyArray, keyFunc: false | keyMapFunc | valMapFunc, valFunc?: valMapFunc | undefined) => anyList | anyArray;
+    objForEach: (obj: anyList, func: (val: unknown, key?: string | number | undefined) => void) => void;
+    objCompact: (obj: anyList, preserve?: stringLike[]) => anyList | anyArray;
+    remove: (obj: anyList | anyArray, searchFunc: sFunc) => unknown;
+    replace: (obj: anyList | anyArray, searchFunc: sFunc, repVal: unknown) => boolean;
+    removeFirst: (array: anyArray, element: unknown) => unknown[];
+    pullElement: (array: anyArray, checkFunc?: (_v?: unknown, _i?: number, _a?: anyArray) => void) => unknown;
+    pullIndex: (array: anyArray, index: number) => unknown;
+    objClone: (obj: unknown) => unknown;
+    objMerge: (target: unknown, source: unknown, { isMergingArrays, isOverwritingArrays }: {
+        isMergingArrays: boolean;
+        isOverwritingArrays: boolean;
+    }) => unknown;
+    objExpand: (obj: anyList) => {};
+    objFlatten: (obj: anyList) => anyList;
+    getDynamicFunc: (funcName: string, func: (...args: anyArray) => unknown, context: object) => false | ((...args: stringLike[]) => unknown);
     gsap: typeof globalThis.gsap;
     get: typeof get;
     set: (targets: gsap.TweenTarget, vars: gsap.TweenVars) => gsap.core.Tween;
