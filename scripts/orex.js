@@ -55,29 +55,21 @@ Hooks.once("ready", () => {
         "play": () => gsap.globalTimeline.play()
     });
     const TranslateBox = new XItem({
-        id: "translate-item",
-        template: U.getTemplatePath("xcontainer.hbs"),
-        classes: ["translate-box"],
-        parent: XItem.XCONTAINER
+        classes: ["translate-box"]
     });
     const ScaleBox = new XItem({
-        id: "scale-item",
-        template: U.getTemplatePath("xcontainer.hbs"),
-        classes: ["scale-box"],
-        parent: TranslateBox
-    });
+        classes: ["scale-box"]
+    }, TranslateBox);
+    const ExtraScaleBox = new XItem({
+        classes: ["extra-scale-box"]
+    }, ScaleBox);
     const RotateBox = new XItem({
-        id: "rotate-item",
-        template: U.getTemplatePath("xcontainer.hbs"),
-        classes: ["rotate-box"],
-        parent: ScaleBox
-    });
-    const TestDie = new XItem({
-        id: "test-die",
-        template: U.getTemplatePath("xdie.hbs"),
-        classes: ["x-die"],
-        parent: RotateBox
-    });
+        classes: ["rotate-box"]
+    }, ExtraScaleBox);
+    const CounterRotateBox = new XItem({
+        classes: ["counter-rotate-box"]
+    }, RotateBox);
+    const TestDie = new XDie({}, CounterRotateBox);
     TestDie.set({
         "xPercent": -50,
         "yPercent": -50,
@@ -98,10 +90,8 @@ Hooks.once("ready", () => {
     ].map(({ x, y }, i) => {
         const marker = new XItem({
             id: `die-marker-${i + 1}`,
-            template: U.getTemplatePath("xcontainer.hbs"),
-            classes: ["x-marker"],
-            parent: TestDie
-        });
+            classes: ["x-marker"]
+        }, TestDie);
         marker.set({
             xPercent: -50,
             yPercent: -50,
@@ -117,9 +107,7 @@ Hooks.once("ready", () => {
         .map((color, i) => {
         const marker = new XItem({
             id: `x-marker-${i + 1}`,
-            template: U.getTemplatePath("xcontainer.hbs"),
-            classes: ["x-marker"],
-            parent: XItem.XCONTAINER
+            classes: ["x-marker"]
         });
         marker.set({
             xPercent: -50,
@@ -141,8 +129,15 @@ Hooks.once("ready", () => {
             yoyo: true
         });
         gsap.to(ScaleBox.elem, {
-            scale: 5,
+            scale: 2,
             duration: 15,
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true
+        });
+        gsap.to(ExtraScaleBox.elem, {
+            scale: 3,
+            duration: 5,
             ease: "sine.inOut",
             repeat: -1,
             yoyo: true
@@ -153,13 +148,16 @@ Hooks.once("ready", () => {
             ease: "none",
             repeat: -1
         });
+        gsap.to(CounterRotateBox.elem, {
+            rotation: "-=360",
+            duration: 2,
+            ease: "power4.inOut",
+            repeat: -1
+        });
         gsap.ticker.add(() => {
             xMarkers.forEach((xMarker, i) => {
-                var _a, _b;
-                const posData = (_b = (_a = dieMarkers[i]) === null || _a === void 0 ? void 0 : _a.positionData) === null || _b === void 0 ? void 0 : _b.globalPosition;
-                if (posData) {
-                    xMarker.set(posData);
-                }
+                const { pos } = dieMarkers[i];
+                xMarker.set(pos);
             });
         });
     }, 100);

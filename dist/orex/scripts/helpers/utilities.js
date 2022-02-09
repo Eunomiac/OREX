@@ -493,6 +493,7 @@ const stringifyNum = (num) => {
 };
 const verbalizeNum = (num) => {
     var _b, _c;
+    // Converts a float with absolute magnitude <= 9.99e303 into words.
     num = stringifyNum(num);
     const getTier = (trioNum) => {
         if (trioNum < _numberWords.tiers.length) {
@@ -765,7 +766,6 @@ const remove = (obj, searchFunc) => {
     var _b;
     // Given an array or list and a search function, will remove the first matching element and return it.
     if (isArray(obj)) {
-
         const index = obj.findIndex(_parseSearchFunc(obj, searchFunc));
         if (index >= 0) {
             let remVal;
@@ -855,7 +855,6 @@ const objMerge = (target, source, { isMergingArrays = true, isOverwritingArrays 
                 else if (isMergingArrays) {
                     target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : objMerge(x, sourceValue[i], { isMergingArrays, isOverwritingArrays })));
                     if (sourceValue.length > targetValue.length) {
-
                         target[key] = target[key].concat(sourceValue.slice(targetValue.length));
                     }
                 }
@@ -921,6 +920,13 @@ function get(target, property, unit) {
     return gsap.getProperty(target, property);
 }
 const set = (targets, vars) => gsap.set(targets, vars);
+const waitForRender = (app, func, delay = 300) => {
+    const appArray = [app].flat();
+    if (appArray.every((app) => app.rendered)) {
+        return func();
+    }
+    return new Promise(resolve => setTimeout(resolve, delay)).then(waitForRender(app, func, delay));
+};
 const getRawCirclePath = (r, { x: xO, y: yO } = { x: 0, y: 0 }) => {
     [r, xO, yO] = [r, xO, yO].map((val) => roundNum(val, 2));
     const [b1, b2] = [0.4475 * r, (1 - 0.4475) * r];
@@ -999,6 +1005,7 @@ export default {
     // ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████
     // ░░░░░░░ GreenSock ░░░░░░░
     gsap, get, set,
+    waitForRender,
     getRawCirclePath, drawCirclePath,
     formatAsClass,
     getGSAngleDelta,

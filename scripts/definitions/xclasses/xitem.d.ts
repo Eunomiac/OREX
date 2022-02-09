@@ -1,22 +1,27 @@
 /// <reference types="ts/@types" />
-import { XElem } from "../helpers/bundler.js";
-declare type XOptions = {
-    id: string;
-    classes?: string[];
-    template: string;
-    parent: XItem | null;
-};
-export default class XItem extends Application {
-    #private;
+export default class XItem extends Application implements DOMElement {
+    private static _XCONTAINER;
     static get defaultOptions(): ApplicationOptions;
     static get XCONTAINER(): XItem;
-    getData(): list;
-    constructor({ parent, ...options }: XOptions);
-    set(properties: gsap.TweenVars): gsap.core.Tween | false;
-    applyGSAPSets(): void;
-    _render(force?: boolean | undefined, options?: list | undefined): Promise<void>;
+    private _parent;
+    private _xElem;
+    constructor(options?: XOptions, parent?: XItem | null);
     get elem(): HTMLElement;
     get parent(): XItem | null;
-    get positionData(): XElem | undefined;
+    get _x(): number;
+    get _y(): number;
+    get _pos(): point;
+    get _rotation(): number;
+    get _scale(): number;
+    get x(): number;
+    get y(): number;
+    get pos(): point;
+    get rotation(): number;
+    get scale(): number;
+    get adopt(): (xItem: XItem, isRetainingPosition?: boolean) => void;
+    getData(): object | Promise<object>;
+    to(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
+    from(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
+    fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
+    set(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
 }
-export {};

@@ -1,10 +1,14 @@
 
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type list = {[key: string]: any};
+// type list = {[key: string]: any};
 type stringLike = string | number | boolean | null | undefined;
-type anyArray = Array<unknown>;
-type anyList = Record<string | number,unknown>;
+
+type anyFunc = (...any) => any;
+type anyArray = Array<any>;
+type anyList = Record<string | number,any>;
+type anyPromise = Promise<any>;
+type anyPromiseOrReturn = Promise<any> | any;
 
 
 type sFunc = (([key, val]: [number | string, any]) => boolean) | ((val: any, key: number) => boolean);
@@ -20,14 +24,28 @@ type HTMLCode = string; // Soft assertion that string contains HTML Code
 interface point {x: number, y: number}
 interface pointFull {x: number, y: number, rotation: number, scale: number}
 
-
 interface CONFIG {
-	OREX: list
+	OREX: anyList
 }
 
-interface position {
-	local: pointFull,
-	global: pointFull,
-	height: number,
-	width: number
+interface DOMElement {
+	elem: Element,
+	parent: xItem | null,
+	_x: number,
+	_y: number,
+	_pos: point,
+	_rotation: number,
+	_scale: number,
+	x: number,
+	y: number,
+	pos: point,
+	rotation: number,
+	scale: number,
+	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void
 }
+
+type Optional<Type> = {
+	[Property in keyof Type]+?: Type[Property];
+}
+// type XOptions = {id: string, classes?: string[], template?: string, parent: XItem | null };
+type XOptions = Optional<ApplicationOptions>;

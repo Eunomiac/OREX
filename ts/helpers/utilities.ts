@@ -228,7 +228,7 @@ const _numberWords = {
 	bigSuffixes: ["", "dec", "vigint", "trigint", "quadragint", "quinquagint", "sexagint", "septuagint", "octogint", "nonagint", "cent"]
 		.map((prefix) => (prefix ? `${prefix}illion` : ""))
 };
-const _ordinals: list = {
+const _ordinals: anyList = {
 	zero: "zeroeth", one: "first", two: "second", three: "third", four: "fourth", five: "fifth", eight: "eighth", nine: "ninth", twelve: "twelfth",
 	twenty: "twentieth", thirty: "thirtieth", forty: "fortieth", fifty: "fiftieth", sixty: "sixtieth", seventy: "seventieth", eighty: "eightieth", ninety: "ninetieth"
 };
@@ -397,7 +397,7 @@ const regExtract = (ref: stringLike, pattern: string | RegExp, flags = "u") => {
 	const matches = `${ref}`.match(pattern) || [];
 	return isGrouping ? matches.slice(1) : matches.pop();
 };
-// #endregion ░░░░[REGEXP]░░░░
+// #endregion ░░░░[RegExp]░░░░
 // #region ░░░░░░░[Formatting]░░░░ Hyphenation, Pluralization, "a"/"an" Fixing ░░░░░░░ ~
 const hyphenate = (str: stringLike) => (/^<|\u00AD|\u200B/.test(`${str}`) ? `${str}` : _hyph(`${str}`));
 const unhyphenate = (str: stringLike) => `${str}`.replace(/\u00AD|\u200B/gu, "");
@@ -471,6 +471,7 @@ const stringifyNum = (num: number | string) => {
 	return `${num}`;
 };
 const verbalizeNum = (num: number | string) => {
+	// Converts a float with absolute magnitude <= 9.99e303 into words.
 	num = stringifyNum(num);
 	const getTier = (trioNum: number) => {
 		if (trioNum < _numberWords.tiers.length) {
@@ -769,7 +770,6 @@ const objCompact = (obj: anyList, preserve: Array<stringLike> = []) => objFilter
 const remove = (obj: anyList | anyArray, searchFunc: sFunc) => {
 	// Given an array or list and a search function, will remove the first matching element and return it.
 	if (isArray(obj)) {
-		// @ts-expect-error Hopefully just temporary to get this to compile: Need to figure out how to properly define sFunc (keyFunc/valFunc types?)
 		const index = obj.findIndex(_parseSearchFunc(obj, searchFunc));
 		if (index >= 0) {
 			let remVal;
@@ -834,7 +834,7 @@ const objClone = (obj: unknown): unknown => {
 	}
 	return cloneObj;
 };
-const objMerge = (target: unknown, source: unknown, {isMergingArrays = true, isOverwritingArrays = true}: {isMergingArrays: boolean, isOverwritingArrays: boolean}) => {
+const objMerge = (target: unknown, source: unknown, {isMergingArrays = true, isOverwritingArrays = true}) => {
 	target = objClone(target);
 
 	if (!isList(target) || !isList(source)) { return source }
@@ -850,7 +850,6 @@ const objMerge = (target: unknown, source: unknown, {isMergingArrays = true, isO
 				} else if (isMergingArrays) {
 					target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : objMerge(x, sourceValue[i], {isMergingArrays, isOverwritingArrays})));
 					if (sourceValue.length > targetValue.length) {
-						// @ts-expect-error Hopefully just temporary to get this to compile: Need to figure out how to properly define sFunc (keyFunc/valFunc types?)
 						target[key] = target[key].concat(sourceValue.slice(targetValue.length));
 					}
 				} else {
@@ -922,6 +921,13 @@ function get(target: gsap.TweenTarget, property: string, unit?: string): string 
 }
 const set = (targets: gsap.TweenTarget, vars: gsap.TweenVars): gsap.core.Tween => gsap.set(targets, vars);
 // #endregion ░░░░[GreenSock]░░░░
+const waitForRender = (app: Application | Array<Application>, func: anyFunc, delay = 300): anyPromiseOrReturn => {
+	const appArray = [app].flat();
+	if (appArray.every((app) => app.rendered)) {
+		return func();
+	}
+	return new Promise(resolve => setTimeout(resolve, delay)).then(waitForRender(app, func, delay));
+};
 const getRawCirclePath = (r: number, {x: xO, y: yO}: point = {x: 0, y: 0}): Array<Array<number|string>> => {
 	[r, xO, yO] = [r, xO, yO].map((val) => roundNum(val, 2));
 	const [b1, b2] = [0.4475 * r, (1 - 0.4475) * r];
@@ -1010,6 +1016,7 @@ export default {
 	// ░░░░░░░ GreenSock ░░░░░░░
 	gsap, get, set,
 
+	waitForRender,
 	getRawCirclePath, drawCirclePath,
 	formatAsClass,
 	getGSAngleDelta,

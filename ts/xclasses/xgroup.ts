@@ -17,6 +17,30 @@ import {
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-export default class extends XItem {
+class XArm extends XItem {
+	static override get defaultOptions(): ApplicationOptions {
+		return mergeObject(super.defaultOptions, {
+			popOut: false,
+			classes: ["x-arm"]
+		});
+	}
+
+	// constructor(xItem, parent: XGroup)
+
+}
+
+export default class XGroup extends XItem {
+	static override get defaultOptions(): ApplicationOptions {
+		return mergeObject(super.defaultOptions, {
+			popOut: false,
+			classes: ["x-group"]
+		});
+	}
+
+	constructor(options: XOptions) {
+		options.template = U.getTemplatePath("xgroup.hbs");
+		super(options);
+	}
+
 
 }

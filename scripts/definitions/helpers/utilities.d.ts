@@ -34,8 +34,8 @@ declare const _default: {
     romanizeNum: (num: number, isUsingGroupedChars?: boolean) => string;
     loremIpsum: (numWords?: number) => string;
     randWord: (numWords?: number, wordList?: string[]) => string;
-    isIn: (needle: stringLike, haystack?: stringLike[], fuzziness?: number) => unknown;
-    isInExact: (needle: stringLike, haystack: stringLike[]) => unknown;
+    isIn: (needle: stringLike, haystack?: stringLike[], fuzziness?: number) => stringLike;
+    isInExact: (needle: stringLike, haystack: stringLike[]) => stringLike;
     randNum: (min: number, max: number, snap?: number) => number;
     randInt: (min: number, max: number) => number;
     coinFlip: () => boolean;
@@ -48,22 +48,22 @@ declare const _default: {
     randElem: (array: anyArray) => unknown;
     randIndex: (array: anyArray) => number;
     makeCycler: (array: anyArray, index?: number) => Generator<unknown, any, unknown>;
-    getLast: (array: anyArray) => unknown;
+    getLast: (array: anyArray) => any;
     unique: (array: anyArray) => anyArray;
     partition: (obj: anyList | anyArray, predicate?: (val: unknown, key: unknown) => boolean) => [anyList | anyArray, anyList | anyArray];
     objMap: typeof objMap;
     objFilter: (obj: anyList | anyArray, keyFunc: false | keyMapFunc | valMapFunc, valFunc?: valMapFunc | undefined) => anyList | anyArray;
     objForEach: (obj: anyList, func: (val: unknown, key?: string | number | undefined) => void) => void;
     objCompact: (obj: anyList, preserve?: stringLike[]) => anyList | anyArray;
-    remove: (obj: anyList | anyArray, searchFunc: sFunc) => unknown;
+    remove: (obj: anyList | anyArray, searchFunc: sFunc) => any;
     replace: (obj: anyList | anyArray, searchFunc: sFunc, repVal: unknown) => boolean;
-    removeFirst: (array: anyArray, element: unknown) => unknown[];
-    pullElement: (array: anyArray, checkFunc?: (_v?: unknown, _i?: number, _a?: anyArray) => void) => unknown;
-    pullIndex: (array: anyArray, index: number) => unknown;
+    removeFirst: (array: anyArray, element: unknown) => any[];
+    pullElement: (array: anyArray, checkFunc?: (_v?: unknown, _i?: number, _a?: anyArray) => void) => any;
+    pullIndex: (array: anyArray, index: number) => any;
     objClone: (obj: unknown) => unknown;
     objMerge: (target: unknown, source: unknown, { isMergingArrays, isOverwritingArrays }: {
-        isMergingArrays: boolean;
-        isOverwritingArrays: boolean;
+        isMergingArrays?: boolean | undefined;
+        isOverwritingArrays?: boolean | undefined;
     }) => unknown;
     objExpand: (obj: anyList) => {};
     objFlatten: (obj: anyList) => anyList;
@@ -71,6 +71,7 @@ declare const _default: {
     gsap: typeof globalThis.gsap;
     get: typeof get;
     set: (targets: gsap.TweenTarget, vars: gsap.TweenVars) => gsap.core.Tween;
+    waitForRender: (app: Application<ApplicationOptions> | Application<ApplicationOptions>[], func: anyFunc, delay?: number) => any;
     getRawCirclePath: (r: number, { x: xO, y: yO }?: point) => (string | number)[][];
     drawCirclePath: (radius: number, origin: point) => string;
     formatAsClass: (str: string) => string;
