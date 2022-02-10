@@ -17,7 +17,8 @@ import {
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
 	XItem,
 	XGroup,
-	XDie
+	XDie,
+	XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./helpers/bundler.js";
 /*DEVCODE*/

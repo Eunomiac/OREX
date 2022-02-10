@@ -10,6 +10,7 @@ export { default as gsap, Draggable as Dragger, InertiaPlugin, MotionPathPlugin,
 export { default as U } from "./utilities.js";
 // export * from "./mixins";
 export { default as preloadTemplates } from "./templates.js";
+export { default as XRoll } from "../xclasses/xroll.js";
 export { default as XElem } from "../xclasses/xelem.js";
 export { default as XItem } from "../xclasses/xitem.js";
 export { default as XGroup } from "../xclasses/xgroup.js";

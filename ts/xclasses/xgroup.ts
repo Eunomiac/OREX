@@ -12,35 +12,26 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XItem
+	XElem, XItem
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-class XArm extends XItem {
-	static override get defaultOptions(): ApplicationOptions {
-		return mergeObject(super.defaultOptions, {
-			popOut: false,
-			classes: ["x-arm"]
-		});
-	}
-
+class XArm extends XElem {
 	// constructor(xItem, parent: XGroup)
 
 }
 
 export default class XGroup extends XItem {
 	static override get defaultOptions(): ApplicationOptions {
-		return mergeObject(super.defaultOptions, {
+		return U.objMerge(super.defaultOptions, {
 			popOut: false,
-			classes: ["x-group"]
+			classes: U.unique([...super.defaultOptions.classes, "x-group"])
 		});
 	}
 
-	constructor(options: XOptions) {
+	constructor(options: Partial<ApplicationOptions>, parent: XItem | null = XItem.XCONTAINER) {
 		options.template = U.getTemplatePath("xgroup.hbs");
-		super(options);
+		super(options, parent);
 	}
-
-
 }

@@ -23,8 +23,7 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animati
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 preloadTemplates, U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XItem, XGroup, XDie
- } from "./helpers/bundler.js";
+XItem, XGroup, XDie } from "./helpers/bundler.js";
 
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
 // ████████ ON INIT: On-Initialization Hook ████████

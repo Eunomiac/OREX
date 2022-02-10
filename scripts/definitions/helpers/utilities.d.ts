@@ -1,5 +1,9 @@
 /// <reference types="ts/@types" />
 declare function objMap(obj: anyList | anyArray, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): anyList | anyArray;
+declare function objMerge<Type extends anyList | anyArray>(target: Type, source: DeepPartial<Type>, { isMutatingOk, isStrictlySafe }?: {
+    isMutatingOk?: boolean | undefined;
+    isStrictlySafe?: boolean | undefined;
+}): Type;
 declare function get(target: gsap.TweenTarget, property: string, unit: string): number;
 declare function get(target: gsap.TweenTarget, property: string): string | number;
 declare const _default: {
@@ -50,28 +54,24 @@ declare const _default: {
     makeCycler: (array: anyArray, index?: number) => Generator<unknown, any, unknown>;
     getLast: (array: anyArray) => any;
     unique: (array: anyArray) => anyArray;
-    partition: (obj: anyList | anyArray, predicate?: (val: unknown, key: unknown) => boolean) => [anyList | anyArray, anyList | anyArray];
-    objMap: typeof objMap;
-    objFilter: (obj: anyList | anyArray, keyFunc: false | keyMapFunc | valMapFunc, valFunc?: valMapFunc | undefined) => anyList | anyArray;
-    objForEach: (obj: anyList, func: (val: unknown, key?: string | number | undefined) => void) => void;
-    objCompact: (obj: anyList, preserve?: stringLike[]) => anyList | anyArray;
-    remove: (obj: anyList | anyArray, searchFunc: sFunc) => any;
-    replace: (obj: anyList | anyArray, searchFunc: sFunc, repVal: unknown) => boolean;
     removeFirst: (array: anyArray, element: unknown) => any[];
     pullElement: (array: anyArray, checkFunc?: (_v?: unknown, _i?: number, _a?: anyArray) => void) => any;
     pullIndex: (array: anyArray, index: number) => any;
-    objClone: (obj: unknown) => unknown;
-    objMerge: (target: unknown, source: unknown, { isMergingArrays, isOverwritingArrays }: {
-        isMergingArrays?: boolean | undefined;
-        isOverwritingArrays?: boolean | undefined;
-    }) => unknown;
-    objExpand: (obj: anyList) => {};
+    remove: (obj: anyList | anyArray, searchFunc: sFunc) => any;
+    replace: (obj: anyList | anyArray, searchFunc: sFunc, repVal: unknown) => boolean;
+    partition: (obj: anyList | anyArray, predicate?: (val: unknown, key: unknown) => boolean) => [anyList | anyArray, anyList | anyArray];
+    objMap: typeof objMap;
+    objFilter: <Type extends anyList | anyArray>(obj: Type, keyFunc: false | keyMapFunc | valMapFunc, valFunc?: valMapFunc | undefined) => Type extends anyList ? anyList : anyArray;
+    objForEach: (obj: anyList, func: (val: unknown, key?: string | number | undefined) => void) => void;
+    objCompact: <Type_1 extends anyList | anyArray>(obj: Type_1, preserve?: stringLike[]) => Type_1 extends anyList ? anyList : anyArray;
+    objClone: <Type_2>(obj: Type_2, isStrictlySafe?: boolean) => Type_2;
+    objMerge: typeof objMerge;
+    objExpand: (obj: anyList) => anyList;
     objFlatten: (obj: anyList) => anyList;
     getDynamicFunc: (funcName: string, func: (...args: anyArray) => unknown, context: object) => false | ((...args: stringLike[]) => unknown);
     gsap: typeof globalThis.gsap;
     get: typeof get;
     set: (targets: gsap.TweenTarget, vars: gsap.TweenVars) => gsap.core.Tween;
-    waitForRender: (app: Application<ApplicationOptions> | Application<ApplicationOptions>[], func: anyFunc, delay?: number) => any;
     getRawCirclePath: (r: number, { x: xO, y: yO }?: point) => (string | number)[][];
     drawCirclePath: (radius: number, origin: point) => string;
     formatAsClass: (str: string) => string;

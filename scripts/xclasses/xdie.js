@@ -11,9 +11,9 @@ XItem
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 export default class extends XItem {
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return U.objMerge(super.defaultOptions, {
             popOut: false,
-            classes: ["x-die"],
+            classes: U.unique([...super.defaultOptions.classes, "x-die"]),
             template: U.getTemplatePath("xdie.hbs")
         });
     }

@@ -19,9 +19,7 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animati
 preloadTemplates, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XItem, XGroup, XDie
-// #endregion ▮▮▮▮[XItems]▮▮▮▮
- } from "./helpers/bundler.js";
+XItem, XGroup, XDie } from "./helpers/bundler.js";
 /*DEVCODE*/
 // import DB from "./helpers/debug.js";
 /*!DEVCODE*/

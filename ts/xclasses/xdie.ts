@@ -19,9 +19,9 @@ import {
 
 export default class extends XItem {
 	static override get defaultOptions(): ApplicationOptions {
-		return mergeObject(super.defaultOptions, {
+		return U.objMerge(super.defaultOptions, {
 			popOut: false,
-			classes: ["x-die"],
+			classes: U.unique([...super.defaultOptions.classes, "x-die"]),
 			template: U.getTemplatePath("xdie.hbs")
 		});
 	}
@@ -35,6 +35,4 @@ export default class extends XItem {
 
 		return context;
 	}
-
-
 }

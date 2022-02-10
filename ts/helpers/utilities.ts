@@ -690,6 +690,13 @@ const unique = (array: anyArray) => {
 	array.forEach((item) => { if (!returnArray.includes(item)) { returnArray.push(item) } });
 	return returnArray;
 };
+const removeFirst = (array: anyArray, element: unknown) => array.splice(array.findIndex((v) => v === element));
+const pullElement = (array: anyArray, checkFunc = (_v: unknown = true, _i = 0, _a: anyArray = []) => { checkFunc(_v, _i, _a) }) => {
+	const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
+	return index !== -1 && array.splice(index, 1).pop();
+};
+const pullIndex = (array: anyArray, index: number) => pullElement(array, (v, i) => i === index);
+
 /*~ #region TO PROCESS: ARRAY FUNCTIONS: Last, Flip, Insert, Change, Remove
 export const Last = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : undefined);
 export const Flip = (arr) => Clone(arr).reverse();
@@ -723,50 +730,6 @@ export const Remove = (arr, findFunc = (e, i, a) => true) => {
 // #endregion ▄▄▄▄▄ ARRAYS ▄▄▄▄▄
 
 // #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
-// Given an object and a predicate function, returns array of two objects:
-//   one with entries that pass, one with entries that fail.
-const partition = (obj: anyList | anyArray, predicate: (val: unknown, key: unknown) => boolean = () => true): [anyList | anyArray, anyList | anyArray] => [
-	objFilter(obj, predicate),
-	objFilter(obj, (v: unknown, k: unknown) => !predicate(v, k))
-];
-function objMap(obj: anyList | anyArray, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): anyList | anyArray {
-	// An object-equivalent Array.map() function, which accepts mapping functions to transform both keys and values.
-	// If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-	if (!valFunc) {
-		valFunc = keyFunc as valMapFunc;
-		keyFunc = false;
-	}
-	if (!keyFunc) {
-		keyFunc = ((k: unknown) => k);
-	}
-	if (Array.isArray(obj)) { return obj.map(valFunc) }
-	return Object.fromEntries(Object.entries(obj).map(([key, val]) => [(keyFunc as keyMapFunc)(key, val), (valFunc as valMapFunc)(val, key)]));
-}
-const objFilter = (obj: anyList | anyArray, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): anyList | anyArray => {
-	// An object-equivalent Array.filter() function, which accepts filter functions for both keys and/or values.
-	// If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-	if (!valFunc) {
-		valFunc = keyFunc as valMapFunc;
-		keyFunc = false;
-	}
-	if (!keyFunc) {
-		keyFunc = ((k: unknown) => k);
-	}
-	if (Array.isArray(obj)) { return obj.filter(valFunc) }
-	const kFunc = keyFunc || (() => true);
-	const vFunc = valFunc || (() => true);
-	return Object.fromEntries(Object.entries(obj).filter(([key, val]) => kFunc(key) && vFunc(val)));
-};
-const objForEach = (obj: anyList, func: (val: unknown, key?: number | string) => void): void => {
-	// An object-equivalent Array.forEach() function, which accepts one function(val, key) to perform for each member.
-	if (Array.isArray(obj)) {
-		obj.forEach(func);
-	} else {
-		Object.entries(obj).forEach(([key, val]) => func(val, key));
-	}
-};
-	// Prunes an object of certain values (undefined by default)
-const objCompact = (obj: anyList, preserve: Array<stringLike> = []) => objFilter(obj, (val: unknown) => preserve.includes(`${val}`));
 const remove = (obj: anyList | anyArray, searchFunc: sFunc) => {
 	// Given an array or list and a search function, will remove the first matching element and return it.
 	if (isArray(obj)) {
@@ -817,55 +780,78 @@ const replace = (obj: anyList | anyArray, searchFunc: sFunc, repVal: unknown) =>
 	}
 	return true;
 };
-const removeFirst = (array: anyArray, element: unknown) => array.splice(array.findIndex((v) => v === element));
-const pullElement = (array: anyArray, checkFunc = (_v: unknown = true, _i = 0, _a: anyArray = []) => { checkFunc(_v, _i, _a) }) => {
-	const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
-	return index !== -1 && array.splice(index, 1).pop();
+// Given an object and a predicate function, returns array of two objects:
+//   one with entries that pass, one with entries that fail.
+const partition = (obj: anyList | anyArray, predicate: (val: unknown, key: unknown) => boolean = () => true): [anyList | anyArray, anyList | anyArray] => [
+	objFilter(obj, predicate),
+	objFilter(obj, (v: unknown, k: unknown) => !predicate(v, k))
+];
+function objMap(obj: anyList | anyArray, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): anyList | anyArray {
+	// An object-equivalent Array.map() function, which accepts mapping functions to transform both keys and values.
+	// If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
+	if (!valFunc) {
+		valFunc = keyFunc as valMapFunc;
+		keyFunc = false;
+	}
+	if (!keyFunc) {
+		keyFunc = ((k: unknown) => k);
+	}
+	if (Array.isArray(obj)) { return obj.map(valFunc) }
+	return Object.fromEntries(Object.entries(obj).map(([key, val]) => [(keyFunc as keyMapFunc)(key, val), (valFunc as valMapFunc)(val, key)]));
+}
+const objFilter = <Type extends (anyList | anyArray)> (obj: Type, keyFunc: keyMapFunc | valMapFunc | false, valFunc?: valMapFunc): Type extends anyList ? anyList : anyArray => {
+	// An object-equivalent Array.filter() function, which accepts filter functions for both keys and/or values.
+	// If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
+	if (!valFunc) {
+		valFunc = keyFunc as valMapFunc;
+		keyFunc = false;
+	}
+	if (!keyFunc) {
+		keyFunc = ((k: unknown) => k);
+	}
+	if (Array.isArray(obj)) { return obj.filter(valFunc) }
+	const kFunc = keyFunc || (() => true);
+	const vFunc = valFunc || (() => true);
+	return Object.fromEntries(Object.entries(obj).filter(([key, val]) => kFunc(key) && vFunc(val))) as Type extends anyList ? anyList : anyArray;
 };
-const pullIndex = (array: anyArray, index: number) => pullElement(array, (v, i) => i === index);
-const objClone = (obj: unknown): unknown => {
+const objForEach = (obj: anyList, func: (val: unknown, key?: number | string) => void): void => {
+	// An object-equivalent Array.forEach() function, which accepts one function(val, key) to perform for each member.
+	if (Array.isArray(obj)) {
+		obj.forEach(func);
+	} else {
+		Object.entries(obj).forEach(([key, val]) => func(val, key));
+	}
+};
+	// Prunes an object of certain values (undefined by default)
+const objCompact = <Type extends (anyList | anyArray)> (obj: Type, preserve: Array<stringLike> = []): Type extends anyList ? anyList : anyArray => objFilter(obj, (val: unknown) => preserve.includes(`${val}`));
+const objClone = <Type> (obj: Type, isStrictlySafe = false): Type => {
 	let cloneObj;
 	try {
 		cloneObj = JSON.parse(JSON.stringify(obj));
-	} catch (err) {
+	} catch (err: unknown) {
+		if (isStrictlySafe) { throw new Error(`${err}`) }
 		if (isIterable(obj)) {
 			cloneObj = {...obj};
 		}
 	}
 	return cloneObj;
 };
-const objMerge = (target: unknown, source: unknown, {isMergingArrays = true, isOverwritingArrays = true}) => {
-	target = objClone(target);
-
-	if (!isList(target) || !isList(source)) { return source }
-
-	Object.keys(source).forEach((key: string) => {
-		/*DEVCODE*/if (isList(target)) {/*!DEVCODE*/
-			const targetValue: unknown = target[key];
-			const sourceValue: unknown = source[key];
-
-			if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
-				if (isOverwritingArrays) {
-					target[key] = sourceValue;
-				} else if (isMergingArrays) {
-					target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : objMerge(x, sourceValue[i], {isMergingArrays, isOverwritingArrays})));
-					if (sourceValue.length > targetValue.length) {
-						target[key] = target[key].concat(sourceValue.slice(targetValue.length));
-					}
-				} else {
-					target[key] = targetValue.concat(sourceValue);
-				}
-			} else if (isList(targetValue) && isList(sourceValue)) {
-				target[key] = objMerge({...targetValue}, sourceValue, {isMergingArrays, isOverwritingArrays});
-			} else {
-				target[key] = sourceValue;
+function objMerge<Type extends anyList | anyArray>(target: Type, source: DeepPartial<Type>, {isMutatingOk = false, isStrictlySafe = false} = {}) {
+	/* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
+	target = isMutatingOk ? target : objClone(target, isStrictlySafe);
+	for (const [key, val] of Object.entries(source) as anyArray) {
+		if (val !== null && typeof val === "object") {
+			if (target[key] === undefined) {
+				target[key] = new (Object.getPrototypeOf(val).constructor());
 			}
-		/*DEVCODE*/}/*!DEVCODE*/
-	});
-
+			target[key] = objMerge(target[key]!, val as any, {isMutatingOk: true, isStrictlySafe});
+		} else {
+			target[key] = val;
+		}
+	}
 	return target;
-};
-const objExpand = (obj: anyList) => {
+}
+const objExpand = (obj: anyList): anyList => {
 	const expObj = {};
 	for (let [key, val] of Object.entries(obj)) {
 		if (isList(val)) {
@@ -921,13 +907,6 @@ function get(target: gsap.TweenTarget, property: string, unit?: string): string 
 }
 const set = (targets: gsap.TweenTarget, vars: gsap.TweenVars): gsap.core.Tween => gsap.set(targets, vars);
 // #endregion ░░░░[GreenSock]░░░░
-const waitForRender = (app: Application | Array<Application>, func: anyFunc, delay = 300): anyPromiseOrReturn => {
-	const appArray = [app].flat();
-	if (appArray.every((app) => app.rendered)) {
-		return func();
-	}
-	return new Promise(resolve => setTimeout(resolve, delay)).then(waitForRender(app, func, delay));
-};
 const getRawCirclePath = (r: number, {x: xO, y: yO}: point = {x: 0, y: 0}): Array<Array<number|string>> => {
 	[r, xO, yO] = [r, xO, yO].map((val) => roundNum(val, 2));
 	const [b1, b2] = [0.4475 * r, (1 - 0.4475) * r];
@@ -1002,11 +981,11 @@ export default {
 	makeCycler,
 	getLast,
 	unique,
+	removeFirst, pullElement, pullIndex,
 
 	// ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
-	partition,
+	remove, replace, partition,
 	objMap, objFilter, objForEach, objCompact,
-	remove, replace, removeFirst, pullElement, pullIndex,
 	objClone, objMerge, objExpand, objFlatten,
 
 	// ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
@@ -1016,7 +995,6 @@ export default {
 	// ░░░░░░░ GreenSock ░░░░░░░
 	gsap, get, set,
 
-	waitForRender,
 	getRawCirclePath, drawCirclePath,
 	formatAsClass,
 	getGSAngleDelta,

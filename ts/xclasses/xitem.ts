@@ -15,14 +15,13 @@ import {
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-
 export default class XItem extends Application implements DOMElement {
 	private static _XCONTAINER: XItem;
 
 	static override get defaultOptions(): ApplicationOptions {
-		return mergeObject(super.defaultOptions, {
+		return U.objMerge(super.defaultOptions, {
 			popOut: false,
-			classes: ["x-item"],
+			classes: U.unique([...super.defaultOptions.classes, "x-item"]),
 			template: U.getTemplatePath("xcontainer.hbs")
 		});
 	}
@@ -38,13 +37,13 @@ export default class XItem extends Application implements DOMElement {
 
 	private _parent: XItem | null;
 	private _xElem: XElem;
+	private _renderPromise: anyPromise | null = null;
 
-	constructor(options: XOptions = {}, parent: XItem | null = XItem.XCONTAINER) {
+	constructor(options: Partial<ApplicationOptions> = {}, parent: XItem | null = XItem.XCONTAINER) {
 		super(options);
 		this._parent = parent;
 		this._xElem = new XElem(this);
-		this.render(true);
-		this._parent?.adopt(this);
+		this.parent?.adopt(this, false);
 	}
 
 	get elem() { return this.element[0] }
@@ -59,29 +58,38 @@ export default class XItem extends Application implements DOMElement {
 	get pos() { return this._xElem.pos }
 	get rotation() { return this._xElem.rotation }
 	get scale() { return this._xElem.scale }
-	get adopt() { return this._xElem.adopt }
+	get adopt() { return this._xElem.adopt.bind(this._xElem) }
 
 	override getData() {
 		const context = super.getData();
-
 		Object.assign(context, {
 			id: this.id,
 			classes: this.options.classes.join(" ")
 		});
-
 		return context;
 	}
-	to(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween {
-		return U.waitForRender(this, () => gsap.to(this.elem, vars));
+
+	asyncRender(force = true, options = {}) {
+		return (this._renderPromise = this._renderPromise ?? super._render(force, options).catch((err) => {
+			this._state = Application.RENDER_STATES.ERROR;
+			Hooks.onError("Application#render", err, {
+				msg: `An error occurred while rendering ${this.constructor.name} ${this.appId}`,
+				log: "error",
+				...options
+			});
+		}));
 	}
-	from(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween {
-		return U.waitForRender(this, () => gsap.from(this.elem, vars));
+	whenRendered(func: anyFunc) { return this.rendered ? func() : this.asyncRender().then(func) }
+
+	to(vars: gsap.TweenVars) {
+		return this.whenRendered(() => gsap.to(this.elem, vars));
 	}
-	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween {
-		return U.waitForRender(this, () => gsap.fromTo(this.elem, fromVars, toVars));
+	from(vars: gsap.TweenVars) {
+		return this.whenRendered(() => gsap.from(this.elem, vars));
 	}
-	set(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween {
-		return U.waitForRender(this, () => gsap.set(this.elem, vars), 200);
+	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) {
+		return this.whenRendered(() => gsap.fromTo(this.elem, fromVars, toVars));
 	}
+	set(vars: gsap.TweenVars) { return this.whenRendered(() => gsap.set(this.elem, vars)) }
 
 }

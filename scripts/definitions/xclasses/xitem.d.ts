@@ -5,7 +5,8 @@ export default class XItem extends Application implements DOMElement {
     static get XCONTAINER(): XItem;
     private _parent;
     private _xElem;
-    constructor(options?: XOptions, parent?: XItem | null);
+    private _renderPromise;
+    constructor(options?: Partial<ApplicationOptions>, parent?: XItem | null);
     get elem(): HTMLElement;
     get parent(): XItem | null;
     get _x(): number;
@@ -20,8 +21,10 @@ export default class XItem extends Application implements DOMElement {
     get scale(): number;
     get adopt(): (xItem: XItem, isRetainingPosition?: boolean) => void;
     getData(): object | Promise<object>;
-    to(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
-    from(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
-    fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
-    set(vars: gsap.TweenVars): Promise<gsap.core.Tween> | gsap.core.Tween;
+    asyncRender(force?: boolean, options?: {}): anyPromise;
+    whenRendered(func: anyFunc): any;
+    to(vars: gsap.TweenVars): any;
+    from(vars: gsap.TweenVars): any;
+    fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): any;
+    set(vars: gsap.TweenVars): any;
 }

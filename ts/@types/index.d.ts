@@ -43,9 +43,3 @@ interface DOMElement {
 	scale: number,
 	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void
 }
-
-type Optional<Type> = {
-	[Property in keyof Type]+?: Type[Property];
-}
-// type XOptions = {id: string, classes?: string[], template?: string, parent: XItem | null };
-type XOptions = Optional<ApplicationOptions>;

@@ -25,14 +25,13 @@ export default class XElem implements DOMElement {
 	get elem() { return this._xItem.elem }
 	get xItem() { return this._xItem }
 	get parent() { return this._xItem.parent }
-	// get adopt(): (xItem: XItem, isRetainingPosition: boolean) => void { return this.adopt }
 
 	// LOCAL SPACE: Position & Dimensions
 	get _x() { return U.get(this.elem, "x", "px") }
 	get _y() { return U.get(this.elem, "y", "px") }
 	get _pos(): point { return {x: this._x, y: this._y} }
-	get _rotation() { return U.get(this.elem, "rotation") as number }
-	get _scale() { return U.get(this.elem, "scale") as number }
+	get _rotation() { return <number>U.get(this.elem, "rotation") }
+	get _scale() { return <number>U.get(this.elem, "scale") }
 
 	// X-SPACE (Global): Position & Dimensions
 	get pos(): point {
@@ -84,7 +83,7 @@ export default class XElem implements DOMElement {
 		};
 	}
 	adopt(xItem: XItem, isRetainingPosition = true) {
-		U.waitForRender([xItem], () => {
+		this.xItem.whenRendered(() => {
 			if (isRetainingPosition) {
 				xItem.set(this.getLocalPosData(xItem));
 			}

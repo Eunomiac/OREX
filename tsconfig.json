@@ -4,6 +4,7 @@
 		"allowUmdGlobalAccess": true,
 		"allowJs": true,
 		"checkJs": false,
+		"experimentalDecorators": true,
 		"lib": [
 			"ES6",
 			"DOM"

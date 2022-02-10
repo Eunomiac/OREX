@@ -711,57 +711,14 @@ const unique = (array) => {
     } });
     return returnArray;
 };
+const removeFirst = (array, element) => array.splice(array.findIndex((v) => v === element));
+const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkFunc(_v, _i, _a); }) => {
+    const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
+    return index !== -1 && array.splice(index, 1).pop();
+};
+const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
 
 // ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
-// Given an object and a predicate function, returns array of two objects:
-//   one with entries that pass, one with entries that fail.
-const partition = (obj, predicate = () => true) => [
-    objFilter(obj, predicate),
-    objFilter(obj, (v, k) => !predicate(v, k))
-];
-function objMap(obj, keyFunc, valFunc) {
-    // An object-equivalent Array.map() function, which accepts mapping functions to transform both keys and values.
-    // If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-    if (!valFunc) {
-        valFunc = keyFunc;
-        keyFunc = false;
-    }
-    if (!keyFunc) {
-        keyFunc = ((k) => k);
-    }
-    if (Array.isArray(obj)) {
-        return obj.map(valFunc);
-    }
-    return Object.fromEntries(Object.entries(obj).map(([key, val]) => [keyFunc(key, val), valFunc(val, key)]));
-}
-const objFilter = (obj, keyFunc, valFunc) => {
-    // An object-equivalent Array.filter() function, which accepts filter functions for both keys and/or values.
-    // If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
-    if (!valFunc) {
-        valFunc = keyFunc;
-        keyFunc = false;
-    }
-    if (!keyFunc) {
-        keyFunc = ((k) => k);
-    }
-    if (Array.isArray(obj)) {
-        return obj.filter(valFunc);
-    }
-    const kFunc = keyFunc || (() => true);
-    const vFunc = valFunc || (() => true);
-    return Object.fromEntries(Object.entries(obj).filter(([key, val]) => kFunc(key) && vFunc(val)));
-};
-const objForEach = (obj, func) => {
-    // An object-equivalent Array.forEach() function, which accepts one function(val, key) to perform for each member.
-    if (Array.isArray(obj)) {
-        obj.forEach(func);
-    }
-    else {
-        Object.entries(obj).forEach(([key, val]) => func(val, key));
-    }
-};
-// Prunes an object of certain values (undefined by default)
-const objCompact = (obj, preserve = []) => objFilter(obj, (val) => preserve.includes(`${val}`));
 const remove = (obj, searchFunc) => {
     var _b;
     // Given an array or list and a search function, will remove the first matching element and return it.
@@ -821,57 +778,86 @@ const replace = (obj, searchFunc, repVal) => {
     }
     return true;
 };
-const removeFirst = (array, element) => array.splice(array.findIndex((v) => v === element));
-const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkFunc(_v, _i, _a); }) => {
-    const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
-    return index !== -1 && array.splice(index, 1).pop();
+// Given an object and a predicate function, returns array of two objects:
+//   one with entries that pass, one with entries that fail.
+const partition = (obj, predicate = () => true) => [
+    objFilter(obj, predicate),
+    objFilter(obj, (v, k) => !predicate(v, k))
+];
+function objMap(obj, keyFunc, valFunc) {
+    // An object-equivalent Array.map() function, which accepts mapping functions to transform both keys and values.
+    // If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
+    if (!valFunc) {
+        valFunc = keyFunc;
+        keyFunc = false;
+    }
+    if (!keyFunc) {
+        keyFunc = ((k) => k);
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(valFunc);
+    }
+    return Object.fromEntries(Object.entries(obj).map(([key, val]) => [keyFunc(key, val), valFunc(val, key)]));
+}
+const objFilter = (obj, keyFunc, valFunc) => {
+    // An object-equivalent Array.filter() function, which accepts filter functions for both keys and/or values.
+    // If only one function is provided, it's assumed to be mapping the values and will receive (v, k) args.
+    if (!valFunc) {
+        valFunc = keyFunc;
+        keyFunc = false;
+    }
+    if (!keyFunc) {
+        keyFunc = ((k) => k);
+    }
+    if (Array.isArray(obj)) {
+        return obj.filter(valFunc);
+    }
+    const kFunc = keyFunc || (() => true);
+    const vFunc = valFunc || (() => true);
+    return Object.fromEntries(Object.entries(obj).filter(([key, val]) => kFunc(key) && vFunc(val)));
 };
-const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
-const objClone = (obj) => {
+const objForEach = (obj, func) => {
+    // An object-equivalent Array.forEach() function, which accepts one function(val, key) to perform for each member.
+    if (Array.isArray(obj)) {
+        obj.forEach(func);
+    }
+    else {
+        Object.entries(obj).forEach(([key, val]) => func(val, key));
+    }
+};
+// Prunes an object of certain values (undefined by default)
+const objCompact = (obj, preserve = []) => objFilter(obj, (val) => preserve.includes(`${val}`));
+const objClone = (obj, isStrictlySafe = false) => {
     let cloneObj;
     try {
         cloneObj = JSON.parse(JSON.stringify(obj));
     }
     catch (err) {
+        if (isStrictlySafe) {
+            throw new Error(`${err}`);
+        }
         if (isIterable(obj)) {
             cloneObj = Object.assign({}, obj);
         }
     }
     return cloneObj;
 };
-const objMerge = (target, source, { isMergingArrays = true, isOverwritingArrays = true }) => {
-    target = objClone(target);
-    if (!isList(target) || !isList(source)) {
-        return source;
+function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false } = {}) {
+    /* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
+    target = isMutatingOk ? target : objClone(target, isStrictlySafe);
+    for (const [key, val] of Object.entries(source)) {
+        if (val !== null && typeof val === "object") {
+            if (target[key] === undefined) {
+                target[key] = new (Object.getPrototypeOf(val).constructor());
+            }
+            target[key] = objMerge(target[key], val, { isMutatingOk: true, isStrictlySafe });
+        }
+        else {
+            target[key] = val;
+        }
     }
-    Object.keys(source).forEach((key) => {
-
-            const targetValue = target[key];
-            const sourceValue = source[key];
-            if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
-                if (isOverwritingArrays) {
-                    target[key] = sourceValue;
-                }
-                else if (isMergingArrays) {
-                    target[key] = targetValue.map((x, i) => (sourceValue.length <= i ? x : objMerge(x, sourceValue[i], { isMergingArrays, isOverwritingArrays })));
-                    if (sourceValue.length > targetValue.length) {
-                        target[key] = target[key].concat(sourceValue.slice(targetValue.length));
-                    }
-                }
-                else {
-                    target[key] = targetValue.concat(sourceValue);
-                }
-            }
-            else if (isList(targetValue) && isList(sourceValue)) {
-                target[key] = objMerge(Object.assign({}, targetValue), sourceValue, { isMergingArrays, isOverwritingArrays });
-            }
-            else {
-                target[key] = sourceValue;
-            }
-
-    });
     return target;
-};
+}
 const objExpand = (obj) => {
     const expObj = {};
     for (let [key, val] of Object.entries(obj)) {
@@ -920,13 +906,6 @@ function get(target, property, unit) {
     return gsap.getProperty(target, property);
 }
 const set = (targets, vars) => gsap.set(targets, vars);
-const waitForRender = (app, func, delay = 300) => {
-    const appArray = [app].flat();
-    if (appArray.every((app) => app.rendered)) {
-        return func();
-    }
-    return new Promise(resolve => setTimeout(resolve, delay)).then(waitForRender(app, func, delay));
-};
 const getRawCirclePath = (r, { x: xO, y: yO } = { x: 0, y: 0 }) => {
     [r, xO, yO] = [r, xO, yO].map((val) => roundNum(val, 2));
     const [b1, b2] = [0.4475 * r, (1 - 0.4475) * r];
@@ -995,17 +974,16 @@ export default {
     makeCycler,
     getLast,
     unique,
+    removeFirst, pullElement, pullIndex,
     // ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
-    partition,
+    remove, replace, partition,
     objMap, objFilter, objForEach, objCompact,
-    remove, replace, removeFirst, pullElement, pullIndex,
     objClone, objMerge, objExpand, objFlatten,
     // ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
     getDynamicFunc,
     // ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████
     // ░░░░░░░ GreenSock ░░░░░░░
     gsap, get, set,
-    waitForRender,
     getRawCirclePath, drawCirclePath,
     formatAsClass,
     getGSAngleDelta,

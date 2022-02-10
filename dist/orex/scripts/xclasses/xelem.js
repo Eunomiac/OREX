@@ -17,7 +17,6 @@ export default class XElem {
     get elem() { return this._xItem.elem; }
     get xItem() { return this._xItem; }
     get parent() { return this._xItem.parent; }
-    // get adopt(): (xItem: XItem, isRetainingPosition: boolean) => void { return this.adopt }
     // LOCAL SPACE: Position & Dimensions
     get _x() { return U.get(this.elem, "x", "px"); }
     get _y() { return U.get(this.elem, "y", "px"); }
@@ -59,7 +58,7 @@ export default class XElem {
         return Object.assign(Object.assign({}, MotionPathPlugin.convertCoordinates(XItem.XCONTAINER.elem, this.elem, globalPoint !== null && globalPoint !== void 0 ? globalPoint : xItem.pos)), { rotation: xItem.rotation - this.rotation, scale: xItem.scale / this.scale });
     }
     adopt(xItem, isRetainingPosition = true) {
-        U.waitForRender([xItem], () => {
+        this.xItem.whenRendered(() => {
             if (isRetainingPosition) {
                 xItem.set(this.getLocalPosData(xItem));
             }
