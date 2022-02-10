@@ -1,8 +1,11 @@
 /// <reference types="ts/@types" />
 export default class XItem extends Application implements DOMElement {
-    private static _XCONTAINER;
+    private static _XROOT?;
+    private static _TICKERS;
     static get defaultOptions(): ApplicationOptions;
-    static get XCONTAINER(): XItem;
+    static AddTicker(func: anyFunc): void;
+    static XKill(): void;
+    static get XROOT(): XItem;
     private _parent;
     private _xElem;
     private _renderPromise;

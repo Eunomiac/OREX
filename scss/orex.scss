@@ -11,6 +11,13 @@
 @import "global/window";
 
 /* Styles for created DOM objects */
-.x-item {
-	@import "components/xitem";
+#x-root {
+	height: 100%;
+	width: calc(100% - var(--sidebar-width));
+	top: 0;
+	left: 0;
+	pointer-events: none;
+	position: absolute;
+
+	@import "components/xelem";
 }

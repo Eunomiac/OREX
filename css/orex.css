@@ -4,63 +4,65 @@
   font-family: "Roboto", sans-serif; }
 
 /* Styles for created DOM objects */
-.x-item, .x-item * {
-  position: absolute;
-  -webkit-transform-origin: 50% 50%;
-  -ms-transform-origin: 50% 50%;
-  transform-origin: 50% 50%; }
-
-.x-item .x-die {
-  height: var(--die-size);
-  width: var(--die-size); }
-  .x-item .x-die svg {
-    position: absolute;
-    left: 0;
-    top: 0; }
-    .x-item .x-die svg .base {
-      fill: var(--die-color-bg);
-      stroke: var(--die-color-stroke);
-      stroke-width: 18;
-      stroke-miterlimit: 10; }
-    .x-item .x-die svg .edges {
-      fill: none;
-      stroke: var(--die-color-stroke);
-      stroke-width: 12;
-      stroke-linejoin: bevel;
-      stroke-miterlimit: 10; }
-    .x-item .x-die svg .bottom {
-      opacity: 0.5; }
-    .x-item .x-die svg .side {
-      opacity: 0.3; }
-  .x-item .x-die .die-val {
-    height: 100%;
-    width: 100%;
-    color: var(--die-color-fg);
-    font-size: calc(var(--die-size) / 2);
-    line-height: var(--die-size);
-    font-family: Oswald;
-    text-align: center;
-    z-index: 2; }
-
-.x-item#x-container {
+#x-root {
   height: 100%;
   width: calc(100% - var(--sidebar-width));
   top: 0;
-  left: 0; }
-  .x-item#x-container .translate-box {
+  left: 0;
+  pointer-events: none;
+  position: absolute; }
+  #x-root .x-elem {
+    position: absolute;
+    pointer-events: none;
+    -webkit-transform-origin: 50% 50%;
+    -ms-transform-origin: 50% 50%;
+    transform-origin: 50% 50%; }
+    #x-root .x-elem .x-die {
+      height: var(--die-size);
+      width: var(--die-size); }
+      #x-root .x-elem .x-die svg {
+        position: absolute;
+        left: 0;
+        top: 0; }
+        #x-root .x-elem .x-die svg .base {
+          fill: var(--die-color-bg);
+          stroke: var(--die-color-stroke);
+          stroke-width: 18;
+          stroke-miterlimit: 10; }
+        #x-root .x-elem .x-die svg .edges {
+          fill: none;
+          stroke: var(--die-color-stroke);
+          stroke-width: 12;
+          stroke-linejoin: bevel;
+          stroke-miterlimit: 10; }
+        #x-root .x-elem .x-die svg .bottom {
+          opacity: 0.5; }
+        #x-root .x-elem .x-die svg .side {
+          opacity: 0.3; }
+      #x-root .x-elem .x-die .die-val {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        color: var(--die-color-fg);
+        font-size: calc(var(--die-size) / 2);
+        line-height: var(--die-size);
+        font-family: Oswald;
+        text-align: center;
+        z-index: 2; }
+  #x-root .translate-box {
     height: 500px;
     width: 500px;
     top: 450px;
     left: 300px;
     outline: 2px solid blue; }
-    .x-item#x-container .translate-box .scale-box {
+    #x-root .translate-box .scale-box {
       height: 300px;
       width: 300px;
       border-radius: 150px;
       top: 0px;
       left: 0px;
       background: rgba(255, 255, 0, 0.2); }
-      .x-item#x-container .translate-box .scale-box .rotate-box {
+      #x-root .translate-box .scale-box .rotate-box {
         height: 100px;
         width: 100px;
         top: 0px;

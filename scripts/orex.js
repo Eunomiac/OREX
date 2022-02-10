@@ -19,7 +19,7 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animati
 preloadTemplates, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XItem, XGroup, XDie } from "./helpers/bundler.js";
+XElem, XItem, XGroup, XDie } from "./helpers/bundler.js";
 /*DEVCODE*/
 // import DB from "./helpers/debug.js";
 /*!DEVCODE*/
@@ -30,135 +30,133 @@ Hooks.once("init", () => __awaiter(void 0, void 0, void 0, function* () {
     /*DEVCODE*/ console.log("STARTING ORE-X"); /*!DEVCODE*/
     // CONFIG.debug.hooks = true;
     // #region ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
-    // Object.assign(CONFIG, {OREX: MAIN as list});
     CONFIG.OREX = MAIN;
     // #endregion ▮▮▮▮[Configuration]▮▮▮▮
     // #region ▮▮▮▮▮▮▮[Handlebar Templates] Preload Handlebars Templates ▮▮▮▮▮▮▮
-    return preloadTemplates();
+    preloadTemplates();
     // #endregion ▮▮▮▮[Handlebar Templates]▮▮▮▮
 }));
 // #endregion ▄▄▄▄▄ ON INIT ▄▄▄▄▄
 /*DEVCODE*/
 Hooks.once("ready", () => {
-    console.log({
-        "this": this,
+    Object.entries({
         U,
+        XElem,
         XItem,
         XGroup,
         XDie,
         gsap,
         MotionPathPlugin,
         GSDevTools,
-        "pause": () => gsap.globalTimeline.pause(),
-        "play": () => gsap.globalTimeline.play()
-    });
-    const TranslateBox = new XItem({
-        classes: ["translate-box"]
-    });
-    const ScaleBox = new XItem({
-        classes: ["scale-box"]
-    }, TranslateBox);
-    const ExtraScaleBox = new XItem({
-        classes: ["extra-scale-box"]
-    }, ScaleBox);
-    const RotateBox = new XItem({
-        classes: ["rotate-box"]
-    }, ExtraScaleBox);
-    const CounterRotateBox = new XItem({
-        classes: ["counter-rotate-box"]
-    }, RotateBox);
-    const TestDie = new XDie({}, CounterRotateBox);
-    TestDie.set({
-        "xPercent": -50,
-        "yPercent": -50,
-        "x": 0,
-        "y": 0,
-        "--die-size": "50px",
-        "--die-color-bg": "lime",
-        "--die-color-fg": "black",
-        "--die-color-stroke": "black",
-        "fontSize": 60,
-        "fontFamily": "Oswald",
-        "textAlign": "center"
-    });
-    const dieMarkers = [
-        { x: 0.5, y: 0 },
-        { x: 0, y: 1 },
-        { x: 1, y: 1 }
-    ].map(({ x, y }, i) => {
-        const marker = new XItem({
-            id: `die-marker-${i + 1}`,
-            classes: ["x-marker"]
-        }, TestDie);
-        marker.set({
-            xPercent: -50,
-            yPercent: -50,
-            height: 10,
-            width: 10,
-            x: x * 50,
-            y: y * 50,
-            background: ["yellow", "cyan", "magenta"][i]
-        });
-        return marker;
-    });
-    const xMarkers = ["yellow", "cyan", "magenta"]
-        .map((color, i) => {
-        const marker = new XItem({
-            id: `x-marker-${i + 1}`,
-            classes: ["x-marker"]
-        });
-        marker.set({
-            xPercent: -50,
-            yPercent: -50,
-            height: 10,
-            width: 10,
-            x: 100 + (20 * i),
-            y: 500 + (40 * i),
-            background: color
-        });
-        return marker;
-    });
-    setTimeout(() => {
-        gsap.to(TranslateBox.elem, {
-            x: "+=500",
-            duration: 5,
-            ease: "power3.inOut",
-            repeat: -1,
-            yoyo: true
-        });
-        gsap.to(ScaleBox.elem, {
-            scale: 2,
-            duration: 15,
-            ease: "sine.inOut",
-            repeat: -1,
-            yoyo: true
-        });
-        gsap.to(ExtraScaleBox.elem, {
-            scale: 3,
-            duration: 5,
-            ease: "sine.inOut",
-            repeat: -1,
-            yoyo: true
-        });
-        gsap.to(RotateBox.elem, {
-            rotation: "+=360",
-            duration: 2,
-            ease: "none",
-            repeat: -1
-        });
-        gsap.to(CounterRotateBox.elem, {
-            rotation: "-=360",
-            duration: 2,
-            ease: "power4.inOut",
-            repeat: -1
-        });
-        gsap.ticker.add(() => {
-            xMarkers.forEach((xMarker, i) => {
-                const { pos } = dieMarkers[i];
-                xMarker.set(pos);
+        pause: () => {
+            gsap.ticker.sleep();
+            gsap.globalTimeline.pause();
+        },
+        play: () => {
+            gsap.ticker.wake();
+            gsap.globalTimeline.play();
+        },
+        testCoords: () => {
+            const TranslateBox = new XItem({ classes: ["translate-box"] });
+            const ScaleBox = new XItem({ classes: ["scale-box"] }, TranslateBox);
+            const ExtraScaleBox = new XItem({ classes: ["extra-scale-box"] }, ScaleBox);
+            const RotateBox = new XItem({ classes: ["rotate-box"] }, ExtraScaleBox);
+            const CounterRotateBox = new XItem({ classes: ["counter-rotate-box"] }, RotateBox);
+            const TestDie = new XDie({}, CounterRotateBox);
+            TestDie.set({
+                "xPercent": -50,
+                "yPercent": -50,
+                "x": 0,
+                "y": 0,
+                "--die-size": "50px",
+                "--die-color-bg": "lime",
+                "--die-color-fg": "black",
+                "--die-color-stroke": "black",
+                "fontSize": 60,
+                "fontFamily": "Oswald",
+                "textAlign": "center"
             });
-        });
-    }, 100);
-    console.log(dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, gsap, MotionPathPlugin);
+            const dieMarkers = [
+                { x: 0.5, y: 0, background: "yellow" },
+                { x: 0, y: 1, background: "cyan" },
+                { x: 1, y: 1, background: "magenta" }
+            ].map(({ x, y, background }, i) => {
+                const marker = new XItem({
+                    id: `die-marker-${i + 1}`,
+                    classes: ["x-marker"]
+                }, TestDie);
+                marker.set({
+                    xPercent: -50,
+                    yPercent: -50,
+                    height: 10,
+                    width: 10,
+                    x: x * 50,
+                    y: y * 50,
+                    background
+                });
+                return marker;
+            });
+            const xMarkers = ["yellow", "cyan", "magenta"]
+                .map((background, i) => {
+                const marker = new XItem({
+                    id: `x-marker-${i + 1}`,
+                    classes: ["x-marker"]
+                });
+                marker.set({
+                    xPercent: -50,
+                    yPercent: -50,
+                    height: 10,
+                    width: 10,
+                    x: 100 + (20 * i),
+                    y: 500 + (40 * i),
+                    background
+                });
+                return marker;
+            });
+            TranslateBox.to({
+                x: "+=500",
+                duration: 5,
+                ease: "power3.inOut",
+                repeat: -1,
+                yoyo: true
+            });
+            ScaleBox.to({
+                scale: 2,
+                duration: 15,
+                ease: "sine.inOut",
+                repeat: -1,
+                yoyo: true
+            });
+            ExtraScaleBox.to({
+                scale: 3,
+                duration: 5,
+                ease: "sine.inOut",
+                repeat: -1,
+                yoyo: true
+            });
+            RotateBox.to({
+                rotation: "+=360",
+                duration: 2,
+                ease: "none",
+                repeat: -1
+            });
+            CounterRotateBox.to({
+                rotation: "-=360",
+                duration: 2,
+                ease: "power4.inOut",
+                repeat: -1
+            });
+            function testCoordsTicker() {
+                xMarkers.forEach((xMarker, i) => {
+                    xMarker.set(dieMarkers[i].pos);
+                });
+            }
+            XItem.AddTicker(testCoordsTicker);
+            console.log(dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, gsap, MotionPathPlugin);
+        },
+        testGroup: (params = {}) => new XGroup(params),
+        killAll: XItem.XKill
+    }) // @ts-expect-error How to tell TS the type of object literal's values?
+        .forEach(([key, val]) => { window[key] = val; });
 });
 /*!DEVCODE*/ 

@@ -2,6 +2,7 @@
 import { XItem } from "../helpers/bundler.js";
 export default class XElem implements DOMElement {
     private _xItem;
+    static getTemplatePath(fileRelativePath: string): string;
     constructor(xItem: XItem);
     get elem(): HTMLElement;
     get xItem(): XItem;

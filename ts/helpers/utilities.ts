@@ -842,9 +842,9 @@ function objMerge<Type extends anyList | anyArray>(target: Type, source: DeepPar
 	for (const [key, val] of Object.entries(source) as anyArray) {
 		if (val !== null && typeof val === "object") {
 			if (target[key] === undefined) {
-				target[key] = new (Object.getPrototypeOf(val).constructor());
+				target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
 			}
-			target[key] = objMerge(target[key]!, val as any, {isMutatingOk: true, isStrictlySafe});
+			target[key] = objMerge(target[key], val, {isMutatingOk: true, isStrictlySafe});
 		} else {
 			target[key] = val;
 		}
@@ -931,11 +931,6 @@ const drawCirclePath = (radius: number, origin: point) => {
 };
 const formatAsClass = (str: string) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^-/, "").trim().toLowerCase();
 const getGSAngleDelta = (startAngle: number, endAngle: number) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
-const getTemplatePath = (fileRelativePath: string) => {
-	fileRelativePath = `${fileRelativePath}.hbs`
-		.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1");
-	return `/systems/orex/templates/${fileRelativePath}`;
-};
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 
 // #region ████████ EXPORTS ████████ ~
@@ -997,7 +992,6 @@ export default {
 
 	getRawCirclePath, drawCirclePath,
 	formatAsClass,
-	getGSAngleDelta,
-	getTemplatePath
+	getGSAngleDelta
 };
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

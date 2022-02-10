@@ -76,6 +76,5 @@ declare const _default: {
     drawCirclePath: (radius: number, origin: point) => string;
     formatAsClass: (str: string) => string;
     getGSAngleDelta: (startAngle: number, endAngle: number) => string;
-    getTemplatePath: (fileRelativePath: string) => string;
 };
 export default _default;

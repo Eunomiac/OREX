@@ -23,7 +23,7 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animati
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 preloadTemplates, U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XItem, XGroup, XDie } from "./helpers/bundler.js";
+XElem, XItem, XGroup, XDie } from "./helpers/bundler.js";
 
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
 // ████████ ON INIT: On-Initialization Hook ████████
@@ -31,8 +31,7 @@ Hooks.once("init", () => __awaiter(void 0, void 0, void 0, function* () {
 
     // CONFIG.debug.hooks = true;
     // ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
-    // Object.assign(CONFIG, {OREX: MAIN as list});
     CONFIG.OREX = MAIN;
     // ▮▮▮▮▮▮▮[Handlebar Templates] Preload Handlebars Templates ▮▮▮▮▮▮▮
-    return preloadTemplates();
+    preloadTemplates();
 }));

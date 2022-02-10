@@ -10,15 +10,20 @@ import {
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XItem
+XElem, XItem
  } from "../helpers/bundler.js";
 export default class extends XItem {
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
             classes: U.unique([...super.defaultOptions.classes, "x-die"]),
-            template: U.getTemplatePath("xdie.html")
+            template: XElem.getTemplatePath("xdie")
         });
+    }
+    constructor(options = {}, parent) {
+        var _a;
+        options.classes = ["x-die", ...(_a = options.classes) !== null && _a !== void 0 ? _a : []];
+        super(options, parent);
     }
     getData() {
         const context = super.getData();

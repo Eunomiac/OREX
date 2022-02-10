@@ -882,7 +882,7 @@ function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false
     for (const [key, val] of Object.entries(source)) {
         if (val !== null && typeof val === "object") {
             if (target[key] === undefined) {
-                target[key] = new (Object.getPrototypeOf(val).constructor());
+                target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
             }
             target[key] = objMerge(target[key], val, { isMutatingOk: true, isStrictlySafe });
         }
@@ -968,11 +968,6 @@ const drawCirclePath = (radius, origin) => {
 };
 const formatAsClass = (str) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^-/, "").trim().toLowerCase();
 const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
-const getTemplatePath = (fileRelativePath) => {
-    fileRelativePath = `${fileRelativePath}.hbs`
-        .replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1");
-    return `/systems/orex/templates/${fileRelativePath}`;
-};
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 // #region ████████ EXPORTS ████████ ~
 export default {
@@ -1023,7 +1018,6 @@ export default {
     gsap, get, set,
     getRawCirclePath, drawCirclePath,
     formatAsClass,
-    getGSAngleDelta,
-    getTemplatePath
+    getGSAngleDelta
 };
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

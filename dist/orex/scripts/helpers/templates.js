@@ -16,13 +16,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 // ████████ IMPORTS ████████
 import { 
-// ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U
+// ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
+XElem
  } from "./bundler.js";
 export default () => __awaiter(void 0, void 0, void 0, function* () {
     return loadTemplates(Object.values({
-        xContainer: U.getTemplatePath("xcontainer.html"),
-        xDie: U.getTemplatePath("xdie.html")
-        // Template Paths by Category; use U.getTemplatePath(fileName, subPath)
+        xRoot: XElem.getTemplatePath("xroot"),
+        xItem: XElem.getTemplatePath("xitem"),
+        xArm: XElem.getTemplatePath("xarm"),
+        xDie: XElem.getTemplatePath("xdie")
     }).flat());
 });

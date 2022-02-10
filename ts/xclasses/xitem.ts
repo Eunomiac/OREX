@@ -16,31 +16,44 @@ import {
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 export default class XItem extends Application implements DOMElement {
-	private static _XCONTAINER: XItem;
+	private static _XROOT?: XItem;
+	private static _TICKERS: Array<anyFunc> = [];
 
 	static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
 			classes: U.unique([...super.defaultOptions.classes, "x-item"]),
-			template: U.getTemplatePath("xcontainer.hbs")
+			template: XElem.getTemplatePath("xitem")
 		});
 	}
 
-	static get XCONTAINER(): XItem {
-		if (!this._XCONTAINER) {
-			this._XCONTAINER = new XItem({
-				id: "x-container"
+	static AddTicker(func: anyFunc) {
+		this._TICKERS.push(func);
+		gsap.ticker.add(func);
+	}
+	static XKill() {
+		if (XItem._XROOT) {
+			$(XItem._XROOT.elem).remove();
+			XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
+			delete XItem._XROOT;
+		}
+	}
+
+	static get XROOT(): XItem {
+		if (!this._XROOT) {
+			this._XROOT = new XItem({
+				id: "x-root"
 			}, null);
 		}
-		return this._XCONTAINER;
+		return this._XROOT;
 	}
 
 	private _parent: XItem | null;
 	private _xElem: XElem;
 	private _renderPromise: anyPromise | null = null;
 
-	constructor(options: Partial<ApplicationOptions> = {}, parent: XItem | null = XItem.XCONTAINER) {
-		super(options);
+	constructor(options: Partial<ApplicationOptions> = {}, parent: XItem | null = XItem.XROOT) {
+		super(U.objMerge(options, {classes: ["x-item", ...options.classes ?? []]}));
 		this._parent = parent;
 		this._xElem = new XElem(this);
 		this.parent?.adopt(this, false);

@@ -18,6 +18,12 @@ import {
 export default class XElem implements DOMElement {
 	private _xItem: XItem;
 
+	public static getTemplatePath(fileRelativePath: string) {
+		return `/systems/orex/templates/${
+			`${fileRelativePath}.hbs`.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1")
+		}`;
+	}
+
 	constructor(xItem: XItem) {
 		this._xItem = xItem;
 	}
@@ -33,18 +39,18 @@ export default class XElem implements DOMElement {
 	get _rotation() { return <number>U.get(this.elem, "rotation") }
 	get _scale() { return <number>U.get(this.elem, "scale") }
 
-	// X-SPACE (Global): Position & Dimensions
+	// XROOT SPACE (Global): Position & Dimensions
 	get pos(): point {
 		if (this.parent) {
 			return MotionPathPlugin.convertCoordinates(
 				this.parent.elem,
-				XItem.XCONTAINER.elem,
+				XItem.XROOT.elem,
 				this._pos
 			);
 		}
 		return this._pos;
 	}
-	get x() { return this.pos.x }
+	get x() { return this.pos.x } 
 	get y() { return this.pos.y }
 	get rotation() {
 		let totalRotation = 0,
@@ -74,7 +80,7 @@ export default class XElem implements DOMElement {
 	getLocalPosData(xItem: XItem, globalPoint?: point): pointFull {
 		return {
 			...MotionPathPlugin.convertCoordinates(
-				XItem.XCONTAINER.elem,
+				XItem.XROOT.elem,
 				this.elem,
 				globalPoint ?? xItem.pos
 			),

@@ -14,6 +14,9 @@ export default class XElem {
     constructor(xItem) {
         this._xItem = xItem;
     }
+    static getTemplatePath(fileRelativePath) {
+        return `/systems/orex/templates/${`${fileRelativePath}.html`.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.html$/g, "$1")}`;
+    }
     get elem() { return this._xItem.elem; }
     get xItem() { return this._xItem; }
     get parent() { return this._xItem.parent; }
@@ -23,10 +26,10 @@ export default class XElem {
     get _pos() { return { x: this._x, y: this._y }; }
     get _rotation() { return U.get(this.elem, "rotation"); }
     get _scale() { return U.get(this.elem, "scale"); }
-    // X-SPACE (Global): Position & Dimensions
+    // XROOT SPACE (Global): Position & Dimensions
     get pos() {
         if (this.parent) {
-            return MotionPathPlugin.convertCoordinates(this.parent.elem, XItem.XCONTAINER.elem, this._pos);
+            return MotionPathPlugin.convertCoordinates(this.parent.elem, XItem.XROOT.elem, this._pos);
         }
         return this._pos;
     }
@@ -55,7 +58,7 @@ export default class XElem {
         return totalScale;
     }
     getLocalPosData(xItem, globalPoint) {
-        return Object.assign(Object.assign({}, MotionPathPlugin.convertCoordinates(XItem.XCONTAINER.elem, this.elem, globalPoint !== null && globalPoint !== void 0 ? globalPoint : xItem.pos)), { rotation: xItem.rotation - this.rotation, scale: xItem.scale / this.scale });
+        return Object.assign(Object.assign({}, MotionPathPlugin.convertCoordinates(XItem.XROOT.elem, this.elem, globalPoint !== null && globalPoint !== void 0 ? globalPoint : xItem.pos)), { rotation: xItem.rotation - this.rotation, scale: xItem.scale / this.scale });
     }
     adopt(xItem, isRetainingPosition = true) {
         this.xItem.whenRendered(() => {

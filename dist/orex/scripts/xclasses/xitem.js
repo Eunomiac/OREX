@@ -13,28 +13,39 @@ gsap,
 U, XElem
  } from "../helpers/bundler.js";
 export default class XItem extends Application {
-    constructor(options = {}, parent = XItem.XCONTAINER) {
-        var _a;
-        super(options);
+    constructor(options = {}, parent = XItem.XROOT) {
+        var _a, _b;
+        super(U.objMerge(options, { classes: ["x-item", ...(_a = options.classes) !== null && _a !== void 0 ? _a : []] }));
         this._renderPromise = null;
         this._parent = parent;
         this._xElem = new XElem(this);
-        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.adopt(this, false);
+        (_b = this.parent) === null || _b === void 0 ? void 0 : _b.adopt(this, false);
     }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
             classes: U.unique([...super.defaultOptions.classes, "x-item"]),
-            template: U.getTemplatePath("xcontainer.html")
+            template: XElem.getTemplatePath("xitem")
         });
     }
-    static get XCONTAINER() {
-        if (!this._XCONTAINER) {
-            this._XCONTAINER = new XItem({
-                id: "x-container"
+    static AddTicker(func) {
+        this._TICKERS.push(func);
+        gsap.ticker.add(func);
+    }
+    static XKill() {
+        if (XItem._XROOT) {
+            $(XItem._XROOT.elem).remove();
+            XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
+            delete XItem._XROOT;
+        }
+    }
+    static get XROOT() {
+        if (!this._XROOT) {
+            this._XROOT = new XItem({
+                id: "x-root"
             }, null);
         }
-        return this._XCONTAINER;
+        return this._XROOT;
     }
     get elem() { return this.element[0]; }
     get parent() { return this._parent; }
@@ -76,3 +87,4 @@ export default class XItem extends Application {
     }
     set(vars) { return this.whenRendered(() => gsap.set(this.elem, vars)); }
 }
+XItem._TICKERS = [];
