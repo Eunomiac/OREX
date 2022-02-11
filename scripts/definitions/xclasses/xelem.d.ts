@@ -2,11 +2,12 @@
 import { XItem } from "../helpers/bundler.js";
 export default class XElem implements DOMElement {
     private _xItem;
-    static getTemplatePath(fileRelativePath: string): string;
+    private _parent;
+    private _renderPromise?;
     constructor(xItem: XItem);
-    get elem(): HTMLElement;
     get xItem(): XItem;
-    get parent(): XItem | null;
+    get elem(): HTMLElement;
+    get parent(): XItem | XScope;
     get _x(): number;
     get _y(): number;
     get _pos(): point;
@@ -17,8 +18,14 @@ export default class XElem implements DOMElement {
     get y(): number;
     get rotation(): number;
     get scale(): number;
-    getLocalPosData(xItem: XItem, globalPoint?: point): pointFull;
-    adopt(xItem: XItem, isRetainingPosition?: boolean): void;
+    getLocalPosData(ofItem: XItem, globalPoint?: point): pointFull;
+    asyncRender(): anyPromise;
+    whenRendered(func: anyFunc): any;
+    to(vars: gsap.TweenVars): any;
+    from(vars: gsap.TweenVars): any;
+    fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): any;
+    set(vars: gsap.TweenVars): any;
+    adopt(xParent: XItem, isRetainingPosition?: boolean): void;
     get height(): number;
     get width(): number;
     get size(): number;

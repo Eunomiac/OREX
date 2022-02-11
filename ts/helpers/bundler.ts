@@ -1,3 +1,7 @@
+import {default as baseU} from "./utilities.js";
+import {getTemplatePath} from "./templates.js";
+export const U = {...baseU, getTemplatePath};
+
 export {default as MAIN} from "./config.js";
 
 export {
@@ -8,9 +12,6 @@ export {
 	GSDevTools,
 	RoughEase
 } from "gsap/all";
-
-export {default as U} from "./utilities.js";
-// export * from "./mixins";
 
 export {default as preloadTemplates} from "./templates.js";
 

@@ -905,14 +905,9 @@ const objExpand = (obj) => {
 const objFlatten = (obj) => {
     const flatObj = {};
     for (const [key, val] of Object.entries(obj)) {
-        if (isList(val)) {
-            if (isObjectEmpty(val)) {
-                flatObj[key] = val;
-            }
-            else {
-                for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
-                    flatObj[`${key}.${subKey}`] = subVal;
-                }
+        if (hasItems(val)) {
+            for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
+                flatObj[`${key}.${subKey}`] = subVal;
             }
         }
         else {

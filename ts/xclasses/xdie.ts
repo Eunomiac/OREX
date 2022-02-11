@@ -22,13 +22,13 @@ export default class extends XItem {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
 			classes: U.unique([...super.defaultOptions.classes, "x-die"]),
-			template: XElem.getTemplatePath("xdie")
+			template: U.getTemplatePath("xdie")
 		});
 	}
 
-	constructor(options: Partial<ApplicationOptions> = {}, parent: XItem) {
-		options.classes = ["x-die", ...options.classes ?? []];
-		super(options, parent);
+	constructor(xOptions: XOptions) {
+		super(xOptions);
+		this.options.classes.unshift("x-die");
 	}
 
 	override getData() {

@@ -17,20 +17,28 @@ import {
 
 export default class XElem implements DOMElement {
 	private _xItem: XItem;
-
-	public static getTemplatePath(fileRelativePath: string) {
-		return `/systems/orex/templates/${
-			`${fileRelativePath}.hbs`.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1")
-		}`;
-	}
+	private _parent: XItem | XScope = XItem.XROOT;
+	private _renderPromise?: anyPromise;
 
 	constructor(xItem: XItem) {
+		const options = <XOptions>xItem.options;
 		this._xItem = xItem;
+		this._parent = options.parent;
+		if (options.isRendering !== false) {
+			if (this._parent === XScope.XROOT) {
+				this._parent = XItem.XROOT;
+			}
+			this.whenRendered(() => {
+				if (this.parent && this.parent instanceof XItem) {
+					this.parent._xElem?.adopt(this._xItem, false);
+				}
+			});
+		}
 	}
 
-	get elem() { return this._xItem.elem }
 	get xItem() { return this._xItem }
-	get parent() { return this._xItem.parent }
+	get elem() { return this._xItem.element[0] }
+	get parent() { return this._parent }
 
 	// LOCAL SPACE: Position & Dimensions
 	get _x() { return U.get(this.elem, "x", "px") }
@@ -41,7 +49,7 @@ export default class XElem implements DOMElement {
 
 	// XROOT SPACE (Global): Position & Dimensions
 	get pos(): point {
-		if (this.parent) {
+		if (this.parent instanceof XItem) {
 			return MotionPathPlugin.convertCoordinates(
 				this.parent.elem,
 				XItem.XROOT.elem,
@@ -50,24 +58,24 @@ export default class XElem implements DOMElement {
 		}
 		return this._pos;
 	}
-	get x() { return this.pos.x } 
+	get x() { return this.pos.x }
 	get y() { return this.pos.y }
 	get rotation() {
 		let totalRotation = 0,
 						{parent} = this._xItem;
-		while (parent) {
+		while (parent instanceof XItem) {
 			const thisRotation = U.get(parent.elem, "rotation");
 			if (typeof thisRotation === "number") {
 				totalRotation += thisRotation;
 			}
-			({parent} = parent);
+			parent = ({parent} = parent);
 		}
 		return totalRotation;
 	}
 	get scale() {
 		let totalScale = 1,
 						{parent} = this._xItem;
-		while (parent) {
+		while (parent instanceof XItem) {
 			const thisScale = U.get(parent.elem, "scale");
 			if (typeof thisScale === "number") {
 				totalScale *= thisScale;
@@ -77,23 +85,40 @@ export default class XElem implements DOMElement {
 		return totalScale;
 	}
 
-	getLocalPosData(xItem: XItem, globalPoint?: point): pointFull {
+	getLocalPosData(ofItem: XItem, globalPoint?: point): pointFull {
 		return {
 			...MotionPathPlugin.convertCoordinates(
 				XItem.XROOT.elem,
 				this.elem,
-				globalPoint ?? xItem.pos
+				globalPoint ?? ofItem.pos ?? {x: 0, y: 0}
 			),
-			rotation: xItem.rotation - this.rotation,
-			scale: xItem.scale / this.scale
+			rotation: ofItem?.rotation ?? 0 - this.rotation,
+			scale: ofItem?.scale ?? 1 / this.scale
 		};
 	}
-	adopt(xItem: XItem, isRetainingPosition = true) {
-		this.xItem.whenRendered(() => {
+
+	asyncRender() {
+		return (this._renderPromise = this._renderPromise ?? this._xItem.renderApp());
+	}
+	whenRendered(func: anyFunc) { return this._xItem.isRendered ? func() : this.asyncRender().then(func) }
+
+	to(vars: gsap.TweenVars) {
+		return this.whenRendered(() => gsap.to(this.elem, vars));
+	}
+	from(vars: gsap.TweenVars) {
+		return this.whenRendered(() => gsap.from(this.elem, vars));
+	}
+	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) {
+		return this.whenRendered(() => gsap.fromTo(this.elem, fromVars, toVars));
+	}
+	set(vars: gsap.TweenVars) { return this.whenRendered(() => gsap.set(this.elem, vars)) }
+
+	adopt(xParent: XItem, isRetainingPosition = true) {
+		this.whenRendered(() => {
 			if (isRetainingPosition) {
-				xItem.set(this.getLocalPosData(xItem));
+				this.set(this.getLocalPosData(xParent));
 			}
-			$(xItem.elem).appendTo(this.elem);
+			$(xParent.elem).appendTo(this.elem);
 		});
 	}
 

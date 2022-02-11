@@ -1,17 +1,17 @@
 /// <reference types="ts/@types" />
-export default class XItem extends Application implements DOMElement {
+import { XElem } from "../helpers/bundler.js";
+export default class XItem extends Application implements Partial<DOMElement> {
     private static _XROOT?;
     private static _TICKERS;
     static get defaultOptions(): ApplicationOptions;
     static AddTicker(func: anyFunc): void;
     static XKill(): void;
     static get XROOT(): XItem;
-    private _parent;
-    private _xElem;
-    private _renderPromise;
-    constructor(options?: Partial<ApplicationOptions>, parent?: XItem | null);
+    _xElem: XElem;
+    constructor(options: XOptions);
+    get isRendered(): boolean;
     get elem(): HTMLElement;
-    get parent(): XItem | null;
+    get parent(): XItem | XScope;
     get _x(): number;
     get _y(): number;
     get _pos(): point;
@@ -22,12 +22,11 @@ export default class XItem extends Application implements DOMElement {
     get pos(): point;
     get rotation(): number;
     get scale(): number;
-    get adopt(): (xItem: XItem, isRetainingPosition?: boolean) => void;
+    get adopt(): (xParent: XItem, isRetainingPosition?: boolean) => void;
+    get set(): (vars: gsap.TweenVars) => any;
+    get to(): (vars: gsap.TweenVars) => any;
+    get from(): (vars: gsap.TweenVars) => any;
+    get fromTo(): (fromVars: gsap.TweenVars, toVars: gsap.TweenVars) => any;
     getData(): object | Promise<object>;
-    asyncRender(force?: boolean, options?: {}): anyPromise;
-    whenRendered(func: anyFunc): any;
-    to(vars: gsap.TweenVars): any;
-    from(vars: gsap.TweenVars): any;
-    fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): any;
-    set(vars: gsap.TweenVars): any;
+    renderApp(): Promise<void>;
 }

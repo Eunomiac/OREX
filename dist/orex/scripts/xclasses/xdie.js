@@ -8,22 +8,19 @@
 // ████████ IMPORTS ████████
 import { 
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U, 
-// ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XElem, XItem
+U, XItem
  } from "../helpers/bundler.js";
 export default class extends XItem {
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
             classes: U.unique([...super.defaultOptions.classes, "x-die"]),
-            template: XElem.getTemplatePath("xdie")
+            template: U.getTemplatePath("xdie")
         });
     }
-    constructor(options = {}, parent) {
-        var _a;
-        options.classes = ["x-die", ...(_a = options.classes) !== null && _a !== void 0 ? _a : []];
-        super(options, parent);
+    constructor(xOptions) {
+        super(xOptions);
+        this.options.classes.unshift("x-die");
     }
     getData() {
         const context = super.getData();

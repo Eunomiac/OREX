@@ -307,7 +307,7 @@ const isPosInt = (ref: unknown): ref is posInt => isInt(ref) && ref >= 0;
 const isIterable = (ref: unknown): ref is Iterable<unknown> => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
 const isHTMLCode = (ref: unknown): ref is HTMLCode => typeof ref === "string" && /^<.*>$/u.test(ref);
-const hasItems = (ref: unknown): ref is anyList | anyArray => (Array.isArray(ref) || isList(ref)) && Object.keys(ref).length > 0;
+const hasItems = (ref: unknown): boolean => (Array.isArray(ref) || isList(ref)) && Object.keys(ref).length > 0;
 const areEqual = (...refs: anyArray) => {
 	function checkEquality(ref1: unknown, ref2: unknown): boolean {
 		if (typeof ref1 !== typeof ref2) { return false }
@@ -864,13 +864,9 @@ const objExpand = (obj: anyList): anyList => {
 const objFlatten = (obj: anyList) => {
 	const flatObj: anyList = {};
 	for (const [key, val] of Object.entries(obj)) {
-		if (isList(val)) {
-			if (isObjectEmpty(val)) {
-				flatObj[key] = val;
-			} else {
-				for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
-					flatObj[`${key}.${subKey}`] = subVal;
-				}
+		if (hasItems(val)) {
+			for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
+				flatObj[`${key}.${subKey}`] = subVal;
 			}
 		} else {
 			flatObj[key] = val;

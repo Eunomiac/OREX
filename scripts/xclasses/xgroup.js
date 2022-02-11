@@ -16,12 +16,11 @@ export default class XGroup extends XItem {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
             classes: U.unique([...super.defaultOptions.classes, "x-group"]),
-            template: XElem.getTemplatePath("xitem")
+            template: U.getTemplatePath("xitem")
         });
     }
-    constructor(options, parent = XItem.XROOT) {
-        var _a;
-        options.classes = ["x-group", ...(_a = options.classes) !== null && _a !== void 0 ? _a : []];
-        super(options, parent);
+    constructor(size, xOptions) {
+        super(xOptions);
+        this.options.classes.unshift("x-group");
     }
 }

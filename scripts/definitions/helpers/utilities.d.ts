@@ -12,7 +12,7 @@ declare const _default: {
     isPosInt: (ref: unknown) => ref is number;
     isIterable: (ref: unknown) => ref is Iterable<unknown>;
     isHTMLCode: (ref: unknown) => ref is string;
-    hasItems: (ref: unknown) => ref is anyList | anyArray;
+    hasItems: (ref: unknown) => boolean;
     areEqual: (...refs: anyArray) => boolean;
     pFloat: (ref: unknown, sigDigits?: number | undefined, isStrict?: boolean) => number;
     pInt: (ref: unknown, isStrict?: boolean) => number;

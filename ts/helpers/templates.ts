@@ -4,14 +4,24 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem
+	XItem
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-export default async () => loadTemplates(Object.values({
-	xRoot: XElem.getTemplatePath("xroot"),
-	xItem: XElem.getTemplatePath("xitem"),
-	xArm: XElem.getTemplatePath("xarm"),
-	xDie: XElem.getTemplatePath("xdie")
-}).flat());
+
+export const getTemplatePath = (fileRelativePath: string) => `/systems/orex/templates/${
+	`${fileRelativePath}.hbs`.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1")
+}`;
+
+export default async () => loadTemplates(Object.values(U.objFlatten({
+	XITEMS: {
+		xRoot: getTemplatePath("xroot"),
+		xItem: getTemplatePath("xitem"),
+		xArm: getTemplatePath("xarm"),
+		xDie: getTemplatePath("xdie")
+	},
+	CHAT: {
+		oRoll: getTemplatePath("chat/oroll")
+	}
+})));

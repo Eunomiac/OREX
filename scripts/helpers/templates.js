@@ -9,17 +9,20 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 // #region ████████ IMPORTS ████████ ~
 import { 
-// #endregion ▮▮▮▮[Utility]▮▮▮▮
-// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XElem
-// #endregion ▮▮▮▮[XItems]▮▮▮▮
- } from "./bundler.js";
+// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
+U } from "./bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+export const getTemplatePath = (fileRelativePath) => `/systems/orex/templates/${`${fileRelativePath}.hbs`.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1")}`;
 export default () => __awaiter(void 0, void 0, void 0, function* () {
-    return loadTemplates(Object.values({
-        xRoot: XElem.getTemplatePath("xroot"),
-        xItem: XElem.getTemplatePath("xitem"),
-        xArm: XElem.getTemplatePath("xarm"),
-        xDie: XElem.getTemplatePath("xdie")
-    }).flat());
+    return loadTemplates(Object.values(U.objFlatten({
+        XITEMS: {
+            xRoot: getTemplatePath("xroot"),
+            xItem: getTemplatePath("xitem"),
+            xArm: getTemplatePath("xarm"),
+            xDie: getTemplatePath("xdie")
+        },
+        CHAT: {
+            oRoll: getTemplatePath("chat/oroll")
+        }
+    })));
 });

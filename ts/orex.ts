@@ -65,12 +65,12 @@ Hooks.once("ready", () => {
 			gsap.globalTimeline.play();
 		},
 		testCoords: () => {
-			const TranslateBox = new XItem({classes: ["translate-box"]});
-			const ScaleBox = new XItem({classes: ["scale-box"]}, TranslateBox);
-			const ExtraScaleBox = new XItem({classes: ["extra-scale-box"]}, ScaleBox);
-			const RotateBox = new XItem({classes: ["rotate-box"]}, ExtraScaleBox);
-			const CounterRotateBox = new XItem({classes: ["counter-rotate-box"]}, RotateBox);
-			const TestDie = new XDie({}, CounterRotateBox);
+			const TranslateBox = new XItem({classes: ["translate-box"], parent: XScope.SANDBOX});
+			const ScaleBox = new XItem({classes: ["scale-box"], parent: TranslateBox});
+			const ExtraScaleBox = new XItem({classes: ["extra-scale-box"], parent: ScaleBox});
+			const RotateBox = new XItem({classes: ["rotate-box"], parent: ExtraScaleBox});
+			const CounterRotateBox = new XItem({classes: ["counter-rotate-box"], parent: RotateBox});
+			const TestDie = new XDie({parent: CounterRotateBox});
 
 			TestDie.set({
 				"xPercent": -50,
@@ -93,8 +93,9 @@ Hooks.once("ready", () => {
 			].map(({x, y, background}, i) => {
 				const marker = new XItem({
 					id: `die-marker-${i + 1}`,
-					classes: ["x-marker"]
-				}, TestDie);
+					classes: ["x-marker"],
+					parent: TestDie
+				});
 				marker.set({
 					xPercent: -50,
 					yPercent: -50,
@@ -111,7 +112,8 @@ Hooks.once("ready", () => {
 				.map((background, i) => {
 					const marker = new XItem({
 						id: `x-marker-${i + 1}`,
-						classes: ["x-marker"]
+						classes: ["x-marker"],
+						parent: XScope.XROOT
 					});
 					marker.set({
 						xPercent: -50,
@@ -169,10 +171,10 @@ Hooks.once("ready", () => {
 
 			console.log(dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, gsap, MotionPathPlugin);
 		},
-		testGroup: (params: anyList = {}) => new XGroup(params),
+		testGroup: (params: anyList = {}) => new XGroup(200, {parent: XScope.XROOT}),
 		killAll: XItem.XKill
 	}) // @ts-expect-error How to tell TS the type of object literal's values?
-		.forEach(([key, val]) => { window[key] = val });
+		.forEach(([key, val]) => { globalThis[key] = val });
 
 
 });

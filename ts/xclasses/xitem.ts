@@ -15,52 +15,49 @@ import {
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-export default class XItem extends Application implements DOMElement {
+export default class XItem extends Application implements Partial<DOMElement> {
 	private static _XROOT?: XItem;
 	private static _TICKERS: Array<anyFunc> = [];
 
 	static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
-			classes: U.unique([...super.defaultOptions.classes, "x-item"]),
-			template: XElem.getTemplatePath("xitem")
+			template: U.getTemplatePath("xitem")
 		});
 	}
 
-	static AddTicker(func: anyFunc) {
+	public static AddTicker(func: anyFunc): void {
 		this._TICKERS.push(func);
 		gsap.ticker.add(func);
 	}
-	static XKill() {
+	public static XKill(): void {
 		if (XItem._XROOT) {
 			$(XItem._XROOT.elem).remove();
 			XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
 			delete XItem._XROOT;
 		}
 	}
-
-	static get XROOT(): XItem {
+	public static get XROOT(): XItem {
 		if (!this._XROOT) {
 			this._XROOT = new XItem({
-				id: "x-root"
-			}, null);
+				id: "x-root",
+				parent: "SANDBOX"
+			});
 		}
 		return this._XROOT;
 	}
 
-	private _parent: XItem | null;
-	private _xElem: XElem;
-	private _renderPromise: anyPromise | null = null;
+	public _xElem: XElem;
 
-	constructor(options: Partial<ApplicationOptions> = {}, parent: XItem | null = XItem.XROOT) {
-		super(U.objMerge(options, {classes: ["x-item", ...options.classes ?? []]}));
-		this._parent = parent;
+	constructor(options: XOptions) {
+		super(options);
+		this.options.classes.unshift("x-item");
 		this._xElem = new XElem(this);
-		this.parent?.adopt(this, false);
 	}
 
-	get elem() { return this.element[0] }
-	get parent() { return this._parent }
+	get isRendered() { return this.rendered }
+	get elem() { return this._xElem.elem }
+	get parent() { return this._xElem.parent }
 	get _x() { return this._xElem._x }
 	get _y() { return this._xElem._y }
 	get _pos() { return this._xElem._pos }
@@ -71,7 +68,12 @@ export default class XItem extends Application implements DOMElement {
 	get pos() { return this._xElem.pos }
 	get rotation() { return this._xElem.rotation }
 	get scale() { return this._xElem.scale }
+
 	get adopt() { return this._xElem.adopt.bind(this._xElem) }
+	get set() { return this._xElem.set.bind(this._xElem) }
+	get to() { return this._xElem.to.bind(this._xElem) }
+	get from() { return this._xElem.from.bind(this._xElem) }
+	get fromTo() { return this._xElem.fromTo.bind(this._xElem) }
 
 	override getData() {
 		const context = super.getData();
@@ -82,27 +84,17 @@ export default class XItem extends Application implements DOMElement {
 		return context;
 	}
 
-	asyncRender(force = true, options = {}) {
-		return (this._renderPromise = this._renderPromise ?? super._render(force, options).catch((err) => {
+	public async renderApp(): Promise<void> {
+		try {
+			return await this._render(true, {});
+		} catch (err) {
 			this._state = Application.RENDER_STATES.ERROR;
-			Hooks.onError("Application#render", err, {
+			Hooks.onError("Application#render", <Error>err, {
 				msg: `An error occurred while rendering ${this.constructor.name} ${this.appId}`,
-				log: "error",
-				...options
+				log: "error"
 			});
-		}));
+			return Promise.reject(err);
+		}
 	}
-	whenRendered(func: anyFunc) { return this.rendered ? func() : this.asyncRender().then(func) }
-
-	to(vars: gsap.TweenVars) {
-		return this.whenRendered(() => gsap.to(this.elem, vars));
-	}
-	from(vars: gsap.TweenVars) {
-		return this.whenRendered(() => gsap.from(this.elem, vars));
-	}
-	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) {
-		return this.whenRendered(() => gsap.fromTo(this.elem, fromVars, toVars));
-	}
-	set(vars: gsap.TweenVars) { return this.whenRendered(() => gsap.set(this.elem, vars)) }
 
 }

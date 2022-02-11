@@ -2,10 +2,7 @@
 import { 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, 
-// #endregion ▮▮▮▮[Utility]▮▮▮▮
-// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XElem, XItem
+U, XItem
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
@@ -14,13 +11,12 @@ export default class extends XItem {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
             classes: U.unique([...super.defaultOptions.classes, "x-die"]),
-            template: XElem.getTemplatePath("xdie")
+            template: U.getTemplatePath("xdie")
         });
     }
-    constructor(options = {}, parent) {
-        var _a;
-        options.classes = ["x-die", ...(_a = options.classes) !== null && _a !== void 0 ? _a : []];
-        super(options, parent);
+    constructor(xOptions) {
+        super(xOptions);
+        this.options.classes.unshift("x-die");
     }
     getData() {
         const context = super.getData();
