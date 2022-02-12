@@ -1,7 +1,7 @@
 // #region ████████ IMPORTS ████████ ~
 import {
 	// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
-	MAIN,
+	C,
 	// #endregion ▮▮▮▮[Constants]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
 	gsap,
@@ -19,7 +19,7 @@ import {
 	XItem,
 	XGroup,
 	XDie,
-	XRoll
+	ORoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./helpers/bundler.js";
 /*DEVCODE*/
@@ -34,7 +34,7 @@ Hooks.once("init", async () => {
 	/*DEVCODE*/console.log("STARTING ORE-X"); /*!DEVCODE*/
 	// CONFIG.debug.hooks = true;
 	// #region ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
-	CONFIG.OREX = MAIN;
+	CONFIG.OREX = C;
 	// #endregion ▮▮▮▮[Configuration]▮▮▮▮
 
 	// #region ▮▮▮▮▮▮▮[Handlebar Templates] Preload Handlebars Templates ▮▮▮▮▮▮▮
@@ -47,6 +47,7 @@ Hooks.once("init", async () => {
 /*DEVCODE*/
 
 Hooks.once("ready", () => {
+	XItem.Initialize();
 	Object.entries({
 		U,
 		XElem,
@@ -171,7 +172,35 @@ Hooks.once("ready", () => {
 
 			console.log(dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, gsap, MotionPathPlugin);
 		},
-		testGroup: (params: anyList = {}) => new XGroup(200, {parent: XScope.XROOT}),
+		testGroup: (params: anyList = {}) => new XGroup(
+			200,
+			{
+				parent: XItem.XROOT,
+				left: 200,
+				top: 100,
+				orbitals: [0.5, 1, 1.5],
+				initialXItems: [
+					[
+						new XDie({parent: XItem.XROOT}, {background: "red", size: 30, face: U.randInt(0, 9)}),
+						new XDie({parent: XItem.XROOT}, {background: "red", size: 30, face: U.randInt(0, 9)}),
+						new XDie({parent: XItem.XROOT}, {background: "red", size: 30, face: U.randInt(0, 9)})
+					],
+					[
+						new XDie({parent: XItem.XROOT}, {background: "lime", size: 40, face: U.randInt(0, 9)}),
+						new XDie({parent: XItem.XROOT}, {background: "lime", size: 40, face: U.randInt(0, 9)}),
+						new XDie({parent: XItem.XROOT}, {background: "lime", size: 40, face: U.randInt(0, 9)}),
+						new XDie({parent: XItem.XROOT}, {background: "lime", size: 40, face: U.randInt(0, 9)}),
+						new XDie({parent: XItem.XROOT}, {background: "lime", size: 40, face: U.randInt(0, 9)}),
+						new XDie({parent: XItem.XROOT}, {background: "lime", size: 40, face: U.randInt(0, 9)})
+					],
+					[
+						new XDie({parent: XItem.XROOT}, {background: "white", size: 50}),
+						new XDie({parent: XItem.XROOT}, {background: "white", size: 50}),
+						new XDie({parent: XItem.XROOT}, {background: "white", size: 50})
+					]
+				]
+			}
+		),
 		killAll: XItem.XKill
 	}) // @ts-expect-error How to tell TS the type of object literal's values?
 		.forEach(([key, val]) => { globalThis[key] = val });

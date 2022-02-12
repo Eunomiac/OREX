@@ -165,6 +165,7 @@ const padHeaderLines = (match) => {
 // #endregion ▮▮▮▮[UTILITY]▮▮▮▮
 
 const ISDEPLOYING = false;
+const ISGENERATINGTYPEFILES = false;
 const SYSTEM = "orex";
 const SYSTEMNAME = "ORE-X";
 
@@ -258,7 +259,7 @@ const PIPES = {
 		}
 		return pipeline;
 	},
-	tsProject: typescript.createProject("tsconfig.json", {declaration: true}),
+	tsProject: typescript.createProject("tsconfig.json", {declaration: ISGENERATINGTYPEFILES}),
 	terser: () => plumber().pipe(terser, {
 		parse: {},
 		compress: {},
@@ -294,13 +295,18 @@ const PLUMBING = {
 		const tsStream = src(source)
 			.pipe(PIPES.openPipe("tsInit")())
 			.pipe(PIPES.tsProject());
-		return merger([
-			tsStream.dts
-				.pipe(PIPES.closePipe("tsInit", source, `${destination}/definitions`)),
-			tsStream.js
-				.pipe(PIPES.replacer("ts")())
-				.pipe(PIPES.closePipe("tsInit", source, destination))
-		]);
+		if (ISGENERATINGTYPEFILES) {
+			return merger([
+				tsStream.js
+					.pipe(PIPES.replacer("ts")())
+					.pipe(PIPES.closePipe("tsInit", source, destination)),
+				tsStream.dts
+					.pipe(PIPES.closePipe("tsInit", source, `${destination}definitions`))
+			]);
+		}
+		return tsStream
+		.pipe(PIPES.replacer("ts")())
+		.pipe(PIPES.closePipe("tsInit", source, destination));		
 	},
 	jsFull: (source, destination) => function pipeFullJS() {
 		return src(source)

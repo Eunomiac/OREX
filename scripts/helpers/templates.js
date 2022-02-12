@@ -13,16 +13,15 @@ import {
 U } from "./bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 export const getTemplatePath = (fileRelativePath) => `/systems/orex/templates/${`${fileRelativePath}.hbs`.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1")}`;
-export default () => __awaiter(void 0, void 0, void 0, function* () {
-    return loadTemplates(Object.values(U.objFlatten({
-        XITEMS: {
-            xRoot: getTemplatePath("xroot"),
-            xItem: getTemplatePath("xitem"),
-            xArm: getTemplatePath("xarm"),
-            xDie: getTemplatePath("xdie")
-        },
-        CHAT: {
-            oRoll: getTemplatePath("chat/oroll")
-        }
-    })));
-});
+const templatePaths = {
+    XITEMS: {
+        xRoot: getTemplatePath("xroot"),
+        xItem: getTemplatePath("xitem"),
+        xArm: getTemplatePath("xarm"),
+        xDie: getTemplatePath("xdie")
+    },
+    CHAT: {
+        oRoll: getTemplatePath("chat/oroll")
+    }
+};
+export default () => __awaiter(void 0, void 0, void 0, function* () { return loadTemplates(Object.values(U.objFlatten(templatePaths))); });

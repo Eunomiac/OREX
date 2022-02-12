@@ -1,0 +1,40 @@
+.x-die {
+	height: var(--die-size);
+	width: var(--die-size);
+
+	svg {
+		position: absolute;
+		left: 0;
+		top: 0;
+
+		.base {
+			fill: var(--die-color-bg);
+			stroke: var(--die-color-stroke);
+			stroke-width: 18;
+			stroke-miterlimit: 10;
+		}
+
+		.edges {
+			fill: none;
+			stroke: var(--die-color-stroke);
+			stroke-width: 12;
+			stroke-linejoin: bevel;
+			stroke-miterlimit: 10;
+		}
+
+		.bottom { opacity: 0.5 }
+		.side { opacity: 0.3 }
+	}
+
+	.die-val {
+		position: absolute;
+		height: 100%;
+		width: 100%;
+		color: var(--die-color-fg);
+		font-size: calc(var(--die-size) / 2);
+		line-height: var(--die-size);
+		font-family: Oswald;
+		text-align: center;
+		z-index: 2;
+	}
+}

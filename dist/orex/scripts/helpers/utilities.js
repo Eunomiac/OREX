@@ -5,7 +5,6 @@
 |*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
 \* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
 
-// ████████ IMPORTS ████████
 import gsap from "/scripts/greensock/esm/all.js";
 // import Fuse from "/scripts/fuse.js/dist/fuse.esm.js"; // https://fusejs.io/api/options.html
 // import Hyphenopoly from "/scripts/hyphenopoly/min/Hyphenopoly.js"; // https://github.com/mnater/Hyphenopoly/blob/master/docs/Node-Module.md
@@ -296,7 +295,8 @@ const _parseSearchFunc = (obj, searchFunc) => {
 };
 
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
-const GMID = () => { var _b, _c, _d; return (_d = (_c = (_b = game === null || game === void 0 ? void 0 : game.users) === null || _b === void 0 ? void 0 : _b.find((user) => user.isGM)) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : false; };
+
+const GMID = () => { var _b, _c, _d; return (_d = (_c = (_b = game === null || game === void 0 ? void 0 : game.user) === null || _b === void 0 ? void 0 : _b.find((user) => user.isGM)) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : false; };
 // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isList = (ref) => Object.getPrototypeOf(ref) === Object.prototype;
@@ -305,9 +305,11 @@ const isInt = (ref) => isNumber(ref) && Math.round(ref) === ref;
 const isFloat = (ref) => isNumber(ref) && Math.round(ref) !== ref;
 const isPosInt = (ref) => isInt(ref) && ref >= 0;
 const isIterable = (ref) => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
-const isUndefined = (ref) => ref === undefined;
 const isHTMLCode = (ref) => typeof ref === "string" && /^<.*>$/u.test(ref);
-const hasItems = (ref) => (Array.isArray(ref) || isList(ref)) && Object.keys(ref).length > 0;
+const isUndefined = (ref) => ref === undefined;
+const isDefined = (ref) => !isUndefined(ref);
+const isEmpty = (ref) => Object.keys(ref).length === 0;
+const hasItems = (ref) => Object.keys(ref).length > 0;
 const areEqual = (...refs) => {
     function checkEquality(ref1, ref2) {
         if (typeof ref1 !== typeof ref2) {
@@ -677,6 +679,8 @@ const coinFlip = () => randNum(0, 1, 1) === 1;
 const cycleNum = (num, [min = 0, max = Infinity] = []) => gsap.utils.wrap(min, max, num);
 const cycleAngle = (angle) => cycleNum(angle, [-180, 180]);
 const roundNum = (num, sigDigits = 0) => (sigDigits === 0 ? pInt(num) : pFloat(num, sigDigits));
+const sum = (...nums) => nums.flat().reduce((num, tot) => tot + num, 0);
+const average = (...nums) => sum(...nums) / nums.flat().length;
 // ░░░░░░░[Positioning]░░░░ Relationships On 2D Cartesian Plane ░░░░░░░
 const getDistance = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => Math.pow(((Math.pow((x1 - x2), 2)) + (Math.pow((y1 - y2), 2))), 0.5);
 const getAngle = ({ x: x1, y: y1 }, { x: x2, y: y2 }, { x: xO = 0, y: yO = 0 } = { x: 0, y: 0 }) => {
@@ -871,7 +875,7 @@ const objExpand = (obj) => {
 const objFlatten = (obj) => {
     const flatObj = {};
     for (const [key, val] of Object.entries(obj)) {
-        if (hasItems(val)) {
+        if ((Array.isArray(val) || isList(val)) && hasItems(val)) {
             for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
                 flatObj[`${key}.${subKey}`] = subVal;
             }
@@ -932,8 +936,8 @@ export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
     GMID,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
-    isNumber, isPosInt, isIterable, isHTMLCode,
-    hasItems,
+    isNumber, isList, isArray, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
+    isUndefined, isDefined, isEmpty, hasItems,
     areEqual,
     pFloat, pInt, radToDeg, degToRad,
     // ████████ REGEXP: Regular Expressions, Replacing, Matching ████████
@@ -956,6 +960,7 @@ export default {
     randNum, randInt,
     coinFlip,
     cycleNum, cycleAngle, roundNum,
+    sum, average,
     // ░░░░░░░ Positioning ░░░░░░░
     getDistance,
     getAngle, getAngleDelta,

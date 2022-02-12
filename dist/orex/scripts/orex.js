@@ -17,7 +17,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 // ████████ IMPORTS ████████
 import { 
 // ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮
-MAIN, 
+C, 
 // ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮
 gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animation Platform
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
@@ -31,7 +31,7 @@ Hooks.once("init", () => __awaiter(void 0, void 0, void 0, function* () {
 
     // CONFIG.debug.hooks = true;
     // ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
-    CONFIG.OREX = MAIN;
+    CONFIG.OREX = C;
     // ▮▮▮▮▮▮▮[Handlebar Templates] Preload Handlebars Templates ▮▮▮▮▮▮▮
     preloadTemplates();
 }));

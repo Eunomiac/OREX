@@ -19,5 +19,12 @@
 	pointer-events: none;
 	position: absolute;
 
+	/* .x-elem */
 	@import "components/xelem";
+
+	/* .x-group */
+	@import "components/xgroup";
+
+	/* .x-die */
+	@import "components/xdie";
 }

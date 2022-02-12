@@ -1,36 +1,31 @@
-
-
-// import {type XElem, XItem, XGroup, XDie, ORoll} from "../helpers/bundler";
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// type list = {[key: string]: any};
-type stringLike = string | number | boolean | null | undefined;
+declare type stringLike = string | number | boolean | null | undefined;
 
-type anyFunc = (...any) => any;
-type anyArray = Array<any>;
-type anyList = Record<string | number,any>;
-type anyPromise = Promise<any>;
-type anyPromiseOrReturn = Promise<any> | any;
+declare type anyFunc = (...any: any[]) => any;
+declare type anyArray = Array<any>;
+declare type anyList = Record<string | number,any>;
+declare type anyPromise = Promise<any>;
+declare type anyPromiseOrReturn = Promise<any> | any;
 
 
-type sFunc = (([key, val]: [number | string, any]) => boolean) | ((val: any, key: number) => boolean);
-type keyMapFunc = (key: string | number, val?: unknown) => string | number;
-type valMapFunc = (val: unknown, key?: number | string) => unknown;
+declare type sFunc = (([key, val]: [number | string, any]) => boolean) | ((val: any, key: number) => boolean);
+declare type keyMapFunc = (key: string | number, val?: unknown) => string | number;
+declare type valMapFunc = (val: unknown, key?: number | string) => unknown;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-type int = number; // Soft assertion that number is integer
-type float = number; // Soft assertion that number is float
-type posInt = number; // Soft assertion that number is integer >= 0
-type HTMLCode = string; // Soft assertion that string contains HTML Code
+declare type int = number; // Soft assertion that number is integer
+declare type float = number; // Soft assertion that number is float
+declare type posInt = number; // Soft assertion that number is integer >= 0
+declare type HTMLCode = string; // Soft assertion that string contains HTML Code
 
-interface point {x: number, y: number}
-interface pointFull {x: number, y: number, rotation: number, scale: number}
+declare interface point {x: number, y: number}
+declare interface pointFull {x: number, y: number, rotation: number, scale: number}
 
-interface CONFIG {
+declare interface CONFIG {
 	OREX: anyList
 }
 
-interface DOMElement {
+declare interface DOMElement {
 	elem: Element,
 	parent: XParent,
 	_x: number,
@@ -46,23 +41,24 @@ interface DOMElement {
 	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void
 }
 
-enum XScope {XROOT = "XROOT", SANDBOX = "SANDBOX"}
-type XParent = XItem|keyof XScope;
+declare enum XScope {XROOT = "XROOT", SANDBOX = "SANDBOX"}
+declare type XParent = XItem|XScope;
 
-interface XOptions extends Partial<ApplicationOptions> {
+declare interface XOptions extends Partial<ApplicationOptions> {
 	parent: XParent,
 	isRendering?: boolean,
-	style?: Partial<gsap.CSSProperties> | Array<Partial<gsap.CSSProperties>>,
-	initialXItems?: Array<XItem | Array<XItem>>
+	style?: Partial<gsap.CSSProperties>,
+	initialXItems?: Array<XItem | Array<XItem>>,
+	orbitals?: Array<number>
 }
 
-enum OFace { " " = 0, "1" = 1, "2" = 2, "3" = 3, "4" = 4, "5" = 5, "6" = 6, "7" = 7, "8" = 8, "9" = 9, "0" = 10, "M" }
+declare enum OFace { " " = 0, "1" = 1, "2" = 2, "3" = 3, "4" = 4, "5" = 5, "6" = 6, "7" = 7, "8" = 8, "9" = 9, "0" = 10, "M" }
 
-interface ODieResult extends DiceTerm.Result {
+declare interface ODieResult extends DiceTerm.Result {
 	result: OFace
 }
 
-interface ODiceTerm extends DiceTerm {
+declare interface ODiceTerm extends DiceTerm {
 	faces: 10 = 10;
 	number: DiceTerm.number = 1;
 	modifiers: DiceTerm.modifiers = [];
@@ -70,11 +66,7 @@ interface ODiceTerm extends DiceTerm {
 	options: DiceTerm.Options = {};
 }
 
-// interface ORollTerm extends RollTerm {
-
-// }
-
-interface ORollData extends Roll.data {
+declare interface ORollData extends Roll.data {
 	class: string;
 	options: Partial<ORollOptions>;
 	dice: Array<ODiceTerm>;
@@ -82,7 +74,7 @@ interface ORollData extends Roll.data {
 	total: null;
 	evaluated: boolean;
 }
-interface ORollOptions extends RollTerm.EvaluationOptions {
+declare interface ORollOptions extends RollTerm.EvaluationOptions {
 	difficulty?: posInt = 1;
 	minimize?: RollTerm.EvaluationOptions.minimize = false;
 	maximize?: RollTerm.EvaluationOptions.maximize = false;

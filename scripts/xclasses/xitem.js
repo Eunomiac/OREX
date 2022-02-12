@@ -29,29 +29,21 @@ export default class XItem extends Application {
             template: U.getTemplatePath("xitem")
         });
     }
+    static Initialize() { return (XItem._XROOT = new XItem({ id: "x-root", parent: null })); }
     static AddTicker(func) {
         this._TICKERS.push(func);
         gsap.ticker.add(func);
     }
     static XKill() {
-        if (XItem._XROOT) {
-            $(XItem._XROOT.elem).remove();
-            XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
-            delete XItem._XROOT;
-        }
+        $(XItem._XROOT.elem).remove();
+        XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
+        XItem.Initialize();
     }
-    static get XROOT() {
-        if (!this._XROOT) {
-            this._XROOT = new XItem({
-                id: "x-root",
-                parent: "SANDBOX"
-            });
-        }
-        return this._XROOT;
-    }
+    static get XROOT() { return XItem._XROOT; }
     get isRendered() { return this.rendered; }
     get elem() { return this._xElem.elem; }
     get parent() { return this._xElem.parent; }
+    get isParented() { return this._xElem.isParented; }
     get _x() { return this._xElem._x; }
     get _y() { return this._xElem._y; }
     get _pos() { return this._xElem._pos; }
@@ -62,6 +54,11 @@ export default class XItem extends Application {
     get pos() { return this._xElem.pos; }
     get rotation() { return this._xElem.rotation; }
     get scale() { return this._xElem.scale; }
+    get height() { return this._xElem.height; }
+    get width() { return this._xElem.width; }
+    get size() { return this._xElem.size; }
+    get radius() { return this._xElem.radius; }
+    get whenRendered() { return this._xElem.whenRendered.bind(this._xElem); }
     get adopt() { return this._xElem.adopt.bind(this._xElem); }
     get set() { return this._xElem.set.bind(this._xElem); }
     get to() { return this._xElem.to.bind(this._xElem); }
@@ -78,7 +75,7 @@ export default class XItem extends Application {
     renderApp() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                return yield this._render(true, {});
+                return this._render(true, {});
             }
             catch (err) {
                 this._state = Application.RENDER_STATES.ERROR;

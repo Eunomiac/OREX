@@ -14,7 +14,7 @@ export const getTemplatePath = (fileRelativePath: string) => `/systems/orex/temp
 	`${fileRelativePath}.hbs`.replace(/\.*\/*\\*(?:systems|orex|templates)\/*\\*|(\..{2,})\.hbs$/g, "$1")
 }`;
 
-export default async () => loadTemplates(Object.values(U.objFlatten({
+const templatePaths = {
 	XITEMS: {
 		xRoot: getTemplatePath("xroot"),
 		xItem: getTemplatePath("xitem"),
@@ -24,4 +24,6 @@ export default async () => loadTemplates(Object.values(U.objFlatten({
 	CHAT: {
 		oRoll: getTemplatePath("chat/oroll")
 	}
-})));
+};
+
+export default async () => loadTemplates(Object.values(U.objFlatten(templatePaths)));

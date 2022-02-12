@@ -17,28 +17,29 @@ import {
 
 export default class XElem implements DOMElement {
 	private _xItem: XItem;
-	private _parent: XItem | XScope = XItem.XROOT;
+	private _parent: XItem | null;
+	private _isParented = false;
 	private _renderPromise?: anyPromise;
+	private _style?: Partial<gsap.CSSProperties>;
 
 	constructor(xItem: XItem) {
 		const options = <XOptions>xItem.options;
 		this._xItem = xItem;
 		this._parent = options.parent;
+		this._style = options.style;
 		if (options.isRendering !== false) {
-			if (this._parent === XScope.XROOT) {
-				this._parent = XItem.XROOT;
+			if (this._parent !== null) {
+				this._parent = this._parent ?? XItem.XROOT;
 			}
-			this.whenRendered(() => {
-				if (this.parent && this.parent instanceof XItem) {
-					this.parent._xElem?.adopt(this._xItem, false);
-				}
-			});
+			this.asyncRender();
 		}
 	}
 
 	get xItem() { return this._xItem }
-	get elem() { return this._xItem.element[0] }
-	get parent() { return this._parent }
+	get elem() { return this.xItem.element[0] }
+	get parent(): XItem | null { return this._parent }
+	get isRendered() { return this.xItem.isRendered }
+	get isParented() { return this._isParented }
 
 	// LOCAL SPACE: Position & Dimensions
 	get _x() { return U.get(this.elem, "x", "px") }
@@ -62,7 +63,7 @@ export default class XElem implements DOMElement {
 	get y() { return this.pos.y }
 	get rotation() {
 		let totalRotation = 0,
-						{parent} = this._xItem;
+						{parent} = this.xItem;
 		while (parent instanceof XItem) {
 			const thisRotation = U.get(parent.elem, "rotation");
 			if (typeof thisRotation === "number") {
@@ -74,7 +75,7 @@ export default class XElem implements DOMElement {
 	}
 	get scale() {
 		let totalScale = 1,
-						{parent} = this._xItem;
+						{parent} = this.xItem;
 		while (parent instanceof XItem) {
 			const thisScale = U.get(parent.elem, "scale");
 			if (typeof thisScale === "number") {
@@ -84,7 +85,10 @@ export default class XElem implements DOMElement {
 		}
 		return totalScale;
 	}
-
+	get height(): number { return U.get(this.elem, "height", "px") }
+	get width(): number { return U.get(this.elem, "width", "px") }
+	get size(): number { return (this.height + this.width) / 2 }
+	get radius(): number | false { return (this.height === this.width ? this.height : false) }
 	getLocalPosData(ofItem: XItem, globalPoint?: point): pointFull {
 		return {
 			...MotionPathPlugin.convertCoordinates(
@@ -97,33 +101,36 @@ export default class XElem implements DOMElement {
 		};
 	}
 
-	asyncRender() {
-		return (this._renderPromise = this._renderPromise ?? this._xItem.renderApp());
+	async asyncRender() {
+		if (this._renderPromise) {
+			return this._renderPromise;
+		}
+		this._renderPromise = this.xItem.renderApp();
+		if (this.parent instanceof XItem) {
+			this.parent.adopt(this.xItem, false);
+		}
+		if (this._style) {
+			this.set(this._style);
+		}
+		return this._renderPromise;
 	}
-	whenRendered(func: anyFunc) { return this._xItem.isRendered ? func() : this.asyncRender().then(func) }
+	whenRendered(func: anyFunc) { return this.isRendered ? func() : this.asyncRender().then(func) }
 
-	to(vars: gsap.TweenVars) {
-		return this.whenRendered(() => gsap.to(this.elem, vars));
-	}
-	from(vars: gsap.TweenVars) {
-		return this.whenRendered(() => gsap.from(this.elem, vars));
-	}
-	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) {
-		return this.whenRendered(() => gsap.fromTo(this.elem, fromVars, toVars));
-	}
-	set(vars: gsap.TweenVars) { return this.whenRendered(() => gsap.set(this.elem, vars)) }
-
-	adopt(xParent: XItem, isRetainingPosition = true) {
-		this.whenRendered(() => {
-			if (isRetainingPosition) {
-				this.set(this.getLocalPosData(xParent));
-			}
-			$(xParent.elem).appendTo(this.elem);
+	adopt(xParent: XItem, isRetainingPosition = true): anyPromise {
+		return this.whenRendered(() => {
+			xParent.whenRendered(() => {
+				if (isRetainingPosition) {
+					this.set(this.getLocalPosData(xParent));
+				}
+				$(xParent.elem).appendTo(this.elem);
+			});
 		});
 	}
 
-	get height(): number { return U.get(this.elem, "height", "px") }
-	get width(): number { return U.get(this.elem, "width", "px") }
-	get size(): number { return (this.height + this.width) / 2 }
-	get radius(): number | false { return (this.height === this.width ? this.height : false) }
+	to(vars: gsap.TweenVars) { return this.whenRendered(() => gsap.to(this.elem, vars)) }
+	from(vars: gsap.TweenVars) { return this.whenRendered(() => gsap.from(this.elem, vars)) }
+	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) { return this.whenRendered(() => gsap.fromTo(this.elem, fromVars, toVars)) }
+	set(vars: gsap.TweenVars) { return this.whenRendered(() => gsap.set(this.elem, vars)) }
+
+
 }

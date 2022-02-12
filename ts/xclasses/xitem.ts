@@ -16,36 +16,27 @@ import {
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 export default class XItem extends Application implements Partial<DOMElement> {
-	private static _XROOT?: XItem;
+	private static _XROOT: XItem;
 	private static _TICKERS: Array<anyFunc> = [];
 
-	static override get defaultOptions(): ApplicationOptions {
+	public static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
 			template: U.getTemplatePath("xitem")
 		});
 	}
 
+	public static Initialize(): XItem { return (XItem._XROOT = new XItem({id: "x-root", parent: null})) }
 	public static AddTicker(func: anyFunc): void {
 		this._TICKERS.push(func);
 		gsap.ticker.add(func);
 	}
 	public static XKill(): void {
-		if (XItem._XROOT) {
-			$(XItem._XROOT.elem).remove();
-			XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
-			delete XItem._XROOT;
-		}
+		$(XItem._XROOT.elem).remove();
+		XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
+		XItem.Initialize();
 	}
-	public static get XROOT(): XItem {
-		if (!this._XROOT) {
-			this._XROOT = new XItem({
-				id: "x-root",
-				parent: "SANDBOX"
-			});
-		}
-		return this._XROOT;
-	}
+	public static get XROOT(): XItem { return XItem._XROOT }
 
 	public _xElem: XElem;
 
@@ -56,8 +47,10 @@ export default class XItem extends Application implements Partial<DOMElement> {
 	}
 
 	get isRendered() { return this.rendered }
+
 	get elem() { return this._xElem.elem }
 	get parent() { return this._xElem.parent }
+	get isParented() { return this._xElem.isParented }
 	get _x() { return this._xElem._x }
 	get _y() { return this._xElem._y }
 	get _pos() { return this._xElem._pos }
@@ -68,7 +61,12 @@ export default class XItem extends Application implements Partial<DOMElement> {
 	get pos() { return this._xElem.pos }
 	get rotation() { return this._xElem.rotation }
 	get scale() { return this._xElem.scale }
+	get height() { return this._xElem.height }
+	get width() { return this._xElem.width }
+	get size() { return this._xElem.size }
+	get radius() { return this._xElem.radius }
 
+	get whenRendered() { return this._xElem.whenRendered.bind(this._xElem) }
 	get adopt() { return this._xElem.adopt.bind(this._xElem) }
 	get set() { return this._xElem.set.bind(this._xElem) }
 	get to() { return this._xElem.to.bind(this._xElem) }
@@ -86,7 +84,7 @@ export default class XItem extends Application implements Partial<DOMElement> {
 
 	public async renderApp(): Promise<void> {
 		try {
-			return await this._render(true, {});
+			return this._render(true, {});
 		} catch (err) {
 			this._state = Application.RENDER_STATES.ERROR;
 			Hooks.onError("Application#render", <Error>err, {

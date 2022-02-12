@@ -57,7 +57,7 @@ export default class ORoll /* implements Partial<Roll> */ {
 	_evaluated = false;
 	_dice: Array<ODiceTerm> = [];
 
-	static CHAT_TEMPLATE = U.getTemplatePath("chat/xroll");
+	// static CHAT_TEMPLATE = U.getTemplatePath("chat/xroll");
 
 	constructor(xGroup: XGroup | null, data: ORollData, options: ORollOptions = {}) {
 		this._parentGroup = xGroup;

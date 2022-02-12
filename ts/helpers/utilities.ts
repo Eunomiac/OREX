@@ -1,4 +1,5 @@
 // #region ████████ IMPORTS ████████ ~
+import {AlphaField} from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/fields.mjs";
 import gsap from "gsap/all";
 // import Fuse from "/scripts/fuse.js/dist/fuse.esm.js"; // https://fusejs.io/api/options.html
 // import Hyphenopoly from "/scripts/hyphenopoly/min/Hyphenopoly.js"; // https://github.com/mnater/Hyphenopoly/blob/master/docs/Node-Module.md
@@ -294,7 +295,8 @@ const _parseSearchFunc = (obj: anyList | anyArray, searchFunc: sFunc | RegExp | 
 // #endregion ▮▮▮▮[HELPERS]▮▮▮▮
 
 // #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
-const GMID = (): string | false => game?.users?.find((user) => user.isGM)?.id ?? false;
+// @ts-expect-error Leauge of foundry developers is wrong about user not being on game.
+const GMID = (): string | false => game?.user?.find((user) => user.isGM)?.id ?? false;
 // #endregion ▄▄▄▄▄ GETTERS ▄▄▄▄▄
 
 // #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
@@ -305,9 +307,11 @@ const isInt = (ref: unknown): ref is int => isNumber(ref) && Math.round(ref) ===
 const isFloat = (ref: unknown): ref is float => isNumber(ref) && Math.round(ref) !== ref;
 const isPosInt = (ref: unknown): ref is posInt => isInt(ref) && ref >= 0;
 const isIterable = (ref: unknown): ref is Iterable<unknown> => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
-const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
 const isHTMLCode = (ref: unknown): ref is HTMLCode => typeof ref === "string" && /^<.*>$/u.test(ref);
-const hasItems = (ref: unknown): boolean => (Array.isArray(ref) || isList(ref)) && Object.keys(ref).length > 0;
+const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
+const isDefined = (ref: unknown): ref is NonNullable<unknown> | null => !isUndefined(ref);
+const isEmpty = (ref: anyArray | anyList): boolean => Object.keys(ref).length === 0;
+const hasItems = (ref: anyArray | anyList): boolean => Object.keys(ref).length > 0;
 const areEqual = (...refs: anyArray) => {
 	function checkEquality(ref1: unknown, ref2: unknown): boolean {
 		if (typeof ref1 !== typeof ref2) { return false }
@@ -659,6 +663,8 @@ const coinFlip = () => randNum(0, 1, 1) === 1;
 const cycleNum = (num: number, [min = 0, max = Infinity] = []): number => gsap.utils.wrap(min, max, num);
 const cycleAngle = (angle: number) => cycleNum(angle, [-180, 180]);
 const roundNum = (num: number, sigDigits = 0) => (sigDigits === 0 ? pInt(num) : pFloat(num, sigDigits));
+const sum = (...nums: Array<number|Array<number>>) => nums.flat().reduce((num, tot) => tot + num, 0);
+const average = (...nums: Array<number|Array<number>>) => sum(...nums) / nums.flat().length;
 // #region ░░░░░░░[Positioning]░░░░ Relationships On 2D Cartesian Plane ░░░░░░░ ~
 const getDistance = ({x: x1, y: y1}: point, {x: x2, y: y2}: point) => (((x1 - x2) ** 2) + ((y1 - y2) ** 2)) ** 0.5;
 const getAngle = ({x: x1, y: y1}: point, {x: x2, y: y2}: point, {x: xO = 0, y: yO = 0}: point = {x: 0, y: 0}) => {
@@ -685,7 +691,7 @@ const makeCycler = (array: anyArray, index = 0): Generator => {
 	}());
 };
 const getLast = (array: anyArray) => (array.length ? array[array.length - 1] : undefined);
-const unique = (array: anyArray) => {
+const unique: {<Type>(array: Array<Type>): Array<Type>} = (array) => {
 	const returnArray: anyArray = [];
 	array.forEach((item) => { if (!returnArray.includes(item)) { returnArray.push(item) } });
 	return returnArray;
@@ -864,7 +870,7 @@ const objExpand = (obj: anyList): anyList => {
 const objFlatten = (obj: anyList) => {
 	const flatObj: anyList = {};
 	for (const [key, val] of Object.entries(obj)) {
-		if (hasItems(val)) {
+		if ((Array.isArray(val) || isList(val)) && hasItems(val)) {
 			for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
 				flatObj[`${key}.${subKey}`] = subVal;
 			}
@@ -935,8 +941,8 @@ export default {
 	GMID,
 
 	// ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
-	isNumber, isPosInt, isIterable, isHTMLCode,
-	hasItems,
+	isNumber, isList, isArray, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
+	isUndefined, isDefined, isEmpty, hasItems,
 	areEqual,
 	pFloat, pInt, radToDeg, degToRad,
 
@@ -963,6 +969,7 @@ export default {
 	randNum, randInt,
 	coinFlip,
 	cycleNum, cycleAngle, roundNum,
+	sum, average,
 	// ░░░░░░░ Positioning ░░░░░░░
 	getDistance,
 	getAngle, getAngleDelta,

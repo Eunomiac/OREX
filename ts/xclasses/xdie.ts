@@ -18,6 +18,7 @@ import {
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 export default class extends XItem {
+	protected _face: string | number = " ";
 	static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
@@ -25,17 +26,24 @@ export default class extends XItem {
 			template: U.getTemplatePath("xdie")
 		});
 	}
-
-	constructor(xOptions: XOptions) {
+	// --die-color-stroke --die-color-bg --die-size --die-color-fg
+	constructor(xOptions: XOptions, {color = "black", background = "white", stroke = "black", size = 40, face = <number|string>" "} = {}) {
 		super(xOptions);
 		this.options.classes.unshift("x-die");
+		this._face = face;
+		this.set({
+			"--die-size": size,
+			"--die-color-fg": color,
+			"--die-color-bg": background,
+			"--die-color-stroke": stroke
+		});
 	}
 
 	override getData() {
 		const context = super.getData();
 
 		Object.assign(context, {
-			value: U.randInt(1, 10)
+			value: this._face
 		});
 
 		return context;

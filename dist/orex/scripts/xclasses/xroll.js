@@ -5,10 +5,6 @@
 |*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
 \* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
 
-// ████████ IMPORTS ████████
-import { 
-// ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U } from "../helpers/bundler.js";
 class ODie extends DiceTerm {
     constructor() {
         super(...arguments);
@@ -47,6 +43,7 @@ class ODie extends DiceTerm {
     }
 }
 export default class ORoll /* implements Partial<Roll> */ {
+    // static CHAT_TEMPLATE = U.getTemplatePath("chat/xroll");
     constructor(xGroup, data, options = {}) {
         this._evaluated = false;
         this._dice = [];
@@ -57,4 +54,3 @@ export default class ORoll /* implements Partial<Roll> */ {
         return (this._foundryRoll = (_a = this._foundryRoll) !== null && _a !== void 0 ? _a : new Roll(""));
     }
 }
-ORoll.CHAT_TEMPLATE = U.getTemplatePath("chat/xroll");
