@@ -5,7 +5,7 @@
 		"checkJs": false,
 		// "declaration": true,
 		// "declarationMap": true,
-		// "isolatedModules": true,
+		"isolatedModules": true,
 		// "explainFiles": true,
 		// "esModuleInterop": true,
 		"lib": [

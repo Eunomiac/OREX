@@ -34,4 +34,6 @@ Hooks.once("init", () => __awaiter(void 0, void 0, void 0, function* () {
     CONFIG.OREX = C;
     // ▮▮▮▮▮▮▮[Handlebar Templates] Preload Handlebars Templates ▮▮▮▮▮▮▮
     preloadTemplates();
+    XItem.InitializeXROOT();
 }));
+ 

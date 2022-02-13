@@ -6,8 +6,6 @@
 \* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
 
 import gsap from "/scripts/greensock/esm/all.js";
-// import Fuse from "/scripts/fuse.js/dist/fuse.esm.js"; // https://fusejs.io/api/options.html
-// import Hyphenopoly from "/scripts/hyphenopoly/min/Hyphenopoly.js"; // https://github.com/mnater/Hyphenopoly/blob/master/docs/Node-Module.md
 // ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮
 const _hyph = (str) => str; /* Hyphenopoly.config(
   {
@@ -225,11 +223,9 @@ const _numberWords = {
         "twenty"
     ],
     tens: ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"],
-    tiers: ["", "thousand", "m-", "b-", "tr-", "quadr-", "quint-", "sext-", "sept-", "oct-", "non-"]
-        .map((prefix) => prefix.replace(/-$/, "illion")),
+    tiers: ["", "thousand", "million", "billion", "trillion", "quadrillion", "quintillion", "sextillion", "septillion", "octillion", "nonillion"],
     bigPrefixes: ["", "un", "duo", "tre", "quattuor", "quin", "sex", "octo", "novem"],
-    bigSuffixes: ["", "dec", "vigint", "trigint", "quadragint", "quinquagint", "sexagint", "septuagint", "octogint", "nonagint", "cent"]
-        .map((prefix) => (prefix ? `${prefix}illion` : ""))
+    bigSuffixes: ["", "decillion", "vigintillion", "trigintillion", "quadragintillion", "quinquagintillion", "sexagintillion", "septuagintillion", "octogintillion", "nonagintillion", "centillion"]
 };
 const _ordinals = {
     zero: "zeroeth", one: "first", two: "second", three: "third", four: "fourth", five: "fifth", eight: "eighth", nine: "ninth", twelve: "twelfth",
@@ -259,48 +255,24 @@ const _romanNumerals = {
 // 	}
 // 	return searchFunc;
 // }
-const _parseSearchFunc = (obj, searchFunc) => {
-    // Transforms a variety of values into a search/test function for use with utility object and array functions.
-    // Can include regexp patterns, element indices, key names, functions, or the strings "first", "last" and "random".
-    if (typeof searchFunc === "function") {
-        return searchFunc;
-    }
-    if (searchFunc instanceof RegExp) {
-        if (isList(obj)) {
-            return ([, val]) => searchFunc.test(val);
-        }
-        return (val) => searchFunc.test(val);
-    }
-    if (isList(obj) && searchFunc in obj) {
-        return ([key]) => key === searchFunc;
-    }
-    if (typeof searchFunc === "number") {
-        if (isList(obj)) {
-            return ([, val]) => val === Object.values(obj)[pInt(searchFunc)];
-        }
-        return (elem, i) => i === pInt(searchFunc);
-    }
-    if (searchFunc === "last" || searchFunc === "first" || searchFunc === "random") {
-        return _parseSearchFunc(obj, {
-            first: 0,
-            last: Object.values(obj).length - 1,
-            random: Math.floor(Math.random() * Object.values(obj).length)
-        }[searchFunc]);
-    }
-    searchFunc = JSON.stringify(searchFunc);
-    if (isList(obj)) {
-        return ([, val]) => JSON.stringify(val) === searchFunc;
-    }
-    return (val) => JSON.stringify(val) === searchFunc;
-};
 
+const UIDLOG = [];
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 
 const GMID = () => { var _b, _c, _d; return (_d = (_c = (_b = game === null || game === void 0 ? void 0 : game.user) === null || _b === void 0 ? void 0 : _b.find((user) => user.isGM)) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : false; };
+const getUID = () => {
+    let uid;
+    do {
+        uid = randString(5);
+    } while (!UIDLOG.includes(uid));
+    UIDLOG.push(uid);
+    return uid;
+};
 // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isList = (ref) => Object.getPrototypeOf(ref) === Object.prototype;
 const isArray = (ref) => Array.isArray(ref);
+const isFunc = (ref) => typeof ref === "function";
 const isInt = (ref) => isNumber(ref) && Math.round(ref) === ref;
 const isFloat = (ref) => isNumber(ref) && Math.round(ref) !== ref;
 const isPosInt = (ref) => isInt(ref) && ref >= 0;
@@ -320,8 +292,8 @@ const areEqual = (...refs) => {
         }
         switch (typeof ref1) {
             case "object": {
-                if (Array.isArray(ref1)) {
-                    if (!Array.isArray(ref2)) {
+                if (isArray(ref1)) {
+                    if (!isArray(ref2)) {
                         return false;
                     }
                     if (ref1.length !== ref2.length) {
@@ -560,10 +532,10 @@ const verbalizeNum = (num) => {
     return numWords.join(" ");
 };
 const ordinalizeNum = (num, isReturningWords = false) => {
-    var _b, _c;
+    var _b;
     if (isReturningWords) {
         const [numText, suffix] = (_b = lCase(verbalizeNum(num)).match(/.*?[-|\s]?(\w*?)$/)) !== null && _b !== void 0 ? _b : ["", ""];
-        return numText.replace(new RegExp(`${suffix}$`), (_c = _ordinals[suffix]) !== null && _c !== void 0 ? _c : `${suffix}th`);
+        return numText.replace(new RegExp(`${suffix}$`), suffix in _ordinals ? _ordinals[suffix] : `${suffix}th`);
     }
     if (/\.|1[1-3]$/.test(`${num}`)) {
         return `${num}th`;
@@ -602,16 +574,17 @@ const loremIpsum = (numWords = 200) => {
     words.length = numWords;
     return `${sCase(words.join(" ")).trim().replace(/[^a-z\s]*$/ui, "")}.`;
 };
-const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)].map(() => randElem(wordList)).join(" ");
+const randString = (length = 5) => [...new Array(length)].map(() => String.fromCharCode(randInt(...["a", "z"].map((char) => char.charCodeAt(0))))).join("");
+const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)].map(() => randElem([...wordList])).join(" ");
 // ░░░░░░░[Localization]░░░░ Simplified Localization Functionality ░░░░░░░
 /* const Loc = (locRef, formatDict = {}) => {
-  if (/^"?scion\./u.test(JSON.stringify(locRef)) && typeof game.i18n.localize(locRef) === "string") {
-    for (const [key, val] of Object.entries(formatDict)) {
-      formatDict[key] = Loc(val);
+    if (/^"?scion\./u.test(JSON.stringify(locRef)) && typeof game.i18n.localize(locRef) === "string") {
+        for (const [key, val] of Object.entries(formatDict)) {
+            formatDict[key] = Loc(val);
+        }
+        return game.i18n.format(locRef, formatDict) || "";
     }
-    return game.i18n.format(locRef, formatDict) || "";
-  }
-  return locRef;
+    return locRef;
 }; */
 
 // ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████
@@ -721,13 +694,23 @@ const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkF
     return index !== -1 && array.splice(index, 1).pop();
 };
 const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
-
-// ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
-const remove = (obj, searchFunc) => {
+const checkVal = ({ k, v }, checkTest) => {
+    if (typeof checkTest === "function") {
+        if (isDefined(v)) {
+            return checkTest(v, k);
+        }
+        return checkTest(k);
+    }
+    if (typeof checkTest === "number") {
+        checkTest = `${checkTest}`;
+    }
+    return (new RegExp(checkTest)).test(`${v}`);
+};
+const remove = (obj, checkTest) => {
     var _b;
     // Given an array or list and a search function, will remove the first matching element and return it.
     if (isArray(obj)) {
-        const index = obj.findIndex(_parseSearchFunc(obj, searchFunc));
+        const index = obj.findIndex((v) => checkVal({ v }, checkTest));
         if (index >= 0) {
             let remVal;
             for (let i = 0; i <= obj.length; i++) {
@@ -742,7 +725,7 @@ const remove = (obj, searchFunc) => {
         }
     }
     else if (isList(obj)) {
-        const [remKey] = (_b = Object.entries(obj).find(_parseSearchFunc(obj, searchFunc))) !== null && _b !== void 0 ? _b : [];
+        const [remKey] = (_b = Object.entries(obj).find(([k, v]) => checkVal({ k, v }, checkTest))) !== null && _b !== void 0 ? _b : [];
         if (remKey) {
             const remVal = obj[remKey];
             // const {[remKey]: remVal} = obj;
@@ -752,19 +735,18 @@ const remove = (obj, searchFunc) => {
     }
     return false;
 };
-const replace = (obj, searchFunc, repVal) => {
+const replace = (obj, checkTest, repVal) => {
     // As remove, except instead replaces the element with the provided value.
     // Returns true/false to indicate whether the replace action succeeded.
     let repKey;
     if (isList(obj)) {
-        [repKey] = Object.entries(obj).find(_parseSearchFunc(obj, searchFunc)) || [false];
+        [repKey] = Object.entries(obj).find((v) => checkVal({ v }, checkTest)) || [false];
         if (repKey === false) {
             return false;
         }
     }
     else if (isArray(obj)) {
-
-        repKey = obj.findIndex(_parseSearchFunc(obj, searchFunc));
+        repKey = obj.findIndex((v) => checkVal({ v }, checkTest));
         if (repKey === -1) {
             return false;
         }
@@ -798,7 +780,7 @@ function objMap(obj, keyFunc, valFunc) {
     if (!keyFunc) {
         keyFunc = ((k) => k);
     }
-    if (Array.isArray(obj)) {
+    if (isArray(obj)) {
         return obj.map(valFunc);
     }
     return Object.fromEntries(Object.entries(obj).map(([key, val]) => [keyFunc(key, val), valFunc(val, key)]));
@@ -813,16 +795,17 @@ const objFilter = (obj, keyFunc, valFunc) => {
     if (!keyFunc) {
         keyFunc = ((k) => k);
     }
-    if (Array.isArray(obj)) {
+    if (isArray(obj)) {
         return obj.filter(valFunc);
     }
     const kFunc = keyFunc || (() => true);
     const vFunc = valFunc || (() => true);
+
     return Object.fromEntries(Object.entries(obj).filter(([key, val]) => kFunc(key) && vFunc(val)));
 };
 const objForEach = (obj, func) => {
     // An object-equivalent Array.forEach() function, which accepts one function(val, key) to perform for each member.
-    if (Array.isArray(obj)) {
+    if (isArray(obj)) {
         obj.forEach(func);
     }
     else {
@@ -851,12 +834,16 @@ function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false
     target = isMutatingOk ? target : objClone(target, isStrictlySafe);
     for (const [key, val] of Object.entries(source)) {
         if (val !== null && typeof val === "object") {
+
             if (target[key] === undefined) {
+
                 target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
             }
+
             target[key] = objMerge(target[key], val, { isMutatingOk: true, isStrictlySafe });
         }
         else {
+
             target[key] = val;
         }
     }
@@ -875,7 +862,7 @@ const objExpand = (obj) => {
 const objFlatten = (obj) => {
     const flatObj = {};
     for (const [key, val] of Object.entries(obj)) {
-        if ((Array.isArray(val) || isList(val)) && hasItems(val)) {
+        if ((isArray(val) || isList(val)) && hasItems(val)) {
             for (const [subKey, subVal] of Object.entries(objFlatten(val))) {
                 flatObj[`${key}.${subKey}`] = subVal;
             }
@@ -934,7 +921,7 @@ const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta
 // ████████ EXPORTS ████████
 export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
-    GMID,
+    GMID, getUID,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
     isNumber, isList, isArray, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
     isUndefined, isDefined, isEmpty, hasItems,
@@ -951,7 +938,7 @@ export default {
     parseArticles,
     signNum, padNum, stringifyNum, verbalizeNum, ordinalizeNum, romanizeNum,
     // ░░░░░░░ Content ░░░░░░░
-    loremIpsum, randWord,
+    loremIpsum, randString, randWord,
     // ░░░░░░░ Localization ░░░░░░░
 
     // ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████

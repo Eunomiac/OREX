@@ -19,57 +19,56 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+import type {XItemOptions} from "../xclasses/xitem.js";
+// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
+export interface XGroupOptions extends XItemOptions {
+	orbitals?: Array<number>
+}
 class XArm extends XItem {
-	private _heldXItem: XItem;
-	override get parent(): XGroup { return <XGroup>this._xElem.parent }
-
-	constructor(width: number, rotation: number, heldXItem: XItem, parentGroup: XGroup) {
-		super({parent: parentGroup, style: {
-			height: 2,
-			width,
-			rotation,
-			transformOrigin: "100% 50%",
-			top: "50%"
-		}});
+	constructor(width: number, rotation: number, parentGroup: XGroup) {
+		super({
+			parent: parentGroup,
+			onRender: {
+				set: {
+					height: 2,
+					width,
+					rotation,
+					transformOrigin: "100% 50%",
+					top: "50%"
+				}
+			}});
 		this.options.classes.unshift("x-arm");
-		this.whenRendered(() => {
-			heldXItem.whenRendered(() => {
-				this.adopt(heldXItem, false);
-			});
-		});
-		this._heldXItem = heldXItem;
 	}
-
-	get heldXItem() { return this._heldXItem }
 }
 
 export default class XGroup extends XItem {
+	private _numOrbitals = 1;
 
 	protected _orbitalSizes: Array<number> = [];
-	protected _orbitals: Array<Array<XArm>> = [];
+	protected _orbitals: Array<Array<[XArm, XItem]>> = [];
+
 	static override get defaultOptions(): ApplicationOptions {
-		return U.objMerge(super.defaultOptions, {
+		return U.objMerge({...super.defaultOptions}, {
 			popOut: false,
 			classes: U.unique([...super.defaultOptions.classes, "x-group"]),
 			template: U.getTemplatePath("xitem")
 		});
 	}
 
-	constructor(size: number, xOptions: XOptions) {
+	constructor(xOptions: XGroupOptions) {
 		super(xOptions);
 		this.options.classes.unshift("x-group");
-		this.set({
-			"--groupRadius": size,
-			...xOptions.style
-		});
-		if (xOptions.initialXItems) {
-			const numOrbitals = Array.isArray(xOptions.initialXItems[0])
-				? xOptions.initialXItems.length
-				: 1;
-			this.setOrbitals(xOptions.orbitals);
-			this.initChildXItems(xOptions.initialXItems);
-		}
+		this.setOrbitals(xOptions.orbitals);
+		this.initialize(xOptions);
+	}
+
+	public get numOrbitals() { return this._numOrbitals }
+	public set numOrbitals(value) { this._numOrbitals = value }
+
+	async initialize(xOptions: XGroupOptions) {
+		await this.xElem.render();
+
 	}
 
 	setOrbitals(orbitals = C.xGroupOrbitalDefaults) {
@@ -79,16 +78,4 @@ export default class XGroup extends XItem {
 		// this.updateOrbitals();
 	}
 
-	initChildXItems(orbitals: Array<XItem|Array<XItem>>) {
-		const orbitGroups: Array<Array<XItem>> = [];
-		if (orbitals.every((orbital) => orbital instanceof XItem)) {
-			orbitGroups.push([...<Array<XItem>>orbitals]);
-		} else {
-			orbitGroups.push(...<Array<Array<XItem>>>orbitals);
-		}
-		orbitGroups.forEach((orbitGroup, i) => {
-			const armSize = this._orbitalSizes[i];
-			this._orbitals[i] = orbitGroup.map((xItem, j, oGroup) => new XArm(armSize, (j * 360) / oGroup.length, xItem, this));
-		});
-	}
 }

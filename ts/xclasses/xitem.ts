@@ -13,65 +13,80 @@ import {
 	XElem
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
+import type {XElemOptions} from "../xclasses/xelem.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-export default class XItem extends Application implements Partial<DOMElement> {
+export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElemOptions> {
+	parent?: XItem | null;
+}
+export default class XItem extends Application {
 	private static _XROOT: XItem;
-	private static _TICKERS: Array<anyFunc> = [];
+	private static _TICKERS: Array<() => void> = [];
 
 	public static override get defaultOptions(): ApplicationOptions {
-		return U.objMerge(super.defaultOptions, {
+		return U.objMerge({...super.defaultOptions}, {
 			popOut: false,
 			template: U.getTemplatePath("xitem")
 		});
 	}
 
-	public static Initialize(): XItem { return (XItem._XROOT = new XItem({id: "x-root", parent: null})) }
-	public static AddTicker(func: anyFunc): void {
+	public static get XROOT(): XItem { return XItem._XROOT }
+	public static InitializeXROOT(): void {
+		$(XItem._XROOT?.elem).remove();
+		XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
+		XItem._XROOT = new XItem({id: "x-root", parent: null});
+	}
+	public static AddTicker(func: () => void): void {
 		this._TICKERS.push(func);
 		gsap.ticker.add(func);
 	}
-	public static XKill(): void {
-		$(XItem._XROOT.elem).remove();
-		XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
-		XItem.Initialize();
-	}
-	public static get XROOT(): XItem { return XItem._XROOT }
 
-	public _xElem: XElem;
+	private _parent: XItem | null;
+	public readonly xElem: XElem;
+	public get parent(): XItem | null { return this._parent }
+	public set parent(parentXItem: XItem | null) { this._parent = parentXItem }
+	public get elem() { return this.xElem.elem }
+	public get elem$() { return this.xElem.elem$ }
 
-	constructor(options: XOptions) {
-		super(options);
+	constructor(xOptions: XItemOptions) {
+		super(xOptions);
 		this.options.classes.unshift("x-item");
-		this._xElem = new XElem(this);
+		if (xOptions.parent === null) {
+			this._parent = null;
+		} else if (xOptions.parent instanceof XItem) {
+			this._parent = xOptions.parent;
+		} else {
+			this._parent = XItem.XROOT;
+		}
+		this.xElem = new XElem({
+			id: this.id,
+			renderApp: this,
+			noImmediateRender: xOptions.noImmediateRender,
+			onRender: xOptions.onRender
+		});
 	}
 
 	get isRendered() { return this.rendered }
+	get _x() { return this.xElem._x }
+	get _y() { return this.xElem._y }
+	get _pos() { return this.xElem._pos }
+	get _rotation() { return this.xElem._rotation }
+	get _scale() { return this.xElem._scale }
+	get x() { return this.xElem.x }
+	get y() { return this.xElem.y }
+	get pos() { return this.xElem.pos }
+	get rotation() { return this.xElem.rotation }
+	get scale() { return this.xElem.scale }
+	get height() { return this.xElem.height }
+	get width() { return this.xElem.width }
+	get size() { return this.xElem.size }
+	get radius() { return this.xElem.radius }
 
-	get elem() { return this._xElem.elem }
-	get parent() { return this._xElem.parent }
-	get isParented() { return this._xElem.isParented }
-	get _x() { return this._xElem._x }
-	get _y() { return this._xElem._y }
-	get _pos() { return this._xElem._pos }
-	get _rotation() { return this._xElem._rotation }
-	get _scale() { return this._xElem._scale }
-	get x() { return this._xElem.x }
-	get y() { return this._xElem.y }
-	get pos() { return this._xElem.pos }
-	get rotation() { return this._xElem.rotation }
-	get scale() { return this._xElem.scale }
-	get height() { return this._xElem.height }
-	get width() { return this._xElem.width }
-	get size() { return this._xElem.size }
-	get radius() { return this._xElem.radius }
-
-	get whenRendered() { return this._xElem.whenRendered.bind(this._xElem) }
-	get adopt() { return this._xElem.adopt.bind(this._xElem) }
-	get set() { return this._xElem.set.bind(this._xElem) }
-	get to() { return this._xElem.to.bind(this._xElem) }
-	get from() { return this._xElem.from.bind(this._xElem) }
-	get fromTo() { return this._xElem.fromTo.bind(this._xElem) }
+	get adopt() { return this.xElem.adopt.bind(this.xElem) }
+	get set() { return this.xElem.set.bind(this.xElem) }
+	get to() { return this.xElem.to.bind(this.xElem) }
+	get from() { return this.xElem.from.bind(this.xElem) }
+	get fromTo() { return this.xElem.fromTo.bind(this.xElem) }
 
 	override getData() {
 		const context = super.getData();
@@ -82,9 +97,9 @@ export default class XItem extends Application implements Partial<DOMElement> {
 		return context;
 	}
 
-	public async renderApp(): Promise<void> {
+	public async renderApplication(): Promise<void> {
 		try {
-			return this._render(true, {});
+			return await this._render(true, {});
 		} catch (err) {
 			this._state = Application.RENDER_STATES.ERROR;
 			Hooks.onError("Application#render", <Error>err, {
