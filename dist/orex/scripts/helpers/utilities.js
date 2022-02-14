@@ -276,6 +276,7 @@ const isFunc = (ref) => typeof ref === "function";
 const isInt = (ref) => isNumber(ref) && Math.round(ref) === ref;
 const isFloat = (ref) => isNumber(ref) && Math.round(ref) !== ref;
 const isPosInt = (ref) => isInt(ref) && ref >= 0;
+const isIndex = (ref) => isList(ref) || isArray(ref);
 const isIterable = (ref) => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref) => typeof ref === "string" && /^<.*>$/u.test(ref);
 const isUndefined = (ref) => ref === undefined;
@@ -832,19 +833,27 @@ const objClone = (obj, isStrictlySafe = false) => {
 function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false } = {}) {
     /* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
     target = isMutatingOk ? target : objClone(target, isStrictlySafe);
-    for (const [key, val] of Object.entries(source)) {
-        if (val !== null && typeof val === "object") {
+    if (isUndefined(target)) {
+        return objClone(source);
+    }
+    if (isUndefined(source)) {
+        return target;
+    }
+    if (isIndex(source)) {
+        for (const [key, val] of Object.entries(source)) {
+            if (val !== null && typeof val === "object") {
 
-            if (target[key] === undefined) {
+                if (target[key] === undefined) {
 
-                target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
+                    target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
+                }
+
+                target[key] = objMerge(target[key], val, { isMutatingOk: true, isStrictlySafe });
             }
+            else {
 
-            target[key] = objMerge(target[key], val, { isMutatingOk: true, isStrictlySafe });
-        }
-        else {
-
-            target[key] = val;
+                target[key] = val;
+            }
         }
     }
     return target;

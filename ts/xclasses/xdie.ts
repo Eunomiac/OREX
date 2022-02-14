@@ -16,9 +16,17 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+import type {XItemOptions} from "../xclasses/xitem.js";
 
-export default class extends XItem {
-	protected _face: string | number = " ";
+export interface XDieOptions extends XItemOptions {
+	value?: number,
+	color?: string,
+	numColor?: string,
+	strokeColor?: string,
+	size?: number
+}
+export default class XDie extends XItem {
+	public value: number | null;
 	static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
@@ -26,24 +34,44 @@ export default class extends XItem {
 			template: U.getTemplatePath("xdie")
 		});
 	}
-	// --die-color-stroke --die-color-bg --die-size --die-color-fg
-	constructor(xOptions: XOptions, {color = "black", background = "white", stroke = "black", size = 40, face = <number|string>" "} = {}) {
+
+	public override xOptions: XDieOptions;
+	constructor(xOptions: XDieOptions) {
+		const dieSize = xOptions.size ?? 50;
+		const fontSize = dieSize * 1.2;
+		const value = xOptions.value ?? null;
+		xOptions = {
+			value: xOptions.value,
+			parent: xOptions.parent,
+			noImmediateRender: true,
+			onRender: {
+				set: {
+					"xPercent": -50,
+					"yPercent": -50,
+					"x": 0,
+					"y": 0,
+					"fontSize": 1.2 * dieSize,
+					"fontFamily": "Oswald",
+					"textAlign": "center",
+					"--die-size": `${dieSize}px`,
+					"--die-color-fg": xOptions.numColor ?? "black",
+					"--die-color-bg": xOptions.color ?? "white",
+					"--die-color-stroke": xOptions.strokeColor ?? "black"
+				}
+			}
+		};
 		super(xOptions);
 		this.options.classes.unshift("x-die");
-		this._face = face;
-		this.set({
-			"--die-size": size,
-			"--die-color-fg": color,
-			"--die-color-bg": background,
-			"--die-color-stroke": stroke
-		});
+		this.xOptions = xOptions;
+		this.value = xOptions.value ?? null;
+		this.asyncRender();
 	}
 
 	override getData() {
 		const context = super.getData();
 
 		Object.assign(context, {
-			value: this._face
+			value: this.value ?? " "
 		});
 
 		return context;

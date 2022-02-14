@@ -133,24 +133,8 @@ Hooks.once("ready", () => {
 					}
 				}
 			});
-			const TestDie = new XDie({
-				parent: CounterRotateBox,
-				onRender: {
-					set: {
-						"xPercent": -50,
-						"yPercent": -50,
-						"x": 0,
-						"y": 0,
-						"--die-size": "50px",
-						"--die-color-bg": "lime",
-						"--die-color-fg": "black",
-						"--die-color-stroke": "black",
-						"fontSize": 60,
-						"fontFamily": "Oswald",
-						"textAlign": "center"
-					}
-				}
-			});
+
+			const TestDie = new XDie({parent: CounterRotateBox, value: 3, color: "lime", size: 100});
 
 			const dieMarkers = [
 				{x: 0.5, y: 0, background: "yellow"},
@@ -191,7 +175,8 @@ Hooks.once("ready", () => {
 				}));
 
 			function testCoordsTicker() {
-				xMarkers.forEach((xMarker, i) => {
+				xMarkers.forEach(async (xMarker, i) => {
+					await xMarker.asyncRender();
 					xMarker.set(dieMarkers[i].pos);
 				});
 			}
@@ -199,6 +184,7 @@ Hooks.once("ready", () => {
 			XItem.AddTicker(testCoordsTicker);
 
 			console.log(dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, gsap, MotionPathPlugin);
+			console.log(TestDie.value);
 		},
 		testGroup: (params: Record<string,unknown> = {}) => new XGroup({
 			parent: XItem.XROOT,
@@ -214,7 +200,7 @@ Hooks.once("ready", () => {
 			},
 			orbitals: [0.5, 1, 1.5]
 		}),
-		killAll: XItem.InitializeXROOT()
+		killAll: XItem.InitializeXROOT
 	}) // @ts-expect-error How to tell TS the type of object literal's values?
 		.forEach(([key, val]) => { globalThis[key] = val });
 

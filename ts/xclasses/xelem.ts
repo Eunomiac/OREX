@@ -35,7 +35,7 @@ export interface DOMRenderer {
 	renderApp: XItem;
 	elem: HTMLElement;
 	elem$: JQuery<HTMLElement>;
-	render: () => Promise<void>;
+	asyncRender: () => Promise<void>;
 	isRendered: boolean;
 
 	// Local Coordinates
@@ -61,6 +61,7 @@ export interface DOMRenderer {
 
 export default class XElem implements DOMRenderer {
 	private _renderPromise?: Promise<void>;
+	private _isParented?: boolean;
 
 	public readonly id: string;
 	public readonly renderApp: XItem;
@@ -68,33 +69,33 @@ export default class XElem implements DOMRenderer {
 	private readonly _onRender: {set?: gsap.TweenVars, to?: gsap.TweenVars, from?: gsap.TweenVars};
 	protected validateRender() {
 		if (!this.isRendered) {
-			throw Error(`[XELEM Error] Attempt to retrieve element of unrendered ${this.constructor.name}, id '${this.id}'`);
+			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await asyncRender?`);
 		}
 	}
 
 	public get elem() { this.validateRender(); return this.renderApp.element[0] }
 	public get elem$() { return $(this.elem) }
 
-	public async render(): Promise<void> {
+	public async asyncRender(): Promise<void> {
 		if (!this._renderPromise) {
 			this._renderPromise = this.renderApp.renderApplication();
 			await this._renderPromise;
+			if (this.parentApp) {
+				await this.parentApp.asyncRender();
+				this.parentApp.adopt(this.renderApp, false);
+			}
+			if (this._onRender.set) {
+				this.set(this._onRender.set);
+			}
+			if (this._onRender.to && this._onRender.from) {
+				this.fromTo(this._onRender.from, this._onRender.to);
+			} else if (this._onRender.to) {
+				this.to(this._onRender.to);
+			} else if (this._onRender.from) {
+				this.from(this._onRender.from);
+			}
 		}
-		if (this.parentApp) {
-			await this.parentApp.xElem.render();
-			this.parentApp.xElem.adopt(this.renderApp, false);
-		}
-		if (this._onRender.set) {
-			this.set(this._onRender.set);
-		}
-		if (this._onRender.to && this._onRender.from) {
-			this.fromTo(this._onRender.from, this._onRender.to);
-		} else if (this._onRender.to) {
-			this.to(this._onRender.to);
-		} else if (this._onRender.from) {
-			this.from(this._onRender.from);
-		}
-		return;
+		return this._renderPromise;
 	}
 
 	public get isRendered() { return this.renderApp.rendered }
@@ -104,7 +105,7 @@ export default class XElem implements DOMRenderer {
 		this.renderApp = options.renderApp;
 		this._onRender = options.onRender ?? {};
 		if (!options.noImmediateRender) {
-			this.render();
+			this.asyncRender();
 		}
 	}
 

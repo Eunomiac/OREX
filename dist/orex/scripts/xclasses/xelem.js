@@ -28,40 +28,41 @@ export default class XElem {
         this.renderApp = options.renderApp;
         this._onRender = (_b = options.onRender) !== null && _b !== void 0 ? _b : {};
         if (!options.noImmediateRender) {
-            this.render();
+            this.asyncRender();
         }
     }
     get parentApp() { return this.renderApp.parent; }
     validateRender() {
+        var _a;
         if (!this.isRendered) {
-            throw Error(`[XELEM Error] Attempt to retrieve element of unrendered ${this.constructor.name}, id '${this.id}'`);
+            throw Error(`Can't retrieve element of unrendered ${(_a = this.constructor.name) !== null && _a !== void 0 ? _a : "XItem"} '${this.id}': Did you forget to await asyncRender?`);
         }
     }
     get elem() { this.validateRender(); return this.renderApp.element[0]; }
     get elem$() { return $(this.elem); }
-    render() {
+    asyncRender() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this._renderPromise) {
                 this._renderPromise = this.renderApp.renderApplication();
                 yield this._renderPromise;
+                if (this.parentApp) {
+                    yield this.parentApp.asyncRender();
+                    this.parentApp.adopt(this.renderApp, false);
+                }
+                if (this._onRender.set) {
+                    this.set(this._onRender.set);
+                }
+                if (this._onRender.to && this._onRender.from) {
+                    this.fromTo(this._onRender.from, this._onRender.to);
+                }
+                else if (this._onRender.to) {
+                    this.to(this._onRender.to);
+                }
+                else if (this._onRender.from) {
+                    this.from(this._onRender.from);
+                }
             }
-            if (this.parentApp) {
-                yield this.parentApp.xElem.render();
-                this.parentApp.xElem.adopt(this.renderApp, false);
-            }
-            if (this._onRender.set) {
-                this.set(this._onRender.set);
-            }
-            if (this._onRender.to && this._onRender.from) {
-                this.fromTo(this._onRender.from, this._onRender.to);
-            }
-            else if (this._onRender.to) {
-                this.to(this._onRender.to);
-            }
-            else if (this._onRender.from) {
-                this.from(this._onRender.from);
-            }
-            return;
+            return this._renderPromise;
         });
     }
     get isRendered() { return this.renderApp.rendered; }

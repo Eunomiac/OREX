@@ -42,6 +42,7 @@ export default class XItem extends Application {
 	}
 
 	private _parent: XItem | null;
+	public readonly xOptions: XItemOptions;
 	public readonly xElem: XElem;
 	public get parent(): XItem | null { return this._parent }
 	public set parent(parentXItem: XItem | null) { this._parent = parentXItem }
@@ -50,6 +51,7 @@ export default class XItem extends Application {
 
 	constructor(xOptions: XItemOptions) {
 		super(xOptions);
+		this.xOptions = xOptions;
 		this.options.classes.unshift("x-item");
 		if (xOptions.parent === null) {
 			this._parent = null;
@@ -82,6 +84,7 @@ export default class XItem extends Application {
 	get size() { return this.xElem.size }
 	get radius() { return this.xElem.radius }
 
+	get asyncRender() { return this.xElem.asyncRender.bind(this.xElem) }
 	get adopt() { return this.xElem.adopt.bind(this.xElem) }
 	get set() { return this.xElem.set.bind(this.xElem) }
 	get to() { return this.xElem.to.bind(this.xElem) }
@@ -99,7 +102,7 @@ export default class XItem extends Application {
 
 	public async renderApplication(): Promise<void> {
 		try {
-			return await this._render(true, {});
+			return this._render(true, {});
 		} catch (err) {
 			this._state = Application.RENDER_STATES.ERROR;
 			Hooks.onError("Application#render", <Error>err, {
@@ -109,5 +112,4 @@ export default class XItem extends Application {
 			return Promise.reject(err);
 		}
 	}
-
 }

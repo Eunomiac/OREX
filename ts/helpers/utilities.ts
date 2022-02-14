@@ -297,6 +297,7 @@ const isFunc = (ref: unknown): ref is typeof Function => typeof ref === "functio
 const isInt = (ref: unknown): ref is int => isNumber(ref) && Math.round(ref) === ref;
 const isFloat = (ref: unknown): ref is float => isNumber(ref) && Math.round(ref) !== ref;
 const isPosInt = (ref: unknown): ref is posInt => isInt(ref) && ref >= 0;
+const isIndex = (ref: unknown): ref is Index<unknown> => isList(ref) || isArray(ref);
 const isIterable = (ref: unknown): ref is Iterable<unknown> => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref: unknown): ref is HTMLCode => typeof ref === "string" && /^<.*>$/u.test(ref);
 const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
@@ -844,21 +845,29 @@ const objClone = <Type>(obj: Type, isStrictlySafe = false): Type => {
 	}
 	return cloneObj;
 };
-function objMerge<Type extends Index<unknown>>(target: Type, source: DeepPartial<Type>, {isMutatingOk = false, isStrictlySafe = false} = {}) {
+function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, isStrictlySafe = false} = {}): Type {
 	/* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
 	target = isMutatingOk ? target : objClone(target, isStrictlySafe);
-	for (const [key, val] of Object.entries(source)) {
-		if (val !== null && typeof val === "object") {
-			// @ts-expect-error TEMPORARY
-			if ((target[key] as unknown) === undefined) {
+	if (isUndefined(target)) {
+		return <Type>objClone(source);
+	}
+	if (isUndefined(source)) {
+		return target;
+	}
+	if (isIndex(source)) {
+		for (const [key, val] of Object.entries(source)) {
+			if (val !== null && typeof val === "object") {
 				// @ts-expect-error TEMPORARY
-				target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
+				if ((target[key] as unknown) === undefined) {
+					// @ts-expect-error TEMPORARY
+					target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
+				}
+				// @ts-expect-error TEMPORARY
+				target[key] = objMerge(target[key], val, {isMutatingOk: true, isStrictlySafe});
+			} else {
+				// @ts-expect-error TEMPORARY
+				target[key] = val;
 			}
-			// @ts-expect-error TEMPORARY
-			target[key] = objMerge(target[key], val, {isMutatingOk: true, isStrictlySafe});
-		} else {
-			// @ts-expect-error TEMPORARY
-			target[key] = val;
 		}
 	}
 	return target;

@@ -44,11 +44,11 @@ export default class XGroup extends XItem {
     constructor(xOptions) {
         super(xOptions);
         this._numOrbitals = 1;
-        this._orbitalSizes = [];
         this._orbitals = [];
+        this._orbitalSizes = [];
         this.options.classes.unshift("x-group");
-        this.setOrbitals(xOptions.orbitals);
-        this.initialize(xOptions);
+        this.xOptions = xOptions;
+        this.initialize();
     }
     static get defaultOptions() {
         return U.objMerge(Object.assign({}, super.defaultOptions), {
@@ -59,15 +59,18 @@ export default class XGroup extends XItem {
     }
     get numOrbitals() { return this._numOrbitals; }
     set numOrbitals(value) { this._numOrbitals = value; }
-    initialize(xOptions) {
+    initialize() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.xElem.render();
+            yield this.xElem.asyncRender();
+            this.setOrbitals();
         });
     }
-    setOrbitals(orbitals = C.xGroupOrbitalDefaults) {
-        const min = Math.min(...orbitals);
-        const max = Math.max(...orbitals);
-        this._orbitalSizes = orbitals.map((orbitSize) => gsap.utils.mapRange(min, max, min * this.size, max * this.size));
+    setOrbitals() {
+        var _a;
+        const weights = (_a = this.xOptions.orbitals) !== null && _a !== void 0 ? _a : [...C.xGroupOrbitalDefaults];
+        const min = Math.min(...weights);
+        const max = Math.max(...weights);
+        this._orbitalSizes = weights.map((orbitSize) => gsap.utils.mapRange(min, max, min * this.size, max * this.size));
         // this.updateOrbitals();
     }
 }
