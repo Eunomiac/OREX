@@ -39,6 +39,11 @@
         top: 0px;
         left: 0px;
         outline: 5px outset red; }
+  #x-root .x-pool {
+    --bg-color: cyan;
+    border-radius: 100%;
+    background: -o-radial-gradient(var(--bg-color), transparent 75%);
+    background: radial-gradient(var(--bg-color), transparent 75%); }
   #x-root .x-die {
     height: var(--die-size);
     width: var(--die-size); }

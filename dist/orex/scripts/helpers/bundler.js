@@ -7,7 +7,7 @@
 
 import { default as baseU } from "./utilities.js";
 import { getTemplatePath } from "./templates.js";
-export const U = Object.assign(Object.assign({}, baseU), { getTemplatePath });
+export const U = { ...baseU, getTemplatePath };
 export { default as C } from "./config.js";
 export { default as gsap, Draggable as Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, RoughEase } from "/scripts/greensock/esm/all.js";
 export { default as preloadTemplates } from "./templates.js";

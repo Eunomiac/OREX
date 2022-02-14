@@ -8,7 +8,6 @@ export default class ORoll /* implements Partial<Roll> */ {
     // constructor(options: ORoll.Options = {}, data: ORoll.Data) {
     // }
     get Roll() {
-        var _a;
-        return (this._foundryRoll = (_a = this._foundryRoll) !== null && _a !== void 0 ? _a : new Roll(""));
+        return (this._foundryRoll = this._foundryRoll ?? new Roll(""));
     }
 }

@@ -64,7 +64,6 @@ export default class XDie extends XItem {
 		this.options.classes.unshift("x-die");
 		this.xOptions = xOptions;
 		this.value = xOptions.value ?? null;
-		this.asyncRender();
 	}
 
 	override getData() {

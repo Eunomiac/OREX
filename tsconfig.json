@@ -9,10 +9,10 @@
 		// "explainFiles": true,
 		// "esModuleInterop": true,
 		"lib": [
-			"ES6",
+			"ES2020",
 			"DOM"
 		],
-		"module": "ES6",
+		"module": "es2020",
 		"moduleResolution": "node",
 		"noImplicitAny": true,
 		"noImplicitOverride": true,
@@ -26,7 +26,7 @@
 		],
 		"rootDir": ".",
 		"strictNullChecks": true,
-		"target": "ES6",
+		"target": "es2020",
 		"traceResolution": false,
 		"typeRoots": ["./node_modules/@types", "./node_modules/@league-of-foundry-developers", "./ts/@types"]
 	},

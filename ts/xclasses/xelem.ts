@@ -69,6 +69,7 @@ export default class XElem implements DOMRenderer {
 	private readonly _onRender: {set?: gsap.TweenVars, to?: gsap.TweenVars, from?: gsap.TweenVars};
 	protected validateRender() {
 		if (!this.isRendered) {
+			debugger;
 			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await asyncRender?`);
 		}
 	}
@@ -122,12 +123,12 @@ export default class XElem implements DOMRenderer {
 	get _x() { return U.get(this.elem, "x", "px") }
 	get _y() { return U.get(this.elem, "y", "px") }
 	get _pos(): Point { return {x: this._x, y: this._y} }
-	get _rotation() { return <number>U.get(this.elem, "rotation") }
-	get _scale() { return <number>U.get(this.elem, "scale") }
+	get _rotation() { return U.pFloat(U.get(this.elem, "rotation")) }
+	get _scale() { return U.pFloat(U.get(this.elem, "scale")) || 1 }
 
 	// XROOT SPACE (Global): Position & Dimensions
 	get pos(): Point {
-		if (this.parentApp) {
+		if (this.parentApp && this.parentApp.isRendered) {
 			return MotionPathPlugin.convertCoordinates(
 				this.parentApp.elem,
 				XItem.XROOT.elem,
@@ -139,13 +140,10 @@ export default class XElem implements DOMRenderer {
 	get x() { return this.pos.x }
 	get y() { return this.pos.y }
 	get rotation() {
-		let totalRotation = 0,
+		let totalRotation = this._rotation,
 						{parentApp} = this;
-		while (parentApp) {
-			const thisRotation = U.get(parentApp.elem, "rotation");
-			if (typeof thisRotation === "number") {
-				totalRotation += thisRotation;
-			}
+		while (parentApp && parentApp.isRendered) {
+			totalRotation += U.pFloat(U.get(parentApp.elem, "rotation"));
 			parentApp = parentApp.parent;
 		}
 		return totalRotation;
@@ -153,11 +151,8 @@ export default class XElem implements DOMRenderer {
 	get scale() {
 		let totalScale = 1,
 						{parentApp} = this;
-		while (parentApp) {
-			const thisScale = U.get(parentApp.elem, "scale");
-			if (typeof thisScale === "number") {
-				totalScale *= thisScale;
-			}
+		while (parentApp && parentApp.isRendered) {
+			totalScale *= U.pFloat(U.get(parentApp.elem, "scale"));
 			parentApp = parentApp.parent;
 		}
 		return totalScale;

@@ -1,0 +1,5 @@
+.x-pool {
+	--bg-color: cyan;
+	border-radius: 100%;
+	background: radial-gradient(var(--bg-color), transparent 75%); 
+}

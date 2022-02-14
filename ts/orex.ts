@@ -134,7 +134,7 @@ Hooks.once("ready", () => {
 				}
 			});
 
-			const TestDie = new XDie({parent: CounterRotateBox, value: 3, color: "lime", size: 100});
+			const TestDie = new XDie({parent: CounterRotateBox, value: 3, color: "lime", size: 50});
 
 			const dieMarkers = [
 				{x: 0.5, y: 0, background: "yellow"},
@@ -174,10 +174,14 @@ Hooks.once("ready", () => {
 					}
 				}));
 
+			const markerFunc = (xMarker: XItem, dieMarker: XItem) => {
+				if (xMarker.isRendered && dieMarker.isRendered) {
+					xMarker.set(dieMarker.pos);
+				}
+			};
 			function testCoordsTicker() {
-				xMarkers.forEach(async (xMarker, i) => {
-					await xMarker.asyncRender();
-					xMarker.set(dieMarkers[i].pos);
+				xMarkers.forEach((xMarker, i) => {
+					markerFunc(xMarker, dieMarkers[i]);
 				});
 			}
 
@@ -186,24 +190,73 @@ Hooks.once("ready", () => {
 			console.log(dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, gsap, MotionPathPlugin);
 			console.log(TestDie.value);
 		},
-		testGroup: (params: Record<string,unknown> = {}) => new XGroup({
+		makeGroup: ({x = 600, y = 400, size = 300, color = "gold", orbitals = [0.5, 1, 1.5]} = {}) => new XGroup({
 			parent: XItem.XROOT,
+			classes: ["x-pool"],
 			onRender: {
 				set: {
-					height: 200,
-					width: 200,
-					left: 200,
-					top: 100,
-					xPercent: -50,
-					yPercent: -50
+					"height": size,
+					"width": size,
+					"left": x - (0.5 * size),
+					"top": y - (0.5 * size),
+					"xPercent": -50,
+					"yPercent": -50,
+					"--bg-color": color
 				}
 			},
-			orbitals: [0.5, 1, 1.5]
+			orbitals
 		}),
+		makeDie: ({value = undefined, color = "white", numColor = "black", strokeColor = "black", size = 50} = {}) => new XDie({value, color, numColor, strokeColor, size}),
+		testGroups: async () => {
+			const CIRCLES = [
+				{x: 600, y: 400, size: 300, color: "gold", orbitals: [0.5, 1, 1.5], dice: [[3, "blue"], [4, "silver"]]}
+			].map(async ({x, y, size, color, orbitals, dice}) => {
+				const circle = new XGroup({
+					parent: XItem.XROOT,
+					classes: ["x-pool"],
+					onRender: {
+						set: {
+							"height": size,
+							"width": size,
+							"left": x - (0.5 * size),
+							"top": y - (0.5 * size),
+							"xPercent": -50,
+							"yPercent": -50,
+							"--bg-color": color
+						}
+					},
+					orbitals
+				});
+				await circle.initialize();
+				circle.to({
+					rotation: "+=360",
+					repeat: -1,
+					duration: 10,
+					ease: "none",
+					onUpdate() {
+						circle.xDice.forEach((die) => {
+							if (die.isRendered && die.parent && die.parent.isRendered) {
+								die.set({rotation: -1 * die.parent.rotation});
+							}
+						});
+					}
+				});
+				globalThis.CIRCLE = circle;
+				for (let i = 0; i < dice.length; i++) {
+					const [numDice, color] = dice[i];
+					for (let j = 0; j < numDice; j++) {
+						await circle.addXItem(new XDie({
+							parent: null,
+							value: U.randInt(0, 9),
+							color: typeof color === "string" ? color : undefined
+						}), i);
+					}
+				}
+			});
+			return Promise.allSettled(CIRCLES);
+		},
 		killAll: XItem.InitializeXROOT
 	}) // @ts-expect-error How to tell TS the type of object literal's values?
 		.forEach(([key, val]) => { globalThis[key] = val });
-
-
 });
 /*!DEVCODE*/

@@ -254,7 +254,7 @@ const _romanNumerals = {
 const UIDLOG = [];
 // #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
 // @ts-expect-error Leauge of foundry developers is wrong about user not being on game.
-const GMID = () => { var _b, _c, _d; return (_d = (_c = (_b = game === null || game === void 0 ? void 0 : game.user) === null || _b === void 0 ? void 0 : _b.find((user) => user.isGM)) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : false; };
+const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
 const getUID = () => {
     let uid;
     do {
@@ -312,7 +312,7 @@ const areEqual = (...refs) => {
                 try {
                     return JSON.stringify(ref1) === JSON.stringify(ref2);
                 }
-                catch (_b) {
+                catch {
                     return false;
                 }
             }
@@ -343,7 +343,7 @@ const pFloat = (ref, sigDigits, isStrict = false) => {
         if (isUndefined(sigDigits)) {
             return ref;
         }
-        return Math.round(ref * (Math.pow(10, sigDigits))) / (Math.pow(10, sigDigits));
+        return Math.round(ref * (10 ** sigDigits)) / (10 ** sigDigits);
     }
     return isStrict ? NaN : 0;
 };
@@ -361,17 +361,17 @@ const degToRad = (deg, isConstrained = true) => {
 // #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
 // #region ████████ STRINGS: String Parsing, Manipulation, Conversion, Regular Expressions ████████ ~
 // #region ░░░░░░░[Case Conversion]░░░░ Upper, Lower, Sentence & Title Case ░░░░░░░ ~
-const uCase = (str) => `${str !== null && str !== void 0 ? str : ""}`.toUpperCase();
-const lCase = (str) => `${str !== null && str !== void 0 ? str : ""}`.toLowerCase();
+const uCase = (str) => `${str ?? ""}`.toUpperCase();
+const lCase = (str) => `${str ?? ""}`.toLowerCase();
 const sCase = (str) => {
-    let [first, ...rest] = `${str !== null && str !== void 0 ? str : ""}`.split(/\s+/);
+    let [first, ...rest] = `${str ?? ""}`.split(/\s+/);
     first = testRegExp(first, _capWords) ? first : `${uCase(first.charAt(0))}${lCase(first.slice(1))}`;
     if (hasItems(rest)) {
         rest = rest.map((word) => (testRegExp(word, _capWords) ? word : lCase(word)));
     }
     return [first, ...rest].join(" ").trim();
 };
-const tCase = (str) => `${str !== null && str !== void 0 ? str : ""}`.split(/\s/)
+const tCase = (str) => `${str ?? ""}`.split(/\s/)
     .map((word, i) => (i && testRegExp(word, _noCapWords) ? lCase(word) : sCase(word)))
     .join(" ").trim();
 // #endregion ░░░░[Case Conversion]░░░░
@@ -395,7 +395,7 @@ const pluralize = (singular, num, plural) => {
     if (pFloat(num) === 1) {
         return singular;
     }
-    return plural !== null && plural !== void 0 ? plural : `${singular.replace(/y$/, "ie").replace(/s$/, "se")}s`;
+    return plural ?? `${singular.replace(/y$/, "ie").replace(/s$/, "se")}s`;
 };
 const oxfordize = (items, useOxfordComma = true) => {
     const lastItem = items.pop();
@@ -425,7 +425,6 @@ const padNum = (num, numDecDigits) => {
     return `${leftDigits}.${"0".repeat(numDecDigits)}`;
 };
 const stringifyNum = (num) => {
-    var _b;
     // Can take string representations of numbers, either in standard or scientific/engineering notation.
     // Returns a string representation of the number in standard notation.
     if (pFloat(num) === 0) {
@@ -437,8 +436,8 @@ const stringifyNum = (num) => {
     if (typeof base === "string" && typeof exp === "string") {
         let baseInts = regExtract(base, /^-?(\d+)/), baseDecs = regExtract(base, /\.(\d+)/);
         if (isArray(baseInts) && isArray(baseDecs)) {
-            baseInts = (_b = baseInts.pop()) === null || _b === void 0 ? void 0 : _b.replace(/^0+/, "");
-            baseDecs = lCase(baseDecs === null || baseDecs === void 0 ? void 0 : baseDecs.pop()).replace(/0+$/, "");
+            baseInts = baseInts.pop()?.replace(/^0+/, "");
+            baseDecs = lCase(baseDecs?.pop()).replace(/0+$/, "");
             if (!isUndefined(baseInts) && !isUndefined(baseDecs)) {
                 const numFinalInts = Math.max(0, baseInts.length + exp);
                 const numFinalDecs = Math.max(0, baseDecs.length - exp);
@@ -466,7 +465,6 @@ const stringifyNum = (num) => {
     return `${num}`;
 };
 const verbalizeNum = (num) => {
-    var _b, _c;
     // Converts a float with absolute magnitude <= 9.99e303 into words.
     num = stringifyNum(num);
     const getTier = (trioNum) => {
@@ -507,8 +505,9 @@ const verbalizeNum = (num) => {
         numWords.push("negative");
     }
     const [integers, decimals] = num.replace(/[,|\s|-]/g, "").split(".");
-    const intArray = (_c = (_b = integers.split("").reverse().join("")
-        .match(/.{1,3}/g)) === null || _b === void 0 ? void 0 : _b.map((v) => v.split("").reverse().join(""))) !== null && _c !== void 0 ? _c : [];
+    const intArray = integers.split("").reverse().join("")
+        .match(/.{1,3}/g)
+        ?.map((v) => v.split("").reverse().join("")) ?? [];
     const intStrings = [];
     while (intArray.length) {
         const thisTrio = intArray.pop();
@@ -532,9 +531,8 @@ const verbalizeNum = (num) => {
     return numWords.join(" ");
 };
 const ordinalizeNum = (num, isReturningWords = false) => {
-    var _b;
     if (isReturningWords) {
-        const [numText, suffix] = (_b = lCase(verbalizeNum(num)).match(/.*?[-|\s]?(\w*?)$/)) !== null && _b !== void 0 ? _b : ["", ""];
+        const [numText, suffix] = lCase(verbalizeNum(num)).match(/.*?[-|\s]?(\w*?)$/) ?? ["", ""];
         return numText.replace(new RegExp(`${suffix}$`), suffix in _ordinals ? _ordinals[suffix] : `${suffix}th`);
     }
     if (/\.|1[1-3]$/.test(`${num}`)) {
@@ -626,7 +624,7 @@ const isIn = (needle, haystack = [], fuzziness = 0) => {
         try {
             return Array.from(haystack);
         }
-        catch (_b) {
+        catch {
             throw new Error(`Haystack type must be [list, array], not ${typeof haystack}: ${JSON.stringify(haystack)}`);
         }
     })();
@@ -659,7 +657,7 @@ const roundNum = (num, sigDigits = 0) => (sigDigits === 0 ? pInt(num) : pFloat(n
 const sum = (...nums) => nums.flat().reduce((num, tot) => tot + num, 0);
 const average = (...nums) => sum(...nums) / nums.flat().length;
 // #region ░░░░░░░[Positioning]░░░░ Relationships On 2D Cartesian Plane ░░░░░░░ ~
-const getDistance = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => Math.pow(((Math.pow((x1 - x2), 2)) + (Math.pow((y1 - y2), 2))), 0.5);
+const getDistance = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => (((x1 - x2) ** 2) + ((y1 - y2) ** 2)) ** 0.5;
 const getAngle = ({ x: x1, y: y1 }, { x: x2, y: y2 }, { x: xO = 0, y: yO = 0 } = { x: 0, y: 0 }) => {
     x1 -= xO;
     y1 -= yO;
@@ -712,7 +710,6 @@ const checkVal = ({ k, v }, checkTest) => {
     return (new RegExp(checkTest)).test(`${v}`);
 };
 const remove = (obj, checkTest) => {
-    var _b;
     // Given an array or list and a search function, will remove the first matching element and return it.
     if (isArray(obj)) {
         const index = obj.findIndex((v) => checkVal({ v }, checkTest));
@@ -730,7 +727,7 @@ const remove = (obj, checkTest) => {
         }
     }
     else if (isList(obj)) {
-        const [remKey] = (_b = Object.entries(obj).find(([k, v]) => checkVal({ k, v }, checkTest))) !== null && _b !== void 0 ? _b : [];
+        const [remKey] = Object.entries(obj).find(([k, v]) => checkVal({ k, v }, checkTest)) ?? [];
         if (remKey) {
             const remVal = obj[remKey];
             // const {[remKey]: remVal} = obj;
@@ -829,7 +826,7 @@ const objClone = (obj, isStrictlySafe = false) => {
             throw new Error(`${err}`);
         }
         if (isIterable(obj)) {
-            cloneObj = Object.assign({}, obj);
+            cloneObj = { ...obj };
         }
     }
     return cloneObj;

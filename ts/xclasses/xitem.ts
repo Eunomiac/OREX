@@ -45,7 +45,12 @@ export default class XItem extends Application {
 	public readonly xOptions: XItemOptions;
 	public readonly xElem: XElem;
 	public get parent(): XItem | null { return this._parent }
-	public set parent(parentXItem: XItem | null) { this._parent = parentXItem }
+	public set parent(parentXItem: XItem | null) {
+		this._parent = parentXItem;
+		if (this.isRendered && parentXItem?.isRendered) {
+			parentXItem.adopt(this);
+		}
+	}
 	public get elem() { return this.xElem.elem }
 	public get elem$() { return this.xElem.elem$ }
 

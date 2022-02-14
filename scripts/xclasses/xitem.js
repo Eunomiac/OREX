@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // #region ████████ IMPORTS ████████ ~
 import { 
 // #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
@@ -38,15 +29,14 @@ export default class XItem extends Application {
         });
     }
     static get defaultOptions() {
-        return U.objMerge(Object.assign({}, super.defaultOptions), {
+        return U.objMerge({ ...super.defaultOptions }, {
             popOut: false,
             template: U.getTemplatePath("xitem")
         });
     }
     static get XROOT() { return XItem._XROOT; }
     static InitializeXROOT() {
-        var _a;
-        $((_a = XItem._XROOT) === null || _a === void 0 ? void 0 : _a.elem).remove();
+        $(XItem._XROOT?.elem).remove();
         XItem._TICKERS.forEach((func) => gsap.ticker.remove(func));
         XItem._XROOT = new XItem({ id: "x-root", parent: null });
     }
@@ -55,7 +45,12 @@ export default class XItem extends Application {
         gsap.ticker.add(func);
     }
     get parent() { return this._parent; }
-    set parent(parentXItem) { this._parent = parentXItem; }
+    set parent(parentXItem) {
+        this._parent = parentXItem;
+        if (this.isRendered && parentXItem?.isRendered) {
+            parentXItem.adopt(this);
+        }
+    }
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
     get isRendered() { return this.rendered; }
@@ -87,20 +82,18 @@ export default class XItem extends Application {
         });
         return context;
     }
-    renderApplication() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                return this._render(true, {});
-            }
-            catch (err) {
-                this._state = Application.RENDER_STATES.ERROR;
-                Hooks.onError("Application#render", err, {
-                    msg: `An error occurred while rendering ${this.constructor.name} ${this.appId}`,
-                    log: "error"
-                });
-                return Promise.reject(err);
-            }
-        });
+    async renderApplication() {
+        try {
+            return this._render(true, {});
+        }
+        catch (err) {
+            this._state = Application.RENDER_STATES.ERROR;
+            Hooks.onError("Application#render", err, {
+                msg: `An error occurred while rendering ${this.constructor.name} ${this.appId}`,
+                log: "error"
+            });
+            return Promise.reject(err);
+        }
     }
 }
 XItem._TICKERS = [];
