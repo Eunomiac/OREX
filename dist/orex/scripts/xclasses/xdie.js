@@ -7,10 +7,8 @@ U, XItem
 export default class XDie extends XItem {
     constructor(xOptions) {
         const dieSize = xOptions.size ?? 50;
-        const fontSize = dieSize * 1.2;
-        const value = xOptions.value ?? null;
         xOptions = {
-            id: xOptions.id,
+            id: `x-die-${U.getUID()}`,
             value: xOptions.value,
             parent: xOptions.parent,
             onRender: {
@@ -32,14 +30,9 @@ export default class XDie extends XItem {
         super(xOptions);
         this.value = xOptions.value ?? null;
     }
-    static get defaultOptions() {
-        return U.objMerge(super.defaultOptions, {
-            popOut: false,
-            classes: U.unique([...super.defaultOptions.classes, "x-die"]),
-            template: U.getTemplatePath("xdie")
-        });
-    }
+    static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-die"], template: U.getTemplatePath("xdie") }); }
     get parent() { return super.parent; }
+    set parent(xItem) { super.parent = xItem; }
     getData() {
         const context = super.getData();
         Object.assign(context, {

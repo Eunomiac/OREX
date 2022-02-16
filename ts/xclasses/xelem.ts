@@ -76,17 +76,20 @@ export default class XElem implements DOMRenderer {
 	public get isRenderReady(): boolean { return this._isRenderReady }
 	public async confirmRender(isRendering = true): Promise<boolean> {
 		this._isRenderReady = this.isRenderReady || isRendering;
+		// console.log(`[${this.id}] . confirmRender(${isRendering ?? ""}) --> ${this.isRendered ? "RENDERED" : "NOT Rendered"}`);
 		if (this.isRendered) { return Promise.resolve(true) }
 		if (!this.isRenderReady) { return Promise.resolve(false) }
+		this.renderPromise = this.renderApp.renderApplication();
+		await this.renderPromise;
 		if (this.parentApp) {
-			if (!(await this.parentApp.confirmRender(isRendering))) {
+			// const awaitTest = await this.parentApp.confirmRender();
+			// console.log(`[${this.id}] PARENT:[${this.parentApp.id}] await this.parentApp.confirmRender(${isRendering}) = ${awaitTest}`);
+			if (!(await this.parentApp.confirmRender())) {
 				console.warn("Attempt to render child of unrendered parent.");
 				return Promise.resolve(false);
 			}
+			this.parentApp?.adopt(this.renderApp, false);
 		}
-		this.renderPromise = this.renderApp.renderApplication();
-		await this.renderPromise;
-		this.parentApp?.adopt(this.renderApp, false);
 		if (this.onRender.set) {
 			this.set(this.onRender.set);
 		}
@@ -115,14 +118,14 @@ export default class XElem implements DOMRenderer {
 	}
 
 	adopt(child: XItem, isRetainingPosition = true): void {
-		this.validateRender();
-		child.xElem.validateRender();
-		if (isRetainingPosition) {
-			child.set(this.getLocalPosData(child));
-		}
 		child.parent?.unregisterChild(child);
-		child.elem$.appendTo(this.elem);
 		this.renderApp.registerChild(child);
+		if (this.isRendered && child.isRendered) {
+			if (isRetainingPosition) {
+				child.set(this.getLocalPosData(child));
+			}
+			child.elem$.appendTo(this.elem);
+		}
 	}
 
 	// LOCAL SPACE: Position & Dimensions

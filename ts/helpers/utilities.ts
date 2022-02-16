@@ -283,7 +283,7 @@ const getUID = (): string => {
 	let uid;
 	do {
 		uid = randString(5);
-	} while (!UIDLOG.includes(uid));
+	} while (UIDLOG.includes(uid));
 	UIDLOG.push(uid);
 	return uid;
 };
@@ -291,7 +291,7 @@ const getUID = (): string => {
 
 // #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
 const isNumber = (ref: unknown): ref is number => typeof ref === "number" && !isNaN(ref);
-const isList = (ref: unknown): ref is List<unknown> => Object.getPrototypeOf(ref) === Object.prototype;
+const isList = (ref: unknown): ref is List<unknown> => Boolean(ref) && Object.getPrototypeOf(ref) === Object.prototype;
 const isArray = (ref: unknown): ref is Array<unknown> => Array.isArray(ref);
 const isFunc = (ref: unknown): ref is typeof Function => typeof ref === "function";
 const isInt = (ref: unknown): ref is int => isNumber(ref) && Math.round(ref) === ref;
@@ -724,7 +724,8 @@ export const Remove = (arr, findFunc = (e, i, a) => true) => {
 	}
 	return false;
 };
-// #endregion ~*/
+//#endregion ~*/
+
 // #endregion ▄▄▄▄▄ ARRAYS ▄▄▄▄▄
 
 // #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
@@ -845,7 +846,7 @@ const objClone = <Type>(obj: Type, isStrictlySafe = false): Type => {
 	}
 	return cloneObj;
 };
-function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, isStrictlySafe = false} = {}): Type {
+function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true} = {}): Type {
 	/* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
 	target = isMutatingOk ? target : objClone(target, isStrictlySafe);
 	if (isUndefined(target)) {
@@ -856,7 +857,11 @@ function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, is
 	}
 	if (isIndex(source)) {
 		for (const [key, val] of Object.entries(source)) {
-			if (val !== null && typeof val === "object") {
+			// @ts-expect-error TEMPORARY
+			if (isConcatenatingArrays && isArray(target[key]) && isArray(val)) {
+				// @ts-expect-error TEMPORARY
+				target[key] = [...target[key], ...val];
+			} else if (val !== null && typeof val === "object") {
 				// @ts-expect-error TEMPORARY
 				if ((target[key] as unknown) === undefined) {
 					// @ts-expect-error TEMPORARY

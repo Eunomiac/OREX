@@ -110,7 +110,7 @@ Hooks.once("ready", () => {
             });
             const CounterRotateBox = new XItem({
                 id: "rotate-box-2",
-                classes: ["counter-rotate-box"],
+                classes: ["rotate-box"],
                 parent: RotateBox,
                 onRender: {
                     to: {
@@ -176,7 +176,6 @@ Hooks.once("ready", () => {
         makePool: ({ x = 600, y = 400, size = 300, color = "gold", orbitals = C.xGroupOrbitalDefaults } = {}) => new XPool({
             id: `x-pool-${Array.from($(".x-pool")).length}`,
             parent: XItem.XROOT,
-            classes: ["x-pool"],
             onRender: {
                 set: {
                     "height": size,
@@ -200,12 +199,11 @@ Hooks.once("ready", () => {
         }),
         testGroups: async () => {
             const POOLS = [
-                { x: 600, y: 400, size: 300, color: "gold", orbitals: C.xGroupOrbitalDefaults, dice: [[3, "blue"], [4, "silver"]] }
+                { x: 600, y: 400, size: 300, color: "gold", orbitals: { main: 0.75, outer: 1.5, inner: 0.25 }, dice: { main: [6, "cyan"], outer: [10, "silver"], inner: [3, "red"] } }
             ].map(async ({ x, y, size, color, orbitals, dice }) => {
                 const xPool = new XPool({
                     id: "test-pool",
                     parent: XItem.XROOT,
-                    classes: ["x-pool"],
                     onRender: {
                         set: {
                             "height": size,
@@ -219,28 +217,18 @@ Hooks.once("ready", () => {
                     },
                     orbitals
                 });
-                await xPool.initialize();
-                xPool.to({
-                    rotation: "+=360",
-                    repeat: -1,
-                    duration: 10,
-                    ease: "none",
-                    onUpdate() {
-                        xPool.xItems.forEach((xItem) => {
-                            xItem.set({ rotation: -1 * xItem.parent.rotation });
-                        });
-                    }
-                }); // @ts-expect-error How to tell TS the type of object literal's values?
+                await xPool.initialize(); // @ts-expect-error How to tell TS the type of object literal's values?
                 globalThis.CIRCLE = xPool;
-                for (let i = 0; i < dice.length; i++) {
-                    const [numDice, color] = dice[i];
-                    for (let j = 0; j < numDice; j++) {
-                        await xPool.addXItem(new XDie({
-                            id: `x-pool-${i}-die-${j}`,
+                for (const [name, [numDice, color]] of Object.entries(dice)) {
+                    for (let i = 0; i < numDice; i++) {
+                        if (!(await xPool.addXItem(new XDie({
+                            id: `${xPool.id}-die-${i}`,
                             parent: null,
                             value: U.randInt(0, 9),
                             color: typeof color === "string" ? color : undefined
-                        }), "main");
+                        }), name))) {
+                            console.warn(`Error rendering xDie '${xPool.id}-die-${i}'`);
+                        }
                     }
                 }
             });
@@ -249,9 +237,11 @@ Hooks.once("ready", () => {
         killAll: XItem.InitializeXROOT
     })
         .forEach(([key, val]) => { Object.assign(globalThis, { [key]: val }); });
+    /* eslint-disable prefer-destructuring */
     const testCoords = globalThis.testCoords;
     const killAll = globalThis.killAll;
     const testGroups = globalThis.testGroups;
+    /* eslint-enable prefer-destructuring */
     testCoords();
     setTimeout(() => {
         killAll();

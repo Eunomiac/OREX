@@ -23,29 +23,22 @@ class XArm extends XItem {
             }
         });
         this.xItem = xItem;
-        this.xItem.parent = this;
+        this.adopt(xItem, false);
     }
-    static get defaultOptions() {
-        return U.objMerge(super.defaultOptions, {
-            classes: U.unique([...super.defaultOptions.classes, "x-arm"])
-        });
-    }
+    static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-arm"] }); }
     async initialize() {
         if (await super.initialize()) {
             this.xItem.set({ right: -1 * this.xItem.width });
-            this.xItem.parent = this;
+            this.adopt(this.xItem, false);
             return this.xItem.confirmRender();
         }
         return Promise.resolve(false);
     }
 }
 export default class XGroup extends XItem {
-    static get defaultOptions() {
-        return U.objMerge(super.defaultOptions, {
-            classes: U.unique([...super.defaultOptions.classes, "x-group"])
-        });
-    }
+    static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-group"] }); }
     get parent() { return super.parent; }
+    set parent(xItem) { super.parent = xItem; }
 }
 
 export class XPool extends XGroup {
@@ -59,14 +52,16 @@ export class XPool extends XGroup {
             this._orbitals.set(name, new XOrbit(name, weight, this));
         });
     }
+    static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-pool"] }); }
     get orbitals() { return this._orbitals; }
     get xOrbits() { return Array.from(Object.values(this.orbitals)); }
     get xItems() {
         return this.xOrbits.map((xOrbit) => xOrbit.getXChildren()).flat();
     }
     async addXItem(xItem, orbit) {
-        if (this._orbitals.has(orbit)) {
-            return this.orbitals.get(orbit)?.addXItem(xItem) ?? Promise.resolve(false);
+        const orbital = this.orbitals.get(orbit);
+        if (orbital instanceof XOrbit && await orbital.initialize()) {
+            return orbital.addXItem(xItem);
         }
         return Promise.resolve(false);
     }
@@ -75,13 +70,32 @@ export class XOrbit extends XGroup {
     constructor(id, weight, parentGroup) {
         super({ id, parent: parentGroup, onRender: {
                 set: {
-                    width: weight * parentGroup.width
+                    xPercent: -50,
+                    yPercent: -50,
+                    height: parentGroup.height,
+                    width: parentGroup.width,
+                    left: 0.5 * parentGroup.width,
+                    top: 0.5 * parentGroup.height
                 }
             } });
-        this._arms = [];
+        const self = this;
+        this.to({
+            rotation: "+=360",
+            repeat: -1,
+            duration: 10 * weight,
+            ease: "none",
+            onUpdate() {
+                self.xItems.forEach((xItem) => {
+                    if (xItem.parent?.isInitialized) {
+                        xItem.set({ rotation: -1 * xItem.parent.global.rotation });
+                    }
+                });
+            }
+        });
         this._weight = weight;
     }
-    get arms() { return this._arms; }
+    static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-orbit"] }); }
+    get arms() { return Array.from(this.xChildren); }
     get xItems() { return this.arms.map((arm) => arm.xItem); }
     get orbitRadius() { return this.weight * 0.5 * this.parent.width; }
     get weight() { return this._weight; }
@@ -92,12 +106,14 @@ export class XOrbit extends XGroup {
         }
     }
     updateArms() {
+        console.log(`[${this.id}] Updating Arms`, this.arms);
         const angleStep = 360 / this.arms.length;
         this.arms.forEach((arm, i) => {
             arm.to({ width: this.orbitRadius, rotation: angleStep * i, delay: 0.2 * i, ease: "power2.inOut", duration: 1 });
         });
     }
     async addXItem(xItem, angle = 0) {
+        console.log(`[${this.id}] Adding XItem: ${xItem.id}`);
         const xArm = new XArm(xItem, this);
         if (await xArm.initialize()) {
             this.updateArms();
@@ -108,6 +124,7 @@ export class XOrbit extends XGroup {
     async addXItems(xItems) {
         const allPromises = xItems.map((xItem, i) => {
             const xArm = new XArm(xItem, this);
+            this.adopt(xArm);
             return xArm.initialize();
         });
         if (await Promise.allSettled(allPromises)) {

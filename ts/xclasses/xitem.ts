@@ -25,7 +25,7 @@ export default class XItem extends Application {
 	public static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
-			classes: [...super.defaultOptions.classes, "x-item"],
+			classes: ["x-item"],
 			template: U.getTemplatePath("xitem")
 		});
 	}
@@ -49,15 +49,10 @@ export default class XItem extends Application {
 	public get elem() { return this.xElem.elem }
 	public get elem$() { return this.xElem.elem$ }
 	public get parent(): XItem | null { return this._parent }
-	public set parent(parent: XItem | null) {
-		this._parent = parent ?? XItem.XROOT;
-		if (this.isRendered && this._parent.isRendered) {
-			this._parent.adopt(this);
-		}
-	}
+	public set parent(parent: XItem | null) { this._parent = parent ?? XItem.XROOT }
 	public get xChildren(): Set<XItem> { return this._xChildren }
 	public get hasChildren() { return this.xChildren.size > 0 }
-	public registerChild(child: XItem) { this.xChildren.add(child) }
+	public registerChild(child: XItem) { child.parent = this; this.xChildren.add(child) }
 	public unregisterChild(child: XItem) { this.xChildren.delete(child) }
 	public getXChildren<X extends typeof XItem>(classRef?: X, isGettingAll = false): Array<XItem> {
 		const classCheck: typeof XItem = U.isUndefined(classRef) ? XItem : classRef;
@@ -70,9 +65,10 @@ export default class XItem extends Application {
 		return Array.from(this.xChildren.values()).filter((xItem) => xItem instanceof classCheck);
 	}
 
-	constructor(xOptions: XItemOptions) {
+	constructor({classes = [], ...xOptions}: XItemOptions) {
 		super(xOptions);
-		this.xOptions = xOptions;
+		this.options.classes.push(...classes);
+		this.xOptions = Object.assign(xOptions, {classes: this.options.classes});
 		if (xOptions.parent === null) {
 			this._parent = null;
 		} else if (xOptions.parent instanceof XItem) {

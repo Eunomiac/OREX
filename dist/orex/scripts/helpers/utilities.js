@@ -217,13 +217,13 @@ const getUID = () => {
     let uid;
     do {
         uid = randString(5);
-    } while (!UIDLOG.includes(uid));
+    } while (UIDLOG.includes(uid));
     UIDLOG.push(uid);
     return uid;
 };
 // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
-const isList = (ref) => Object.getPrototypeOf(ref) === Object.prototype;
+const isList = (ref) => Boolean(ref) && Object.getPrototypeOf(ref) === Object.prototype;
 const isArray = (ref) => Array.isArray(ref);
 const isFunc = (ref) => typeof ref === "function";
 const isInt = (ref) => isNumber(ref) && Math.round(ref) === ref;
@@ -771,7 +771,7 @@ const objClone = (obj, isStrictlySafe = false) => {
     }
     return cloneObj;
 };
-function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false } = {}) {
+function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true } = {}) {
 
     target = isMutatingOk ? target : objClone(target, isStrictlySafe);
     if (isUndefined(target)) {
@@ -782,7 +782,12 @@ function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false
     }
     if (isIndex(source)) {
         for (const [key, val] of Object.entries(source)) {
-            if (val !== null && typeof val === "object") {
+
+            if (isConcatenatingArrays && isArray(target[key]) && isArray(val)) {
+
+                target[key] = [...target[key], ...val];
+            }
+            else if (val !== null && typeof val === "object") {
 
                 if (target[key] === undefined) {
 

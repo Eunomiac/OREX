@@ -8,12 +8,13 @@ U, XElem
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
  } from "../helpers/bundler.js";
 export default class XItem extends Application {
-    constructor(xOptions) {
+    constructor({ classes = [], ...xOptions }) {
         super(xOptions);
         this._isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
         this._xChildren = new Set();
         this._TICKERS = new Set();
-        this.xOptions = xOptions;
+        this.options.classes.push(...classes);
+        this.xOptions = Object.assign(xOptions, { classes: this.options.classes });
         if (xOptions.parent === null) {
             this._parent = null;
         }
@@ -31,7 +32,7 @@ export default class XItem extends Application {
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
-            classes: [...super.defaultOptions.classes, "x-item"],
+            classes: ["x-item"],
             template: U.getTemplatePath("xitem")
         });
     }
@@ -46,15 +47,10 @@ export default class XItem extends Application {
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
     get parent() { return this._parent; }
-    set parent(parent) {
-        this._parent = parent ?? XItem.XROOT;
-        if (this.isRendered && this._parent.isRendered) {
-            this._parent.adopt(this);
-        }
-    }
+    set parent(parent) { this._parent = parent ?? XItem.XROOT; }
     get xChildren() { return this._xChildren; }
     get hasChildren() { return this.xChildren.size > 0; }
-    registerChild(child) { this.xChildren.add(child); }
+    registerChild(child) { child.parent = this; this.xChildren.add(child); }
     unregisterChild(child) { this.xChildren.delete(child); }
     getXChildren(classRef, isGettingAll = false) {
         const classCheck = U.isUndefined(classRef) ? XItem : classRef;

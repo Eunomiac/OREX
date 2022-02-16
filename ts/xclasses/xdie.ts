@@ -26,22 +26,15 @@ export interface XDieOptions extends XItemOptions {
 	size?: number
 }
 export default class XDie extends XItem {
+	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-die"], template: U.getTemplatePath("xdie")}) }
 	public value: number | null;
-	static override get defaultOptions(): ApplicationOptions {
-		return U.objMerge(super.defaultOptions, {
-			popOut: false,
-			classes: U.unique([...super.defaultOptions.classes, "x-die"]),
-			template: U.getTemplatePath("xdie")
-		});
-	}
 
 	public override get parent() { return <XItem>super.parent }
+	public override set parent(xItem: XItem) { super.parent = xItem }
 	constructor(xOptions: XDieOptions) {
 		const dieSize = xOptions.size ?? 50;
-		const fontSize = dieSize * 1.2;
-		const value = xOptions.value ?? null;
 		xOptions = {
-			id: xOptions.id,
+			id: `x-die-${U.getUID()}`,
 			value: xOptions.value,
 			parent: xOptions.parent,
 			onRender: {

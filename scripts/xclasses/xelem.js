@@ -20,21 +20,24 @@ export default class XElem {
     get isRenderReady() { return this._isRenderReady; }
     async confirmRender(isRendering = true) {
         this._isRenderReady = this.isRenderReady || isRendering;
+        // console.log(`[${this.id}] . confirmRender(${isRendering ?? ""}) --> ${this.isRendered ? "RENDERED" : "NOT Rendered"}`);
         if (this.isRendered) {
             return Promise.resolve(true);
         }
         if (!this.isRenderReady) {
             return Promise.resolve(false);
         }
+        this.renderPromise = this.renderApp.renderApplication();
+        await this.renderPromise;
         if (this.parentApp) {
-            if (!(await this.parentApp.confirmRender(isRendering))) {
+            // const awaitTest = await this.parentApp.confirmRender();
+            // console.log(`[${this.id}] PARENT:[${this.parentApp.id}] await this.parentApp.confirmRender(${isRendering}) = ${awaitTest}`);
+            if (!(await this.parentApp.confirmRender())) {
                 console.warn("Attempt to render child of unrendered parent.");
                 return Promise.resolve(false);
             }
+            this.parentApp?.adopt(this.renderApp, false);
         }
-        this.renderPromise = this.renderApp.renderApplication();
-        await this.renderPromise;
-        this.parentApp?.adopt(this.renderApp, false);
         if (this.onRender.set) {
             this.set(this.onRender.set);
         }
@@ -58,14 +61,14 @@ export default class XElem {
         }
     }
     adopt(child, isRetainingPosition = true) {
-        this.validateRender();
-        child.xElem.validateRender();
-        if (isRetainingPosition) {
-            child.set(this.getLocalPosData(child));
-        }
         child.parent?.unregisterChild(child);
-        child.elem$.appendTo(this.elem);
         this.renderApp.registerChild(child);
+        if (this.isRendered && child.isRendered) {
+            if (isRetainingPosition) {
+                child.set(this.getLocalPosData(child));
+            }
+            child.elem$.appendTo(this.elem);
+        }
     }
     // LOCAL SPACE: Position & Dimensions
     get x() { return U.pInt(this.isRendered ? U.get(this.elem, "x", "px") : this.onRender.set?.x); }
