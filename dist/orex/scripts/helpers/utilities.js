@@ -1,54 +1,7 @@
-/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\
-|*     ▌█████████░░░░░░░░░░░░░░░░ ORE-X for Foundry VTT ░░░░░░░░░░░░░░░░░░█████████▐     *|
-|*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
-|*     ▌█████████████████████ MIT License █ v0.0.1-prealpha █  ████████████████████▐     *|
-|*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
-\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
 
 import gsap from "/scripts/greensock/esm/all.js";
 // ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮
-const _hyph = (str) => str; /* Hyphenopoly.config(
-  {
-    require: ["en-us"],
-    // loader: "fs", // Whether to load using node's fs or https (default: fs)
-    sync: true, // Whether hyphenator should work synchronously (default: false)
-    paths: {},
-    setup: {
-      defaultLanguage: "en-us",
-      // "compound": "hyphen", // hyphenate hyphenated words (e.g. 'computer-aided') at the hyphen only (default: hyphen)
-      // "hyphen": String.fromCharCode(173), // = default: &shy; | \u00AD
-      leftmin: 2, // minimum size of beginning component of hyphenated word (default: 0)
-      rightmin: 2, // minimum size of ending component of hyphenated word (default: 0)
-      minWordLength: 4, // minimum length of a word for it to be hyphenated (default: 6)
-      // "mixedCase": true, // allow hyphenating mixed-case words (default: true)
-      orphanControl: 3, // don't hyphenate last word AND keep it on the same line as the previous word (default: 1)
-      hide: "text", // hide text (by setting it transparent) before hyphenator has finished (default: "all")
-      // "timeout": 1000, // failure timeout in ms for hyphenation before text is unhidden (default: 1000)
-      dontHyphenateClass: "no-hyphen", // elements with this class will not have their content hyphenated
-      dontHyphenate: Object.fromEntries("video|audio|script|code|pre|img|br|samp|kbd|var|abbr|acronym|sub|sup|button|option|label|textarea|input|math|svg|style"
-        .split(/\|/)
-        .map((item) => [item, ![
-          "textarea" // Add elements from above that SHOULD be hyphenated.
-        ].includes(item)])),
-      keepAlive: true, // whether to keep hyphenator loaded after initialization (default: false)
-      // "normalize": false, // whether to resolve compound characters into precomposed characters (default: false)
-      // "processShadows": false, // whether to search outside window.document for elements to hyphenate (default: false)
-      // "safeCopy": true, // whether to remove soft hyphens when text is copied to clipboard (default: true)
-      substitute: { // mapping out-of-language characters to in-language characters for hyphenating
-        "en-us": {
-          ...Object.fromEntries("àáâãäå".forEach((char) => [char, "a"])),
-          ...Object.fromEntries("èéêë".forEach((char) => [char, "e"])),
-          ...Object.fromEntries("ìíîï".forEach((char) => [char, "i"])),
-          ...Object.fromEntries("òóôõö".forEach((char) => [char, "o"])),
-          ...Object.fromEntries("ùúûü".forEach((char) => [char, "u"])),
-          æ: "a",
-          ç: "s",
-          ñ: "n"
-        }
-      }
-    }
-  }
-).get("en-us"); */
+const _hyph = (str) => str;
 
 // ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮
 
@@ -59,19 +12,19 @@ const _noCapWords = [
 const _capWords = [
     "I", /[^a-z]{3,}|[\.0-9]/gu
 ].map((word) => (/RegExp/.test(Object.prototype.toString.call(word)) ? word : new RegExp(`\\b${word}\\b`, "gui")));
-const _loremIpsumText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies 
-nibh sed massa euismod lacinia. Aliquam nec est ac nunc ultricies scelerisque porta vulputate odio. 
-Integer gravida mattis odio, semper volutpat tellus. Ut elit leo, auctor eget fermentum hendrerit, 
-aliquet ac nunc. Suspendisse porta turpis vitae mi posuere molestie. Cras lectus lacus, vulputate a 
-vestibulum in, mattis vel mi. Mauris quis semper mauris. Praesent blandit nec diam eget tincidunt. Nunc 
-aliquet consequat massa ac lacinia. Ut posuere velit sagittis, vehicula nisl eget, fringilla nibh. Duis 
-volutpat mattis libero, a porttitor sapien viverra ut. Phasellus vulputate imperdiet ligula, eget 
-eleifend metus tempor nec. Nam eget sapien risus. Praesent id suscipit elit. Sed pellentesque ligula 
-diam, non aliquet magna feugiat vitae. Pellentesque ut tortor id erat placerat dignissim. Pellentesque 
-ut dui vel leo laoreet sodales nec ac tellus. In hac habitasse platea dictumst. Proin sed ex sed augue 
-sollicitudin interdum. Sed id lacus porttitor nisi vestibulum tincidunt. Nulla facilisi. Vestibulum 
-feugiat finibus magna in pretium. Proin consectetur lectus nisi, non commodo lectus tempor et. Cras 
-viverra, mi in consequat aliquet, justo mauris fringilla tellus, at accumsan magna metus in eros. Sed 
+const _loremIpsumText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies
+nibh sed massa euismod lacinia. Aliquam nec est ac nunc ultricies scelerisque porta vulputate odio.
+Integer gravida mattis odio, semper volutpat tellus. Ut elit leo, auctor eget fermentum hendrerit,
+aliquet ac nunc. Suspendisse porta turpis vitae mi posuere molestie. Cras lectus lacus, vulputate a
+vestibulum in, mattis vel mi. Mauris quis semper mauris. Praesent blandit nec diam eget tincidunt. Nunc
+aliquet consequat massa ac lacinia. Ut posuere velit sagittis, vehicula nisl eget, fringilla nibh. Duis
+volutpat mattis libero, a porttitor sapien viverra ut. Phasellus vulputate imperdiet ligula, eget
+eleifend metus tempor nec. Nam eget sapien risus. Praesent id suscipit elit. Sed pellentesque ligula
+diam, non aliquet magna feugiat vitae. Pellentesque ut tortor id erat placerat dignissim. Pellentesque
+ut dui vel leo laoreet sodales nec ac tellus. In hac habitasse platea dictumst. Proin sed ex sed augue
+sollicitudin interdum. Sed id lacus porttitor nisi vestibulum tincidunt. Nulla facilisi. Vestibulum
+feugiat finibus magna in pretium. Proin consectetur lectus nisi, non commodo lectus tempor et. Cras
+viverra, mi in consequat aliquet, justo mauris fringilla tellus, at accumsan magna metus in eros. Sed
 vehicula, diam ut sagittis semper, purus massa mattis dolor, in posuere.`;
 const _randomWords = [
     "aboveboard", "account", "achiever", "acoustics", "act", "action", "activity", "actor", "addition", "adjustment",
@@ -576,15 +529,6 @@ const loremIpsum = (numWords = 200) => {
 const randString = (length = 5) => [...new Array(length)].map(() => String.fromCharCode(randInt(...["a", "z"].map((char) => char.charCodeAt(0))))).join("");
 const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)].map(() => randElem([...wordList])).join(" ");
 // ░░░░░░░[Localization]░░░░ Simplified Localization Functionality ░░░░░░░
-/* const Loc = (locRef, formatDict = {}) => {
-    if (/^"?scion\./u.test(JSON.stringify(locRef)) && typeof game.i18n.localize(locRef) === "string") {
-        for (const [key, val] of Object.entries(formatDict)) {
-            formatDict[key] = Loc(val);
-        }
-        return game.i18n.format(locRef, formatDict) || "";
-    }
-    return locRef;
-}; */
 
 // ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████
 const isIn = (needle, haystack = [], fuzziness = 0) => {
@@ -828,7 +772,7 @@ const objClone = (obj, isStrictlySafe = false) => {
     return cloneObj;
 };
 function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false } = {}) {
-    /* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
+
     target = isMutatingOk ? target : objClone(target, isStrictlySafe);
     if (isUndefined(target)) {
         return objClone(source);
@@ -929,7 +873,7 @@ export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
     GMID, getUID,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
-    isNumber, isList, isArray, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
+    isNumber, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
     isUndefined, isDefined, isEmpty, hasItems,
     areEqual,
     pFloat, pInt, radToDeg, degToRad,

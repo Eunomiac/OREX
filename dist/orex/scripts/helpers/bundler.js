@@ -1,9 +1,3 @@
-/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\
-|*     ▌█████████░░░░░░░░░░░░░░░░ ORE-X for Foundry VTT ░░░░░░░░░░░░░░░░░░█████████▐     *|
-|*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
-|*     ▌█████████████████████ MIT License █ v0.0.1-prealpha █  ████████████████████▐     *|
-|*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
-\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
 
 import { default as baseU } from "./utilities.js";
 import { getTemplatePath } from "./templates.js";
@@ -14,5 +8,5 @@ export { default as preloadTemplates } from "./templates.js";
 export { default as ORoll } from "../xclasses/oroll.js";
 export { default as XElem } from "../xclasses/xelem.js";
 export { default as XItem } from "../xclasses/xitem.js";
-export { default as XGroup } from "../xclasses/xgroup.js";
+export { default as XGroup, XPool, XOrbit } from "../xclasses/xgroup.js";
 export { default as XDie } from "../xclasses/xdie.js";

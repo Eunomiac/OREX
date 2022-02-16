@@ -1,9 +1,3 @@
-/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\
-|*     ▌█████████░░░░░░░░░░░░░░░░ ORE-X for Foundry VTT ░░░░░░░░░░░░░░░░░░█████████▐     *|
-|*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
-|*     ▌█████████████████████ MIT License █ v0.0.1-prealpha █  ████████████████████▐     *|
-|*     ▌██████████░░░░░░░░░░ https://github.com/Eunomiac/orex ░░░░░░░░░░███████████▐     *|
-\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */
 
 // ████████ IMPORTS ████████
 import { 
@@ -14,17 +8,14 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animati
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 preloadTemplates, U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XElem, XItem, XGroup, XDie } from "./helpers/bundler.js";
-
+XElem, XItem, XGroup, XPool, XOrbit, XDie, ORoll
+ } from "./helpers/bundler.js";
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
 // ████████ ON INIT: On-Initialization Hook ████████
 Hooks.once("init", async () => {
-
-    // CONFIG.debug.hooks = true;
-    // ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
-    CONFIG.OREX = C;
-    // ▮▮▮▮▮▮▮[Handlebar Templates] Preload Handlebars Templates ▮▮▮▮▮▮▮
+    // ▮▮▮▮▮▮▮ Apply Configuration Settings ▮▮▮▮▮▮▮
+    Object.assign(CONFIG, { OREX: C });
     preloadTemplates();
+    // ▮▮▮▮▮▮▮ DOM Initialization ▮▮▮▮▮▮▮
     XItem.InitializeXROOT();
 });
- 

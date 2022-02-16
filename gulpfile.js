@@ -1,6 +1,6 @@
 /* eslint-disable sort-keys */
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
-const {src, dest, watch, series, parallel} = require("gulp");
+const {src, dest, watch, series, parallel, registry} = require("gulp");
 const plumber = require("lazypipe");
 const plunger = require("gulp-plumber");
 const merger = require("merge2");
@@ -162,6 +162,10 @@ const padHeaderLines = (match) => {
 	});
 	return returnLines.join("\n");
 };
+// const multiLineStripper = (match, startBreak, contents, endBreak) => {
+// 	console.
+
+// };
 // #endregion ▮▮▮▮[UTILITY]▮▮▮▮
 
 const ISDEPLOYING = false;
@@ -170,22 +174,17 @@ const SYSTEM = "orex";
 const SYSTEMNAME = "ORE-X";
 
 // #region ████████ CONFIGURATION: Banner Headers, Source/Destination Globs, Build Behavior ████████
+const dateStringFull = ISDEPLOYING ? ` █ ${new Date().toString().match(/\b[A-Z][a-z]+ \d+ \d+/u).shift()} ` : "";
+const dateStringMin = ISDEPLOYING ? ` (${new Date().getFullYear()})` : "";
 const BANNERTEMPLATE = {
 	full: `/* ****▌███████████████████████████████████████████████████████████████████████████▐**** *\\
 |*     ▌█░░░░░░░░░ ${SYSTEMNAME} for Foundry VTT ░░░░░░░░░░░█▐     *|
 |*     ▌██████████████████░░░░░░░░░░░░░ by Eunomiac ░░░░░░░░░░░░░██████████████████▐     *|
-|*     ▌█ <%= package.license %> License █ v<%= package.version %> █ ${
-	ISDEPLOYING
-		? new Date()
-			.toString()
-			.match(/\b[A-Z][a-z]+ \d+ \d+/)
-			.shift()
-		: ""
-} █▐     *|
+|*     ▌█ <%= package.license %> License █ v<%= package.version %>${dateStringFull}█▐     *|
 |*     ▌████░░░░ <%= package.url %> ░░░░█████▐     *|
-\\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */\n\n`,
+\\* ****▌███████████████████████████████████████████████████████████████████████████▐**** */\r\n\r\n`,
 	min: [
-		`/* ▌██░░ <%= package.name %> v<%= package.version %> (${new Date().getFullYear()})`,
+		`/* ▌██░░ <%= package.name %> v<%= package.version %>${dateStringMin}`,
 		"<%= package.license %> License",
 		"<%= package.url %> ░░██▐ */"
 	].join(" ║ ")
@@ -210,29 +209,39 @@ const BUILDFILES = {
 	}
 };
 const REGEXPPATTERNS = {
+	/* ALWAYS USE FLAGS:
+			g --- global & enables capturing groups
+			u --- handles expanded unicode characters AND enables strict checks of RegExp syntax
+
+		 OPTIONAL FLAGS:
+		  i --- ignore case
+			s --- . dot character WILL match newline characters
+			m --- ^ and $ characters WILL match start/end of lines, instead of start/end of entire string
+			y --- starts search from <lastIndex> on; lastIndex must be supplied as a property
+
+		 REGEXP PHRASES:
+			(\r\n)?\s*? --- capture any line break, then consume blank space at start of line
+										  reverse, for end-of-lines: \s*?(\r\n)?
+	*/
 	ts: new Map([
-		[/from "gsap\/all"/g, "from \"/scripts/greensock/esm/all.js\""]
+		[/from "gsap\/all"/gu, "from \"/scripts/greensock/esm/all.js\""]
 	]),
 	js: new Map([
-		[/(\r?\n?)[ \t]*\/\*DEVCODE\*\/(?:.|\r?\n)*?\/\*!DEVCODE\*\/(\r?\n?)/gs, "$1$2"], // Strip developer code
+		[/(\r\n)?\s*?(\/\*DEVCODE\*\/.*?\/\*!DEVCODE\*\/)\s*?(\r\n)?/gsm, ""], // Strip developer code
 		[/\/\* \*{4}▌.*?▐\*{4} \*\//s, padHeaderLines], // Pad header lines to same length
-		[/(\r?\n?)[ \t]*\/\*[*~](?:.|\r?\n|\r)*?\*\/[ \t]*(\r?\n?)/g, "$1$2"], // Strip multi-line comments beginning with '/*~' or '/**'
-		[/(\r?\n?)[ \t]*\/\/~.*?$/gm, "$1"], // Strip single-line comments beginning with '//~'
+		[/(\r?\n?)[ \t]*\/\*{1,2}(?!~)(?:.|\r?\n|\r)*?\*\/[ \t]*(\r?\n?)/g, "$1$2"], // Strip multi-line comments unless they beginning with '/*~' or '/**~'
+		[/(\r?\n?)[ \t]*\/\/~.*?$/gm, "$1"], // Strip single-line comments unless they begin with '//~'
 		[/[ \t]*\/\/[ \t]*eslint.*$/gm, ""], // Strip eslint enable/disable single-line comments
 		[/[ \t]*\/\/[ \t]*@ts.*$/gm, ""], // Strip TypeScript expect-error comments
 		[/[ \t]*\/\*[ \t]*eslint[^*]*\*\/[ \t]*/g, ""], // Strip eslint enable/disable mult-line comments
 		[/[ \t]*\/\/ no default.*$/gm, ""], // Strip '// no default'
 		[/[ \t]*\/\/ falls through.*$/gm, ""], // Strip '// falls through'
 		[/[ \t]*~$/gm, ""], // Strip '~' from end-of-lines (used for automatic region folding)
-		[/\.hbs/g, ".html"], // Convert references to .hbs files to .html files
 		[/#reg.*? /gs, ""], // Convert region headers to standard headers
 		[/(\r?\n?)[ \t]*\/\/ #endreg.*[ \t]*\r?\n?/g, "\r\n"], // Remove region footers
 		[/(\r?\n[ \t]*(?=\r?\n)){2,}/g, "\r\n"], // Strip excess blank lines
 		[/[ \t]*\r?\n$/g, ""], // Strip whitespace from end of files
 		[/^[ \t]*\r?\n/g, ""] // Strip whitespace from start of files
-	]),
-	hbs: new Map([
-		[/\.hbs/g, ".html"] // Convert references to .hbs files to .html files
 	])
 };
 const PIPES = {
@@ -306,7 +315,7 @@ const PLUMBING = {
 		}
 		return tsStream
 		.pipe(PIPES.replacer("ts")())
-		.pipe(PIPES.closePipe("tsInit", source, destination));		
+		.pipe(PIPES.closePipe("tsInit", source, destination));
 	},
 	jsFull: (source, destination) => function pipeFullJS() {
 		return src(source)
@@ -342,8 +351,6 @@ const PLUMBING = {
 	hbs: (source, destination) => function pipeHBS() {
 		return src(source)
 			.pipe(PIPES.openPipe("hbs")())
-			.pipe(PIPES.replacer("hbs")())
-			.pipe(renamer({extname: ".html"}))
 			.pipe(PIPES.closePipe("hbs", source, destination));
 	},
 	toDest: (source, destination) => function pipeToDest() {

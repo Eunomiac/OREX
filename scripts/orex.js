@@ -10,34 +10,37 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animati
 preloadTemplates, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XElem, XItem, XGroup, XDie } from "./helpers/bundler.js";
-/*DEVCODE*/
-// import DB from "./helpers/debug.js";
-/*!DEVCODE*/
+XElem, XItem, XGroup, XPool, XOrbit, XDie, ORoll
+// #endregion ▮▮▮▮[XItems]▮▮▮▮
+ } from "./helpers/bundler.js";
+/*DEVCODE*/ // import DB from "./helpers/debug.js"; /*!DEVCODE*/
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 // #region ████████ ON INIT: On-Initialization Hook ████████
 Hooks.once("init", async () => {
-    /*DEVCODE*/ console.log("STARTING ORE-X"); /*!DEVCODE*/
+    /*DEVCODE*/
+    console.log("STARTING ORE-X");
     // CONFIG.debug.hooks = true;
-    // #region ▮▮▮▮▮▮▮[Configuration] Apply Configuration Settings ▮▮▮▮▮▮▮
-    CONFIG.OREX = C;
-    // #endregion ▮▮▮▮[Configuration]▮▮▮▮
-    // #region ▮▮▮▮▮▮▮[Handlebar Templates] Preload Handlebars Templates ▮▮▮▮▮▮▮
+    /*!DEVCODE*/
+    // #region ▮▮▮▮▮▮▮ Apply Configuration Settings ▮▮▮▮▮▮▮
+    Object.assign(CONFIG, { OREX: C });
     preloadTemplates();
-    // #endregion ▮▮▮▮[Handlebar Templates]▮▮▮▮
+    // #endregion ▮▮▮▮[Configuration]▮▮▮▮
+    // #region ▮▮▮▮▮▮▮ DOM Initialization ▮▮▮▮▮▮▮ ~
     XItem.InitializeXROOT();
+    // #endregion ▮▮▮▮[DOM]▮▮▮▮
 });
 // #endregion ▄▄▄▄▄ ON INIT ▄▄▄▄▄
 /*DEVCODE*/
-// SIMPLIFY THIS SHIT!  SEPARATE PARENTING FROM ELEMENTS, CONTROL ASYNC RENDER WAITS OUTSIDE OF CLASS
 Hooks.once("ready", () => {
+    // SIMPLIFY THIS SHIT!  SEPARATE PARENTING FROM ELEMENTS, CONTROL ASYNC RENDER WAITS OUTSIDE OF CLASS
     Object.entries({
         U,
         XElem,
         XItem,
-        XGroup,
+        XGroup, XPool, XOrbit,
         XDie,
+        ORoll,
         gsap,
         MotionPathPlugin,
         GSDevTools,
@@ -49,8 +52,9 @@ Hooks.once("ready", () => {
             gsap.ticker.wake();
             gsap.globalTimeline.play();
         },
-        testCoords: async () => {
-            const TranslateBox = new XItem({
+        testCoords: () => {
+            const TranslateBox = new XPool({
+                id: "translate-box",
                 classes: ["translate-box"],
                 parent: XItem.XROOT,
                 onRender: {
@@ -63,7 +67,8 @@ Hooks.once("ready", () => {
                     }
                 }
             });
-            const ScaleBox = new XItem({
+            const ScaleBox = new XGroup({
+                id: "scale-box-1",
                 classes: ["scale-box"],
                 parent: TranslateBox,
                 onRender: {
@@ -76,7 +81,8 @@ Hooks.once("ready", () => {
                     }
                 }
             });
-            const ExtraScaleBox = new XItem({
+            const ExtraScaleBox = new XGroup({
+                id: "scale-box-2",
                 classes: ["extra-scale-box"],
                 parent: ScaleBox,
                 onRender: {
@@ -89,7 +95,8 @@ Hooks.once("ready", () => {
                     }
                 }
             });
-            const RotateBox = new XItem({
+            const RotateBox = new XGroup({
+                id: "rotate-box-1",
                 classes: ["rotate-box"],
                 parent: ExtraScaleBox,
                 onRender: {
@@ -102,6 +109,7 @@ Hooks.once("ready", () => {
                 }
             });
             const CounterRotateBox = new XItem({
+                id: "rotate-box-2",
                 classes: ["counter-rotate-box"],
                 parent: RotateBox,
                 onRender: {
@@ -113,7 +121,7 @@ Hooks.once("ready", () => {
                     }
                 }
             });
-            const TestDie = new XDie({ parent: CounterRotateBox, value: 3, color: "lime", size: 50 });
+            const TestDie = new XDie({ id: "test-die", parent: CounterRotateBox, value: 3, color: "lime", size: 50 });
             const dieMarkers = [
                 { x: 0.5, y: 0, background: "yellow" },
                 { x: 0, y: 1, background: "cyan" },
@@ -150,21 +158,23 @@ Hooks.once("ready", () => {
                     }
                 }
             }));
-            const markerFunc = (xMarker, dieMarker) => {
-                if (xMarker.isRendered && dieMarker.isRendered) {
-                    xMarker.set(dieMarker.pos);
-                }
-            };
-            function testCoordsTicker() {
-                xMarkers.forEach((xMarker, i) => {
-                    markerFunc(xMarker, dieMarkers[i]);
+            xMarkers.forEach((xMarker, i) => {
+                xMarker.addTicker(() => {
+                    if (dieMarkers[i].isInitialized) {
+                        xMarker.set(dieMarkers[i].pos);
+                    }
                 });
-            }
-            XItem.AddTicker(testCoordsTicker);
+            });
+            [
+                TestDie,
+                ...dieMarkers,
+                ...xMarkers
+            ].forEach((xItem) => xItem.initialize());
             console.log(dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, gsap, MotionPathPlugin);
             console.log(TestDie.value);
         },
-        makeGroup: ({ x = 600, y = 400, size = 300, color = "gold", orbitals = [0.5, 1, 1.5] } = {}) => new XGroup({
+        makePool: ({ x = 600, y = 400, size = 300, color = "gold", orbitals = C.xGroupOrbitalDefaults } = {}) => new XPool({
+            id: `x-pool-${Array.from($(".x-pool")).length}`,
             parent: XItem.XROOT,
             classes: ["x-pool"],
             onRender: {
@@ -180,12 +190,20 @@ Hooks.once("ready", () => {
             },
             orbitals
         }),
-        makeDie: ({ value = undefined, color = "white", numColor = "black", strokeColor = "black", size = 50 } = {}) => new XDie({ value, color, numColor, strokeColor, size }),
+        makeDie: ({ value = undefined, color = "white", numColor = "black", strokeColor = "black", size = 50 } = {}) => new XDie({
+            id: `x-die-${Array.from($(".x-die")).length}`,
+            value,
+            color,
+            numColor,
+            strokeColor,
+            size
+        }),
         testGroups: async () => {
-            const CIRCLES = [
-                { x: 600, y: 400, size: 300, color: "gold", orbitals: [0.5, 1, 1.5], dice: [[3, "blue"], [4, "silver"]] }
+            const POOLS = [
+                { x: 600, y: 400, size: 300, color: "gold", orbitals: C.xGroupOrbitalDefaults, dice: [[3, "blue"], [4, "silver"]] }
             ].map(async ({ x, y, size, color, orbitals, dice }) => {
-                const circle = new XGroup({
+                const xPool = new XPool({
+                    id: "test-pool",
                     parent: XItem.XROOT,
                     classes: ["x-pool"],
                     onRender: {
@@ -201,36 +219,45 @@ Hooks.once("ready", () => {
                     },
                     orbitals
                 });
-                await circle.initialize();
-                circle.to({
+                await xPool.initialize();
+                xPool.to({
                     rotation: "+=360",
                     repeat: -1,
                     duration: 10,
                     ease: "none",
                     onUpdate() {
-                        circle.xDice.forEach((die) => {
-                            if (die.isRendered && die.parent && die.parent.isRendered) {
-                                die.set({ rotation: -1 * die.parent.rotation });
-                            }
+                        xPool.xItems.forEach((xItem) => {
+                            xItem.set({ rotation: -1 * xItem.parent.rotation });
                         });
                     }
-                });
-                globalThis.CIRCLE = circle;
+                }); // @ts-expect-error How to tell TS the type of object literal's values?
+                globalThis.CIRCLE = xPool;
                 for (let i = 0; i < dice.length; i++) {
                     const [numDice, color] = dice[i];
                     for (let j = 0; j < numDice; j++) {
-                        await circle.addXItem(new XDie({
+                        await xPool.addXItem(new XDie({
+                            id: `x-pool-${i}-die-${j}`,
                             parent: null,
                             value: U.randInt(0, 9),
                             color: typeof color === "string" ? color : undefined
-                        }), i);
+                        }), "main");
                     }
                 }
             });
-            return Promise.allSettled(CIRCLES);
+            return Promise.allSettled(POOLS);
         },
         killAll: XItem.InitializeXROOT
-    }) // @ts-expect-error How to tell TS the type of object literal's values?
-        .forEach(([key, val]) => { globalThis[key] = val; });
+    })
+        .forEach(([key, val]) => { Object.assign(globalThis, { [key]: val }); });
+    const testCoords = globalThis.testCoords;
+    const killAll = globalThis.killAll;
+    const testGroups = globalThis.testGroups;
+    testCoords();
+    setTimeout(() => {
+        killAll();
+        setTimeout(() => {
+            testGroups();
+        }, 1000);
+    }, 5000);
 });
 /*!DEVCODE*/ 

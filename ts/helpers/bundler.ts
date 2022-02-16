@@ -18,5 +18,5 @@ export {default as preloadTemplates} from "./templates.js";
 export {default as ORoll} from "../xclasses/oroll.js";
 export {default as XElem} from "../xclasses/xelem.js";
 export {default as XItem} from "../xclasses/xitem.js";
-export {default as XGroup} from "../xclasses/xgroup.js";
+export {default as XGroup, XPool, XOrbit} from "../xclasses/xgroup.js";
 export {default as XDie} from "../xclasses/xdie.js";

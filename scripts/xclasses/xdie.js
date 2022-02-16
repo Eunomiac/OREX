@@ -11,9 +11,9 @@ export default class XDie extends XItem {
         const fontSize = dieSize * 1.2;
         const value = xOptions.value ?? null;
         xOptions = {
+            id: xOptions.id,
             value: xOptions.value,
             parent: xOptions.parent,
-            noImmediateRender: true,
             onRender: {
                 set: {
                     "xPercent": -50,
@@ -31,8 +31,6 @@ export default class XDie extends XItem {
             }
         };
         super(xOptions);
-        this.options.classes.unshift("x-die");
-        this.xOptions = xOptions;
         this.value = xOptions.value ?? null;
     }
     static get defaultOptions() {
@@ -42,6 +40,7 @@ export default class XDie extends XItem {
             template: U.getTemplatePath("xdie")
         });
     }
+    get parent() { return super.parent; }
     getData() {
         const context = super.getData();
         Object.assign(context, {

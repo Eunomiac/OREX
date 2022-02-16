@@ -15,18 +15,17 @@ import {
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-export interface Position extends Exclude<Point,PIXI.Point> {
-	rotation: number,
-	scale: number
+export interface Position extends Exclude<Point, PIXI.Point> {
+	rotation: number;
+	scale: number;
 }
 export interface XElemOptions {
-	id?: string;
 	renderApp: XItem;
-	noImmediateRender?: boolean;
 	onRender?: {
 		set?: gsap.TweenVars,
 		to?: gsap.TweenVars,
-		from?: gsap.TweenVars
+		from?: gsap.TweenVars,
+		funcs?: Array<(xItem?: XItem) => void>;
 	}
 }
 
@@ -35,146 +34,206 @@ export interface DOMRenderer {
 	renderApp: XItem;
 	elem: HTMLElement;
 	elem$: JQuery<HTMLElement>;
-	asyncRender: () => Promise<void>;
+	confirmRender: () => Promise<boolean>;
 	isRendered: boolean;
+	isRenderReady: boolean;
 
-	// Local Coordinates
-	_x: number,
-	_y: number,
-	_pos: Point,
-	_rotation: number,
-	_scale: number,
-
-	// Global Coordinates
 	x: number,
 	y: number,
 	pos: Point,
 	rotation: number,
 	scale: number,
+	height: number,
+	width: number,
+	size: number,
+	radius: number | false,
+	global: Position,
 
 	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void,
-	set: (vars: gsap.TweenVars) => gsap.core.Tween,
-	to: (vars: gsap.TweenVars) => gsap.core.Tween,
-	from: (vars: gsap.TweenVars) => gsap.core.Tween,
-	fromTo: (fromVars: gsap.TweenVars, toVars: gsap.TweenVars) => gsap.core.Tween
+	set: (vars: gsap.TweenVars) => gsap.core.Tween | false,
+	to: (vars: gsap.TweenVars) => gsap.core.Tween | false,
+	from: (vars: gsap.TweenVars) => gsap.core.Tween | false,
+	fromTo: (fromVars: gsap.TweenVars, toVars: gsap.TweenVars) => gsap.core.Tween | false
 }
 
 export default class XElem implements DOMRenderer {
-	private _renderPromise?: Promise<void>;
-	private _isParented?: boolean;
+	protected _isRenderReady = false;
+	private renderPromise?: Promise<boolean>;
 
 	public readonly id: string;
 	public readonly renderApp: XItem;
 	public get parentApp(): XItem | null { return this.renderApp.parent }
-	private readonly _onRender: {set?: gsap.TweenVars, to?: gsap.TweenVars, from?: gsap.TweenVars};
-	protected validateRender() {
-		if (!this.isRendered) {
-			debugger;
-			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await asyncRender?`);
-		}
-	}
+	public readonly onRender: {
+		set?: gsap.TweenVars,
+		to?: gsap.TweenVars,
+		from?: gsap.TweenVars,
+		funcs?: Array<(xItem: XItem) => void>
+	};
 
 	public get elem() { this.validateRender(); return this.renderApp.element[0] }
 	public get elem$() { return $(this.elem) }
 
-	public async asyncRender(): Promise<void> {
-		if (!this._renderPromise) {
-			this._renderPromise = this.renderApp.renderApplication();
-			await this._renderPromise;
-			if (this.parentApp) {
-				await this.parentApp.asyncRender();
-				this.parentApp.adopt(this.renderApp, false);
-			}
-			if (this._onRender.set) {
-				this.set(this._onRender.set);
-			}
-			if (this._onRender.to && this._onRender.from) {
-				this.fromTo(this._onRender.from, this._onRender.to);
-			} else if (this._onRender.to) {
-				this.to(this._onRender.to);
-			} else if (this._onRender.from) {
-				this.from(this._onRender.from);
+	public get isRenderReady(): boolean { return this._isRenderReady }
+	public async confirmRender(isRendering = true): Promise<boolean> {
+		this._isRenderReady = this.isRenderReady || isRendering;
+		if (this.isRendered) { return Promise.resolve(true) }
+		if (!this.isRenderReady) { return Promise.resolve(false) }
+		if (this.parentApp) {
+			if (!(await this.parentApp.confirmRender(isRendering))) {
+				console.warn("Attempt to render child of unrendered parent.");
+				return Promise.resolve(false);
 			}
 		}
-		return this._renderPromise;
+		this.renderPromise = this.renderApp.renderApplication();
+		await this.renderPromise;
+		this.parentApp?.adopt(this.renderApp, false);
+		if (this.onRender.set) {
+			this.set(this.onRender.set);
+		}
+		if (this.onRender.to && this.onRender.from) {
+			this.fromTo(this.onRender.from, this.onRender.to);
+		} else if (this.onRender.to) {
+			this.to(this.onRender.to);
+		} else if (this.onRender.from) {
+			this.from(this.onRender.from);
+		}
+		this.onRender.funcs?.forEach((func) => func(this.renderApp));
+		return this.renderPromise;
+	}
+	public get isRendered() { return this.renderApp.rendered }
+	protected validateRender() {
+		if (!this.isRendered) {
+			/*DEVCODE*/ debugger; /* eslint-disable-line no-debugger */ /*!DEVCODE*/
+			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await confirmRender?`);
+		}
 	}
 
-	public get isRendered() { return this.renderApp.rendered }
-
-	constructor(options: XElemOptions) {
-		this.id = options.id ?? `x-elem-${U.getUID()}`;
-		this.renderApp = options.renderApp;
-		this._onRender = options.onRender ?? {};
-		if (!options.noImmediateRender) {
-			this.asyncRender();
-		}
+	constructor(xOptions: XElemOptions) {
+		this.renderApp = xOptions.renderApp;
+		this.id = this.renderApp.id;
+		this.onRender = xOptions.onRender ?? {};
 	}
 
 	adopt(child: XItem, isRetainingPosition = true): void {
 		this.validateRender();
 		child.xElem.validateRender();
 		if (isRetainingPosition) {
-			this.set(this.getLocalPosData(child));
+			child.set(this.getLocalPosData(child));
 		}
+		child.parent?.unregisterChild(child);
 		child.elem$.appendTo(this.elem);
+		this.renderApp.registerChild(child);
 	}
 
 	// LOCAL SPACE: Position & Dimensions
-	get _x() { return U.get(this.elem, "x", "px") }
-	get _y() { return U.get(this.elem, "y", "px") }
-	get _pos(): Point { return {x: this._x, y: this._y} }
-	get _rotation() { return U.pFloat(U.get(this.elem, "rotation")) }
-	get _scale() { return U.pFloat(U.get(this.elem, "scale")) || 1 }
+	get x() { return U.pInt(this.isRendered ? U.get(this.elem, "x", "px") : this.onRender.set?.x) }
+	get y() { return U.pInt(this.isRendered ? U.get(this.elem, "y", "px") : this.onRender.set?.y) }
+	get pos(): Point { return {x: this.x, y: this.y} }
+	get rotation() { return U.pFloat(this.isRendered ? U.get(this.elem, "rotation") : this.onRender.set?.rotation, 2) }
+	get scale() { return U.pFloat(this.isRendered ? U.get(this.elem, "scale") : this.onRender.set?.scale, 2) || 1 }
 
 	// XROOT SPACE (Global): Position & Dimensions
-	get pos(): Point {
-		if (this.parentApp && this.parentApp.isRendered) {
-			return MotionPathPlugin.convertCoordinates(
-				this.parentApp.elem,
-				XItem.XROOT.elem,
-				this._pos
-			);
-		}
-		return this._pos;
+	get global() {
+		this.validateRender();
+		const self = this;
+		return {
+			get pos() {
+				if (self.parentApp) {
+					self.parentApp.xElem.validateRender();
+					return MotionPathPlugin.convertCoordinates(
+						self.parentApp.elem,
+						XItem.XROOT.elem,
+						self.pos
+					);
+				}
+				return self.pos;
+			},
+			get x() { return this.pos.x },
+			get y() { return this.pos.y },
+			get rotation() {
+				let totalRotation = self.rotation,
+								{parentApp} = self;
+				while (parentApp) {
+					parentApp.xElem.validateRender();
+					totalRotation += parentApp.rotation;
+					parentApp = parentApp.parent;
+				}
+				return totalRotation;
+			},
+			get scale() {
+				let totalScale = self.scale,
+								{parentApp} = self;
+				while (parentApp) {
+					parentApp.xElem.validateRender();
+					totalScale *= parentApp.scale;
+					parentApp = parentApp.parent;
+				}
+				return totalScale;
+			}
+		};
 	}
-	get x() { return this.pos.x }
-	get y() { return this.pos.y }
-	get rotation() {
-		let totalRotation = this._rotation,
-						{parentApp} = this;
-		while (parentApp && parentApp.isRendered) {
-			totalRotation += U.pFloat(U.get(parentApp.elem, "rotation"));
-			parentApp = parentApp.parent;
-		}
-		return totalRotation;
-	}
-	get scale() {
-		let totalScale = 1,
-						{parentApp} = this;
-		while (parentApp && parentApp.isRendered) {
-			totalScale *= U.pFloat(U.get(parentApp.elem, "scale"));
-			parentApp = parentApp.parent;
-		}
-		return totalScale;
-	}
-	get height(): number { return U.get(this.elem, "height", "px") }
-	get width(): number { return U.get(this.elem, "width", "px") }
-	get size(): number { return (this.height + this.width) / 2 }
+
+	get height() { return U.pInt(this.isRendered ? U.get(this.elem, "height", "px") : this.onRender.set?.height) }
+	get width() { return U.pInt(this.isRendered ? U.get(this.elem, "width", "px") : this.onRender.set?.width) }
+	get size() { return (this.height + this.width) / 2 }
 	get radius(): number | false { return (this.height === this.width ? this.height : false) }
+
 	getLocalPosData(ofItem: XItem, globalPoint?: Point): Position {
+		this.validateRender();
+		ofItem.xElem.validateRender();
 		return {
 			...MotionPathPlugin.convertCoordinates(
 				XItem.XROOT.elem,
 				this.elem,
-				globalPoint ?? ofItem.pos ?? {x: 0, y: 0}
+				globalPoint ?? ofItem.global.pos
 			),
-			rotation: ofItem?.rotation ?? 0 - this.rotation,
-			scale: ofItem?.scale ?? 1 / this.scale
+			rotation: ofItem.global.rotation - this.global.rotation,
+			scale: ofItem.global.scale / this.global.scale
 		};
 	}
 
-	to(vars: gsap.TweenVars) { this.validateRender; return gsap.to(this.elem, vars) }
-	from(vars: gsap.TweenVars) { this.validateRender; return gsap.from(this.elem, vars) }
-	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) { this.validateRender; return gsap.fromTo(this.elem, fromVars, toVars) }
-	set(vars: gsap.TweenVars) { this.validateRender; return gsap.set(this.elem, vars) }
+	set(vars: gsap.TweenVars) {
+		if (this.isRendered) {
+			return gsap.set(this.elem, vars);
+		}
+		this.onRender.set = {
+			...this.onRender.set ?? {},
+			...vars
+		};
+		return false;
+	}
+	to(vars: gsap.TweenVars) {
+		if (this.isRendered) {
+			return gsap.to(this.elem, vars);
+		}
+		this.onRender.to = {
+			...this.onRender.to ?? {},
+			...vars
+		};
+		return false;
+	}
+	from(vars: gsap.TweenVars) {
+		if (this.isRendered) {
+			return gsap.from(this.elem, vars);
+		}
+		this.onRender.from = {
+			...this.onRender.from ?? {},
+			...vars
+		};
+		return false;
+	}
+	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) {
+		if (this.isRendered) {
+			return gsap.fromTo(this.elem, fromVars, toVars);
+		}
+		this.onRender.to = {
+			...this.onRender.to ?? {},
+			...toVars
+		};
+		this.onRender.from = {
+			...this.onRender.from ?? {},
+			...fromVars
+		};
+		return false;
+	}
 }
