@@ -1,6 +1,7 @@
 // #region ████████ IMPORTS ████████ ~
 import {AlphaField} from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/fields.mjs";
 import gsap from "gsap/all";
+import {DB} from "./bundler.js";
 // import Fuse from "/scripts/fuse.js/dist/fuse.esm.js"; // https://fusejs.io/api/options.html
 // import Hyphenopoly from "/scripts/hyphenopoly/min/Hyphenopoly.js"; // https://github.com/mnater/Hyphenopoly/blob/master/docs/Node-Module.md
 // <Input, Output>(arr: Input[], func: (arg: Input) => Output): Output[]
@@ -729,6 +730,7 @@ export const Remove = (arr, findFunc = (e, i, a) => true) => {
 // #endregion ▄▄▄▄▄ ARRAYS ▄▄▄▄▄
 
 // #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type checkTestRef = ((...args: Array<any>) => any) | testFunc<keyFunc> | testFunc<valFunc> | RegExp | number | string;
 const checkVal = ({k, v}: { k?: unknown, v?: unknown }, checkTest: checkTestRef) => {
 	if (typeof checkTest === "function") {
@@ -833,48 +835,57 @@ const objForEach = (obj: Index<unknown>, func: valFunc): void => {
 	}
 };
 // Prunes an object of certain values (undefined by default)
-const objCompact = <Type extends (Index<unknown>)>(obj: Type, preserve: Array<unknown> = []): any => objFilter(obj, (val: unknown) => preserve.includes(`${val}`));
+const objCompact = <Type extends (Index<unknown>)>(obj: Type, preserve: Array<unknown> = []): Type => objFilter(obj, (val: unknown) => preserve.includes(`${val}`));
 const objClone = <Type>(obj: Type, isStrictlySafe = false): Type => {
-	let cloneObj;
 	try {
-		cloneObj = JSON.parse(JSON.stringify(obj));
-	} catch (err: unknown) {
-		if (isStrictlySafe) { throw new Error(`${err}`) }
-		if (isIterable(obj)) {
-			cloneObj = {...obj};
-		}
+		return JSON.parse(JSON.stringify(obj));
+	} catch (err) {
+		if (isStrictlySafe) { throw err }
+		if (isArray(obj)) { return <Type><unknown>[...obj] }
+		if (isList(obj)) { return {...obj} }
 	}
-	return cloneObj;
+	return obj;
 };
 function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true} = {}): Type {
+	DB.group("U.objMerge()");
+	DB.log("target, source", target, source);
 	/* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
 	target = isMutatingOk ? target : objClone(target, isStrictlySafe);
+	if (source instanceof Application) {
+		DB.log("... SOURCE is APPLICATION, returning SOURCE:", source);
+		DB.groupEnd();
+		return <Type><unknown>source;
+	}
 	if (isUndefined(target)) {
+		DB.log("... TARGET undefined, returning SOURCE:", objClone(source));
+		DB.groupEnd();
 		return <Type>objClone(source);
 	}
 	if (isUndefined(source)) {
+		DB.log("... SOURCE undefined, returning TARGET:", target);
+		DB.groupEnd();
 		return target;
 	}
 	if (isIndex(source)) {
-		for (const [key, val] of Object.entries(source)) {
-			// @ts-expect-error TEMPORARY
-			if (isConcatenatingArrays && isArray(target[key]) && isArray(val)) {
-				// @ts-expect-error TEMPORARY
+		for (const [key, val] of Object.entries(source)) { // @ts-expect-error TEMPORARY
+			if (isConcatenatingArrays && isArray(target[key]) && isArray(val)) { // @ts-expect-error TEMPORARY
 				target[key] = [...target[key], ...val];
-			} else if (val !== null && typeof val === "object") {
-				// @ts-expect-error TEMPORARY
-				if ((target[key] as unknown) === undefined) {
-					// @ts-expect-error TEMPORARY
-					target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
-				}
-				// @ts-expect-error TEMPORARY
+			} else if (val !== null && typeof val === "object") { // @ts-expect-error TEMPORARY
+				if ((target[key] as unknown) === undefined && !(val instanceof Application)) {
+					if (isArray(val)) { // @ts-expect-error TEMPORARY
+						target[key] = [];
+					} else if (isList(val)) { // @ts-expect-error TEMPORARY
+						target[key] = {}; // @ts-expect-error TEMPORARY
+					} else { target[key] = new val.__proto__.constructor() }
+				} // @ts-expect-error TEMPORARY
 				target[key] = objMerge(target[key], val, {isMutatingOk: true, isStrictlySafe});
-			} else {
-				// @ts-expect-error TEMPORARY
+			} else { // @ts-expect-error TEMPORARY
 				target[key] = val;
 			}
 		}
 	}
+	DB.log("... RETURNING", target);
+	DB.groupEnd();
 	return target;
 }
 const objExpand = (obj: List<unknown>): List<unknown> => {

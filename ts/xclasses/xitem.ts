@@ -9,24 +9,36 @@ import {
 	RoughEase,
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-	U,
+	U, DB,
 	XElem
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XElemOptions} from "../xclasses/xelem.js";
+import type {XElemOptions, DOMRenderer, GSAPController} from "../xclasses/xelem.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElemOptions> {
 	id: string;
-	parent?: XItem | null;
+	keepID?: boolean;
 }
-export default class XItem extends Application {
+export default class XItem extends Application implements Partial<DOMRenderer>, Partial<GSAPController> {
 
 	public static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
 			classes: ["x-item"],
-			template: U.getTemplatePath("xitem")
+			template: U.getTemplatePath("xitem"),
+			xParent: XItem.XROOT,
+			onRender: {
+				set: {
+					x: 0,
+					y: 0,
+					rotation: 0,
+					scale: 1,
+					xPercent: -50,
+					yPercent: -50,
+					transformOrigin: "50% 50%"
+				}
+			}
 		});
 	}
 
@@ -36,56 +48,65 @@ export default class XItem extends Application {
 		if (XItem.XROOT) {
 			XItem.XROOT.kill();
 		}
-		XItem._XROOT = new XItem({id: "x-root", parent: null});
+		XItem._XROOT = new XItem(null, {
+			id: "x-root",
+			keepID: true,
+			onRender: {
+				set: {
+					xPercent: 0,
+					yPercent: 0
+				}
+			}});
 		return XItem._XROOT.initialize();
 	}
 
 	protected _isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
-	protected _parent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
-	protected _xChildren: Set<XItem> = new Set();
+	protected _xParent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
+	protected _xKids: Set<XItem> = new Set();
 	public readonly xOptions: XItemOptions;
 	public readonly xElem: XElem;
 
 	public get elem() { return this.xElem.elem }
 	public get elem$() { return this.xElem.elem$ }
-	public get parent(): XItem | null { return this._parent }
-	public set parent(parent: XItem | null) { this._parent = parent ?? XItem.XROOT }
-	public get xChildren(): Set<XItem> { return this._xChildren }
-	public get hasChildren() { return this.xChildren.size > 0 }
-	public registerChild(child: XItem) { child.parent = this; this.xChildren.add(child) }
-	public unregisterChild(child: XItem) { this.xChildren.delete(child) }
-	public getXChildren<X extends typeof XItem>(classRef?: X, isGettingAll = false): Array<XItem> {
+	public get xParent(): XItem | null { return this._xParent }
+	public set xParent(xParent: XItem | null) { this._xParent = xParent ?? XItem.XROOT }
+	public get xKids(): Set<XItem> { return this._xKids }
+	public get hasChildren() { return this.xKids.size > 0 }
+	public registerXKid(xKid: XItem) { xKid.xParent = this; this.xKids.add(xKid) }
+	public unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
+	public getXKids<X extends typeof XItem>(classRef?: X, isGettingAll = false): Array<XItem> {
 		const classCheck: typeof XItem = U.isUndefined(classRef) ? XItem : classRef;
 		if (isGettingAll) {
-			return Array.from(this.xChildren.values())
-				.map((xItem) => xItem.getXChildren(undefined, true))
+			return Array.from(this.xKids.values())
+				.map((xItem) => xItem.getXKids(undefined, true))
 				.flat()
 				.filter((xItem) => xItem instanceof classCheck);
 		}
-		return Array.from(this.xChildren.values()).filter((xItem) => xItem instanceof classCheck);
+		return Array.from(this.xKids.values()).filter((xKid) => xKid instanceof classCheck);
 	}
 
-	constructor({classes = [], ...xOptions}: XItemOptions) {
+	constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
+		if (!xOptions.keepID) {
+			xOptions.id += U.getUID();
+		}
 		super(xOptions);
 		this.options.classes.push(...classes);
-		this.xOptions = Object.assign(xOptions, {classes: this.options.classes});
-		if (xOptions.parent === null) {
-			this._parent = null;
-		} else if (xOptions.parent instanceof XItem) {
-			this._parent = xOptions.parent;
+		this.xOptions = Object.assign(xOptions, this.options);
+		if (xParent === null) {
+			this._xParent = null;
 		} else {
-			this._parent = XItem.XROOT;
+			this._xParent = xParent ?? XItem.XROOT;
 		}
 		this.xElem = new XElem({
 			renderApp: this,
-			onRender: xOptions.onRender
+			onRender: this.xOptions.onRender
 		});
 	}
 
 	async initialize(): Promise<boolean> {
 		if (this.isInitialized) { return Promise.resolve(true) }
 		if (await this.xElem.confirmRender(true)) {
-			return Promise.allSettled(this.getXChildren().map((xItem) => xItem.initialize()))
+			return Promise.allSettled(this.getXKids().map((xItem) => xItem.initialize()))
 				.then(
 					() => { this._isInitialized = true; return Promise.resolve(true) },
 					() => Promise.resolve(false)
@@ -127,12 +148,12 @@ export default class XItem extends Application {
 
 	public kill() {
 		if (this.hasChildren) {
-			this.getXChildren().forEach((xItem) => xItem.kill());
+			this.getXKids().forEach((xItem) => xItem.kill());
 		}
 		this._TICKERS.forEach((func) => gsap.ticker.remove(func));
 		this._TICKERS.clear();
-		if (this.parent instanceof XItem) {
-			this.parent.unregisterChild(this);
+		if (this.xParent instanceof XItem) {
+			this.xParent.unregisterXKid(this);
 		}
 		if (this.isRendered) {
 			gsap.killTweensOf(this.elem);
@@ -151,7 +172,7 @@ export default class XItem extends Application {
 
 	public async renderApplication(): Promise<boolean> {
 		if (!this.xElem.isRenderReady) {
-			console.warn("Attempt to render an unready Application");
+			DB.error("Attempt to render an unready Application");
 			return Promise.resolve(false);
 		}
 		try {

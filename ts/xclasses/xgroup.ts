@@ -12,43 +12,96 @@ import {
 	RoughEase,
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-	U,
+	U, DB,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
 	XElem, XItem
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
-import type {XItemOptions} from "../xclasses/xitem.js";
+import type {XItemOptions} from "./xitem.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
-export interface XGroupOptions extends XItemOptions {
-	parent: XItem;
-}
+/* SCHEMA SORTA:
+							🟥 - Squares indicate classes that implement the XTerm interface
+
+		💠XTerm = an interface describing necessary elements for an XItem to serve as an XTerm in an XPool
+
+		🟢XItem = an object linking a renderable Application to an XElem, passing most XElem setters & animation methods through
+				🔺<DOMRenderer>XElem = linked to an XItem, governs DOM element directly
+			🔵XGroup = any XItem intended to contain other XItems, with the exception of XItem.XROOT.
+				🟣XPool = a collection of drag&droppable XTerms, arranged into orbits and animated
+						🔺XGroup.XOrbit = a single orbital containing XItems and parented to an XPool
+							🔺XItem.XArm = an element holding and rotating a single XItem
+					🟡XRoll = an XPool that can be rolled, its XTerms evaluated and reanimated as a roll result
+					🟡XSource = an XPool containing XTerms meant to be taken and dragged onto other XRolls
+					🟡XSink = an XPool meant to drop evaluated XTerms to spend them for some benefit
+					🟨XSet = a collection of grouped XTerms that itself serves as a single XTerm component of an XRoll (e.g. a set)
+									- XSets have to be given priority when it comes to rendering, since one die could belong to, say, a run and a set
+			🟦XDie = a single die, either rolled or unrolled
+			🟦XMod = a term representing some effect on any XGroup it is contained in
+				🟨XGhost = a modifier represented by a bonus XItem rendered in its XGroup
+				🟨XMutator = a modifier that attaches to an existing XItem to change/negate it
+				🟨XInfo = a strictly informational XTerm to be rendered and animated
+			🔵XPad = a hover-over time trigger that applies some effect to a held (dragged-over) XItem
+*/
+
+export type XGroupOptions = XItemOptions
 export interface XPoolOptions extends XGroupOptions {
 	orbitals?: Record<string,number>;
 }
-export type XOrbitOptions = XGroupOptions
+
+export default class XGroup extends XItem {
+	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-group"]}) }
+
+	public override get xParent() { return <XItem>super.xParent }
+	public override set xParent(xItem: XItem) { super.xParent = xItem }
+
+	constructor(xParent: XItem, xOptions: XGroupOptions) {
+		super(xParent, xOptions);
+	}
+}
 class XArm extends XItem {
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-arm"]}) }
+	static override get defaultOptions() {
+		return U.objMerge(
+			super.defaultOptions,
+			{
+				classes: ["x-arm"],
+				onRender: {
+					set: {
+						height: 0,
+						width: 0,
+						transformOrigin: "0% 50%",
+						top: "50%",
+						left: "50%",
+						xPercent: 0,
+						yPercent: 0
+					}
+				}
+			}
+		);
+	}
 	public xItem: XItem;
 
 	constructor(xItem: XItem, parentOrbit: XOrbit) {
-		super({
-			id: `${parentOrbit.id}-arm-${parentOrbit.xChildren.size}`,
-			parent: parentOrbit,
-			onRender: {
-				set: {
-					height: 2,
-					rotation: 0,
-					width: 0,
-					transformOrigin: "0% 50%",
-					top: "50%",
-					left: "50%"
-				}
-			}});
+		super(parentOrbit, {
+			id: `${parentOrbit.id}-arm-${parentOrbit.xKids.size}`,
+			keepID: true
+		});
 		this.xItem = xItem;
 		this.adopt(xItem, false);
+		if (xItem instanceof XGroup) {
+			this.xItem.set({
+				// x: 0,
+				// y: 0,
+				// top: 0,
+				// left: 0,
+				// xPercent: 0,
+				// yPercent: 0,
+				// right: 0,
+				// bottom: 0
+			});
+		}
 	}
 
 	override async initialize(): Promise<boolean> {
@@ -60,63 +113,18 @@ class XArm extends XItem {
 		return Promise.resolve(false);
 	}
 }
-
-export default class XGroup extends XItem {
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-group"]}) }
-
-	public override get parent() { return <XItem>super.parent }
-	public override set parent(xItem: XItem) { super.parent = xItem }
-}
-
-
-/* Subclass XGroup into XPool and XOrbit
-				XOrbit = Wraps XChildren in XArms, rotates circles, etc
-					- XOrbits handle tossing between XOrbits and pretty much everything else animated
-				XPool = XChildren are centered on pool -- meant to contain XOrbits and centrally-located modifiers
-
-			Figure out a way to have to/from/fromTo methods on all XItems that:
-				- will adjust animation timescale based on a maximum time to maximum distance ratio (and minspeed ratio?)
-				- if timescale is small enough, just uses .set()
-		*/
-
-export class XPool extends XGroup {
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-pool"]}) }
-	protected _core: Array<XItem> = [];
-	protected _orbitals: Map<string, XOrbit> = new Map();
-	protected _orbitalWeights: Map<string, number>;
-
-	public get orbitals() { return this._orbitals }
-	public get xOrbits(): Array<XOrbit> { return Array.from(Object.values(this.orbitals)) }
-	public get xItems(): Array<XItem> {
-		return this.xOrbits.map((xOrbit) => xOrbit.getXChildren()).flat();
-	}
-
-	constructor({orbitals, ...xOptions}: XPoolOptions) {
-		super(xOptions);
-		orbitals = orbitals ?? {...C.xGroupOrbitalDefaults};
-		this._orbitalWeights = new Map(Object.entries(orbitals));
-		this._orbitalWeights.forEach((weight, name) => {
-			this._orbitals.set(name, new XOrbit(name, weight, this));
+export class XOrbit extends XGroup {
+	static override get defaultOptions() {
+		return U.objMerge(super.defaultOptions, {
+			classes: ["x-orbit"]
 		});
 	}
-
-	public async addXItem(xItem: XItem, orbit: string): Promise<boolean> {
-		const orbital = this.orbitals.get(orbit);
-		if (orbital instanceof XOrbit && await orbital.initialize()) {
-			return orbital.addXItem(xItem);
-		}
-		return Promise.resolve(false);
-	}
-}
-
-export class XOrbit extends XGroup {
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-orbit"]}) }
 	protected _weight: number;
 
-	protected get arms(): Array<XArm> { return Array.from(<Set<XArm>>this.xChildren) }
+	protected get arms(): Array<XArm> { return Array.from(<Set<XArm>>this.xKids) }
 	public get xItems() { return this.arms.map((arm) => arm.xItem) }
 
-	public get orbitRadius() { return this.weight * 0.5 * this.parent.width }
+	public get orbitRadius() { return this.weight * 0.5 * this.xParent.width }
 	public get weight() { return this._weight }
 	public set weight(weight) {
 		this._weight = weight;
@@ -126,26 +134,27 @@ export class XOrbit extends XGroup {
 	}
 
 	constructor(id: string, weight: number, parentGroup: XGroup) {
-		super({id, parent: parentGroup, onRender: {
-			set: {
-				xPercent: -50,
-				yPercent: -50,
-				height: parentGroup.height,
-				width: parentGroup.width,
-				left: 0.5 * parentGroup.width,
-				top: 0.5 * parentGroup.height
+		super(parentGroup, {
+			id,
+			onRender: {
+				set: {
+					height: parentGroup.height,
+					width: parentGroup.width,
+					left: 0.5 * parentGroup.width,
+					top: 0.5 * parentGroup.height
+				}
 			}
-		}});
+		});
 		const self = this;
-		this.to({
+		const rotationTween = this.to({
 			rotation: "+=360",
 			repeat: -1,
 			duration: 10 * weight,
 			ease: "none",
 			onUpdate() {
 				self.xItems.forEach((xItem: XItem) => {
-					if (xItem.parent?.isInitialized) {
-						xItem.set({rotation: -1 * xItem.parent.global.rotation});
+					if (xItem.xParent?.isInitialized) {
+						xItem.set({rotation: -1 * xItem.xParent.global.rotation});
 					}
 				});
 			}
@@ -154,7 +163,7 @@ export class XOrbit extends XGroup {
 	}
 
 	protected updateArms() {
-		console.log(`[${this.id}] Updating Arms`, this.arms);
+		DB.log(`[${this.id}] Updating Arms`, this.arms);
 		const angleStep = 360 / this.arms.length;
 		this.arms.forEach((arm, i) => {
 			arm.to({width: this.orbitRadius, rotation: angleStep * i, delay: 0.2 * i, ease: "power2.inOut", duration: 1});
@@ -162,7 +171,7 @@ export class XOrbit extends XGroup {
 	}
 
 	public async addXItem(xItem: XItem, angle = 0): Promise<boolean> {
-		console.log(`[${this.id}] Adding XItem: ${xItem.id}`);
+		DB.log(`[${this.id}] Adding XItem: ${xItem.id}`);
 		const xArm = new XArm(xItem, this);
 		if (await xArm.initialize()) {
 			this.updateArms();
@@ -183,4 +192,37 @@ export class XOrbit extends XGroup {
 		}
 		return Promise.resolve(false);
 	}
+}
+export class XPool extends XGroup {
+	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-pool"]}) }
+	protected _core: Array<XItem> = [];
+	protected _orbitals: Map<string, XOrbit> = new Map();
+	protected _orbitalWeights: Map<string, number>;
+
+	public get orbitals() { return this._orbitals }
+	public get xOrbits(): Array<XOrbit> { return Array.from(Object.values(this.orbitals)) }
+	public get xItems(): Array<XItem> {
+		return this.xOrbits.map((xOrbit) => xOrbit.getXKids()).flat();
+	}
+
+	constructor(xParent: XItem, {orbitals, ...xOptions}: XPoolOptions) {
+		super(xParent, xOptions);
+		orbitals = orbitals ?? {...C.xGroupOrbitalDefaults};
+		this._orbitalWeights = new Map(Object.entries(orbitals));
+		this._orbitalWeights.forEach((weight, name) => {
+			this._orbitals.set(name, new XOrbit(name, weight, this));
+		});
+	}
+
+	public async addXItem(xItem: XItem, orbit: string): Promise<boolean> {
+		const orbital = this.orbitals.get(orbit);
+		if (orbital instanceof XOrbit && await orbital.initialize()) {
+			return orbital.addXItem(xItem);
+		}
+		return Promise.resolve(false);
+	}
+}
+
+export class XRoll extends XPool {
+
 }

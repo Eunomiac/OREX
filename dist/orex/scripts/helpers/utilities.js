@@ -1,5 +1,6 @@
 
 import gsap from "/scripts/greensock/esm/all.js";
+import { DB } from "./bundler.js";
 // ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮
 const _hyph = (str) => str;
 
@@ -757,51 +758,68 @@ const objForEach = (obj, func) => {
 // Prunes an object of certain values (undefined by default)
 const objCompact = (obj, preserve = []) => objFilter(obj, (val) => preserve.includes(`${val}`));
 const objClone = (obj, isStrictlySafe = false) => {
-    let cloneObj;
     try {
-        cloneObj = JSON.parse(JSON.stringify(obj));
+        return JSON.parse(JSON.stringify(obj));
     }
     catch (err) {
         if (isStrictlySafe) {
-            throw new Error(`${err}`);
+            throw err;
         }
-        if (isIterable(obj)) {
-            cloneObj = { ...obj };
+        if (isArray(obj)) {
+            return [...obj];
+        }
+        if (isList(obj)) {
+            return { ...obj };
         }
     }
-    return cloneObj;
+    return obj;
 };
 function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true } = {}) {
+    DB.group("U.objMerge()");
+    DB.log("target, source", target, source);
 
     target = isMutatingOk ? target : objClone(target, isStrictlySafe);
+    if (source instanceof Application) {
+        DB.log("... SOURCE is APPLICATION, returning SOURCE:", source);
+        DB.groupEnd();
+        return source;
+    }
     if (isUndefined(target)) {
+        DB.log("... TARGET undefined, returning SOURCE:", objClone(source));
+        DB.groupEnd();
         return objClone(source);
     }
     if (isUndefined(source)) {
+        DB.log("... SOURCE undefined, returning TARGET:", target);
+        DB.groupEnd();
         return target;
     }
     if (isIndex(source)) {
         for (const [key, val] of Object.entries(source)) {
-
             if (isConcatenatingArrays && isArray(target[key]) && isArray(val)) {
-
                 target[key] = [...target[key], ...val];
             }
             else if (val !== null && typeof val === "object") {
-
-                if (target[key] === undefined) {
-
-                    target[key] = Array.isArray(val) ? [] : new (Object.getPrototypeOf(val).constructor());
+                if (target[key] === undefined && !(val instanceof Application)) {
+                    if (isArray(val)) {
+                        target[key] = [];
+                    }
+                    else if (isList(val)) {
+                        target[key] = {};
+                    }
+                    else {
+                        target[key] = new val.__proto__.constructor();
+                    }
                 }
-
                 target[key] = objMerge(target[key], val, { isMutatingOk: true, isStrictlySafe });
             }
             else {
-
                 target[key] = val;
             }
         }
     }
+    DB.log("... RETURNING", target);
+    DB.groupEnd();
     return target;
 }
 const objExpand = (obj) => {

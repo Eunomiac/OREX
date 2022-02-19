@@ -9,17 +9,18 @@ XItem } from "../helpers/bundler.js";
 export default class XElem {
     constructor(xOptions) {
         this._isRenderReady = false;
+        this.tweens = {};
         this.renderApp = xOptions.renderApp;
         this.id = this.renderApp.id;
         this.onRender = xOptions.onRender ?? {};
     }
-    get parentApp() { return this.renderApp.parent; }
+    get parentApp() { return this.renderApp.xParent; }
     get elem() { this.validateRender(); return this.renderApp.element[0]; }
     get elem$() { return $(this.elem); }
     get isRenderReady() { return this._isRenderReady; }
     async confirmRender(isRendering = true) {
+        const gsapt = gsap.timeline();
         this._isRenderReady = this.isRenderReady || isRendering;
-        // console.log(`[${this.id}] . confirmRender(${isRendering ?? ""}) --> ${this.isRendered ? "RENDERED" : "NOT Rendered"}`);
         if (this.isRendered) {
             return Promise.resolve(true);
         }
@@ -29,8 +30,6 @@ export default class XElem {
         this.renderPromise = this.renderApp.renderApplication();
         await this.renderPromise;
         if (this.parentApp) {
-            // const awaitTest = await this.parentApp.confirmRender();
-            // console.log(`[${this.id}] PARENT:[${this.parentApp.id}] await this.parentApp.confirmRender(${isRendering}) = ${awaitTest}`);
             if (!(await this.parentApp.confirmRender())) {
                 console.warn("Attempt to render child of unrendered parent.");
                 return Promise.resolve(false);
@@ -59,8 +58,8 @@ export default class XElem {
         }
     }
     adopt(child, isRetainingPosition = true) {
-        child.parent?.unregisterChild(child);
-        this.renderApp.registerChild(child);
+        child.xParent?.unregisterXKid(child);
+        this.renderApp.registerXKid(child);
         if (this.isRendered && child.isRendered) {
             if (isRetainingPosition) {
                 child.set(this.getLocalPosData(child));
@@ -93,7 +92,7 @@ export default class XElem {
                 while (parentApp) {
                     parentApp.xElem.validateRender();
                     totalRotation += parentApp.rotation;
-                    parentApp = parentApp.parent;
+                    parentApp = parentApp.xParent;
                 }
                 return totalRotation;
             },
@@ -102,7 +101,7 @@ export default class XElem {
                 while (parentApp) {
                     parentApp.xElem.validateRender();
                     totalScale *= parentApp.scale;
-                    parentApp = parentApp.parent;
+                    parentApp = parentApp.xParent;
                 }
                 return totalScale;
             }
@@ -121,6 +120,7 @@ export default class XElem {
             scale: ofItem.global.scale / this.global.scale
         };
     }
+
     set(vars) {
         if (this.isRendered) {
             return gsap.set(this.elem, vars);
@@ -133,7 +133,11 @@ export default class XElem {
     }
     to(vars) {
         if (this.isRendered) {
-            return gsap.to(this.elem, vars);
+            const tween = gsap.to(this.elem, vars);
+            if (vars.id) {
+                this.tweens[vars.id] = tween;
+            }
+            return tween;
         }
         this.onRender.to = {
             ...this.onRender.to ?? {},
@@ -143,7 +147,11 @@ export default class XElem {
     }
     from(vars) {
         if (this.isRendered) {
-            return gsap.from(this.elem, vars);
+            const tween = gsap.from(this.elem, vars);
+            if (vars.id) {
+                this.tweens[vars.id] = tween;
+            }
+            return tween;
         }
         this.onRender.from = {
             ...this.onRender.from ?? {},
@@ -153,7 +161,11 @@ export default class XElem {
     }
     fromTo(fromVars, toVars) {
         if (this.isRendered) {
-            return gsap.fromTo(this.elem, fromVars, toVars);
+            const tween = gsap.fromTo(this.elem, fromVars, toVars);
+            if (toVars.id) {
+                this.tweens[toVars.id] = tween;
+            }
+            return tween;
         }
         this.onRender.to = {
             ...this.onRender.to ?? {},

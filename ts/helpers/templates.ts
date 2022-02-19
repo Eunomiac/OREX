@@ -22,7 +22,7 @@ const templatePaths = {
 		xDie: getTemplatePath("xdie")
 	},
 	CHAT: {
-		oRoll: getTemplatePath("chat/oroll")
+		xRoll: getTemplatePath("chat/xroll")
 	}
 };
 

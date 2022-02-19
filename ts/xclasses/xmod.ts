@@ -1,0 +1,59 @@
+// #region ████████ IMPORTS ████████ ~
+import {
+	// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
+	C,
+	// #endregion ▮▮▮▮[Constants]▮▮▮▮
+	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+	gsap,
+	Dragger,
+	InertiaPlugin,
+	MotionPathPlugin,
+	GSDevTools,
+	RoughEase,
+	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
+	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
+	U,
+	// #endregion ▮▮▮▮[Utility]▮▮▮▮
+	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
+	XElem, XItem, XPool, XRoll
+	// #endregion ▮▮▮▮[XItems]▮▮▮▮
+} from "../helpers/bundler.js";
+import {XTermType} from "./xterm.js";
+import type {XTerm, XTermOptions} from "./xterm.js";
+// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+
+export interface XModOptions extends XTermOptions {
+	value?: number;
+}
+
+class XMod extends XItem implements XTerm {
+	public static override get defaultOptions() {
+		return U.objMerge(super.defaultOptions, {
+			classes: ["x-mod"]
+		});
+	}
+
+	termType: XTermType;
+
+	constructor(xParent: XPool, xOptions: XModOptions) {
+		super(xParent, xOptions);
+		this.termType = xOptions.type;
+	}
+
+	public ApplyEffect(xRoll: XRoll) {
+		return xRoll;
+	}
+
+}
+
+export class XGhost extends XMod {
+
+}
+
+export class XMutator extends XMod {
+
+}
+
+export class XInfo extends XMod {
+
+}

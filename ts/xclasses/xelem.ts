@@ -29,7 +29,7 @@ export interface XElemOptions {
 	}
 }
 
-export interface DOMRenderer {
+export interface DOMRenderer extends Position {
 	id: string;
 	renderApp: XItem;
 	elem: HTMLElement;
@@ -50,19 +50,25 @@ export interface DOMRenderer {
 	global: Position,
 
 	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void,
+}
+
+export interface GSAPController {
+	tweens: Record<string, gsap.core.Tween|gsap.core.Timeline>;
+
 	set: (vars: gsap.TweenVars) => gsap.core.Tween | false,
 	to: (vars: gsap.TweenVars) => gsap.core.Tween | false,
 	from: (vars: gsap.TweenVars) => gsap.core.Tween | false,
 	fromTo: (fromVars: gsap.TweenVars, toVars: gsap.TweenVars) => gsap.core.Tween | false
 }
 
-export default class XElem implements DOMRenderer {
+export default class XElem implements DOMRenderer, GSAPController {
 	protected _isRenderReady = false;
 	private renderPromise?: Promise<boolean>;
+	public tweens: Record<string, gsap.core.Tween | gsap.core.Timeline> = {};
 
 	public readonly id: string;
 	public readonly renderApp: XItem;
-	public get parentApp(): XItem | null { return this.renderApp.parent }
+	public get parentApp(): XItem | null { return this.renderApp.xParent }
 	public readonly onRender: {
 		set?: gsap.TweenVars,
 		to?: gsap.TweenVars,
@@ -75,15 +81,13 @@ export default class XElem implements DOMRenderer {
 
 	public get isRenderReady(): boolean { return this._isRenderReady }
 	public async confirmRender(isRendering = true): Promise<boolean> {
+		const gsapt = gsap.timeline();
 		this._isRenderReady = this.isRenderReady || isRendering;
-		// console.log(`[${this.id}] . confirmRender(${isRendering ?? ""}) --> ${this.isRendered ? "RENDERED" : "NOT Rendered"}`);
 		if (this.isRendered) { return Promise.resolve(true) }
 		if (!this.isRenderReady) { return Promise.resolve(false) }
 		this.renderPromise = this.renderApp.renderApplication();
 		await this.renderPromise;
 		if (this.parentApp) {
-			// const awaitTest = await this.parentApp.confirmRender();
-			// console.log(`[${this.id}] PARENT:[${this.parentApp.id}] await this.parentApp.confirmRender(${isRendering}) = ${awaitTest}`);
 			if (!(await this.parentApp.confirmRender())) {
 				console.warn("Attempt to render child of unrendered parent.");
 				return Promise.resolve(false);
@@ -106,7 +110,6 @@ export default class XElem implements DOMRenderer {
 	public get isRendered() { return this.renderApp.rendered }
 	protected validateRender() {
 		if (!this.isRendered) {
-			/*DEVCODE*/ debugger; /* eslint-disable-line no-debugger */ /*!DEVCODE*/
 			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await confirmRender?`);
 		}
 	}
@@ -118,8 +121,8 @@ export default class XElem implements DOMRenderer {
 	}
 
 	adopt(child: XItem, isRetainingPosition = true): void {
-		child.parent?.unregisterChild(child);
-		this.renderApp.registerChild(child);
+		child.xParent?.unregisterXKid(child);
+		this.renderApp.registerXKid(child);
 		if (this.isRendered && child.isRendered) {
 			if (isRetainingPosition) {
 				child.set(this.getLocalPosData(child));
@@ -159,7 +162,7 @@ export default class XElem implements DOMRenderer {
 				while (parentApp) {
 					parentApp.xElem.validateRender();
 					totalRotation += parentApp.rotation;
-					parentApp = parentApp.parent;
+					parentApp = parentApp.xParent;
 				}
 				return totalRotation;
 			},
@@ -169,7 +172,7 @@ export default class XElem implements DOMRenderer {
 				while (parentApp) {
 					parentApp.xElem.validateRender();
 					totalScale *= parentApp.scale;
-					parentApp = parentApp.parent;
+					parentApp = parentApp.xParent;
 				}
 				return totalScale;
 			}
@@ -195,6 +198,10 @@ export default class XElem implements DOMRenderer {
 		};
 	}
 
+	/* Figure out a way to have to / from / fromTo methods on all XItems that:
+			- will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
+			- if timescale is small enough, just uses.set() */
+
 	set(vars: gsap.TweenVars) {
 		if (this.isRendered) {
 			return gsap.set(this.elem, vars);
@@ -207,7 +214,11 @@ export default class XElem implements DOMRenderer {
 	}
 	to(vars: gsap.TweenVars) {
 		if (this.isRendered) {
-			return gsap.to(this.elem, vars);
+			const tween = gsap.to(this.elem, vars);
+			if (vars.id) {
+				this.tweens[vars.id] = tween;
+			}
+			return tween;
 		}
 		this.onRender.to = {
 			...this.onRender.to ?? {},
@@ -217,7 +228,11 @@ export default class XElem implements DOMRenderer {
 	}
 	from(vars: gsap.TweenVars) {
 		if (this.isRendered) {
-			return gsap.from(this.elem, vars);
+			const tween = gsap.from(this.elem, vars);
+			if (vars.id) {
+				this.tweens[vars.id] = tween;
+			}
+			return tween;
 		}
 		this.onRender.from = {
 			...this.onRender.from ?? {},
@@ -227,7 +242,11 @@ export default class XElem implements DOMRenderer {
 	}
 	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars) {
 		if (this.isRendered) {
-			return gsap.fromTo(this.elem, fromVars, toVars);
+			const tween = gsap.fromTo(this.elem, fromVars, toVars);
+			if (toVars.id) {
+				this.tweens[toVars.id] = tween;
+			}
+			return tween;
 		}
 		this.onRender.to = {
 			...this.onRender.to ?? {},

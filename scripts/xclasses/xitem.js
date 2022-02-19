@@ -4,36 +4,48 @@ import {
 gsap, 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, XElem
+U, DB, XElem
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
  } from "../helpers/bundler.js";
 export default class XItem extends Application {
-    constructor({ classes = [], ...xOptions }) {
+    constructor(xParent, { classes = [], ...xOptions }) {
+        if (!xOptions.keepID) {
+            xOptions.id += U.getUID();
+        }
         super(xOptions);
         this._isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
-        this._xChildren = new Set();
+        this._xKids = new Set();
         this._TICKERS = new Set();
         this.options.classes.push(...classes);
-        this.xOptions = Object.assign(xOptions, { classes: this.options.classes });
-        if (xOptions.parent === null) {
-            this._parent = null;
-        }
-        else if (xOptions.parent instanceof XItem) {
-            this._parent = xOptions.parent;
+        this.xOptions = Object.assign(xOptions, this.options);
+        if (xParent === null) {
+            this._xParent = null;
         }
         else {
-            this._parent = XItem.XROOT;
+            this._xParent = xParent ?? XItem.XROOT;
         }
         this.xElem = new XElem({
             renderApp: this,
-            onRender: xOptions.onRender
+            onRender: this.xOptions.onRender
         });
     }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
             classes: ["x-item"],
-            template: U.getTemplatePath("xitem")
+            template: U.getTemplatePath("xitem"),
+            xParent: XItem.XROOT,
+            onRender: {
+                set: {
+                    x: 0,
+                    y: 0,
+                    rotation: 0,
+                    scale: 1,
+                    xPercent: -50,
+                    yPercent: -50,
+                    transformOrigin: "50% 50%"
+                }
+            }
         });
     }
     static get XROOT() { return XItem._XROOT; }
@@ -41,33 +53,42 @@ export default class XItem extends Application {
         if (XItem.XROOT) {
             XItem.XROOT.kill();
         }
-        XItem._XROOT = new XItem({ id: "x-root", parent: null });
+        XItem._XROOT = new XItem(null, {
+            id: "x-root",
+            keepID: true,
+            onRender: {
+                set: {
+                    xPercent: 0,
+                    yPercent: 0
+                }
+            }
+        });
         return XItem._XROOT.initialize();
     }
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
-    get parent() { return this._parent; }
-    set parent(parent) { this._parent = parent ?? XItem.XROOT; }
-    get xChildren() { return this._xChildren; }
-    get hasChildren() { return this.xChildren.size > 0; }
-    registerChild(child) { child.parent = this; this.xChildren.add(child); }
-    unregisterChild(child) { this.xChildren.delete(child); }
-    getXChildren(classRef, isGettingAll = false) {
+    get xParent() { return this._xParent; }
+    set xParent(xParent) { this._xParent = xParent ?? XItem.XROOT; }
+    get xKids() { return this._xKids; }
+    get hasChildren() { return this.xKids.size > 0; }
+    registerXKid(xKid) { xKid.xParent = this; this.xKids.add(xKid); }
+    unregisterXKid(xKid) { this.xKids.delete(xKid); }
+    getXKids(classRef, isGettingAll = false) {
         const classCheck = U.isUndefined(classRef) ? XItem : classRef;
         if (isGettingAll) {
-            return Array.from(this.xChildren.values())
-                .map((xItem) => xItem.getXChildren(undefined, true))
+            return Array.from(this.xKids.values())
+                .map((xItem) => xItem.getXKids(undefined, true))
                 .flat()
                 .filter((xItem) => xItem instanceof classCheck);
         }
-        return Array.from(this.xChildren.values()).filter((xItem) => xItem instanceof classCheck);
+        return Array.from(this.xKids.values()).filter((xKid) => xKid instanceof classCheck);
     }
     async initialize() {
         if (this.isInitialized) {
             return Promise.resolve(true);
         }
         if (await this.xElem.confirmRender(true)) {
-            return Promise.allSettled(this.getXChildren().map((xItem) => xItem.initialize()))
+            return Promise.allSettled(this.getXKids().map((xItem) => xItem.initialize()))
                 .then(() => { this._isInitialized = true; return Promise.resolve(true); }, () => Promise.resolve(false));
         }
         return Promise.resolve(false);
@@ -100,12 +121,12 @@ export default class XItem extends Application {
     get fromTo() { return this.xElem.fromTo.bind(this.xElem); }
     kill() {
         if (this.hasChildren) {
-            this.getXChildren().forEach((xItem) => xItem.kill());
+            this.getXKids().forEach((xItem) => xItem.kill());
         }
         this._TICKERS.forEach((func) => gsap.ticker.remove(func));
         this._TICKERS.clear();
-        if (this.parent instanceof XItem) {
-            this.parent.unregisterChild(this);
+        if (this.xParent instanceof XItem) {
+            this.xParent.unregisterXKid(this);
         }
         if (this.isRendered) {
             gsap.killTweensOf(this.elem);
@@ -122,7 +143,7 @@ export default class XItem extends Application {
     }
     async renderApplication() {
         if (!this.xElem.isRenderReady) {
-            console.warn("Attempt to render an unready Application");
+            DB.error("Attempt to render an unready Application");
             return Promise.resolve(false);
         }
         try {

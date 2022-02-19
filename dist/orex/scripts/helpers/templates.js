@@ -12,7 +12,7 @@ const templatePaths = {
         xDie: getTemplatePath("xdie")
     },
     CHAT: {
-        oRoll: getTemplatePath("chat/oroll")
+        xRoll: getTemplatePath("chat/xroll")
     }
 };
 export default async () => loadTemplates(Object.values(U.objFlatten(templatePaths)));
