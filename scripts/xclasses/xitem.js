@@ -74,21 +74,22 @@ export default class XItem extends Application {
     registerXKid(xKid) { xKid.xParent = this; this.xKids.add(xKid); }
     unregisterXKid(xKid) { this.xKids.delete(xKid); }
     getXKids(classRef, isGettingAll = false) {
-        const classCheck = U.isUndefined(classRef) ? XItem : classRef;
         if (isGettingAll) {
             return Array.from(this.xKids.values())
-                .map((xItem) => xItem.getXKids(undefined, true))
+                .map((xItem) => xItem.getXKids(classRef, true))
                 .flat()
-                .filter((xItem) => xItem instanceof classCheck);
+                .filter(U.isInstanceFunc(classRef));
         }
-        return Array.from(this.xKids.values()).filter((xKid) => xKid instanceof classCheck);
+        return Array.from(this.xKids.values())
+            .flat()
+            .filter(U.isInstanceFunc(classRef));
     }
     async initialize() {
         if (this.isInitialized) {
             return Promise.resolve(true);
         }
         if (await this.xElem.confirmRender(true)) {
-            return Promise.allSettled(this.getXKids().map((xItem) => xItem.initialize()))
+            return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize()))
                 .then(() => { this._isInitialized = true; return Promise.resolve(true); }, () => Promise.resolve(false));
         }
         return Promise.resolve(false);
@@ -121,7 +122,7 @@ export default class XItem extends Application {
     get fromTo() { return this.xElem.fromTo.bind(this.xElem); }
     kill() {
         if (this.hasChildren) {
-            this.getXKids().forEach((xItem) => xItem.kill());
+            this.getXKids(XItem).forEach((xItem) => xItem.kill());
         }
         this._TICKERS.forEach((func) => gsap.ticker.remove(func));
         this._TICKERS.clear();

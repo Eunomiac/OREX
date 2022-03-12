@@ -4,7 +4,7 @@ import {
 // ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮
 C, 
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U, DB, XItem
+U, DB, XItem, XDie
  } from "../helpers/bundler.js";
 export default class XGroup extends XItem {
     static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-group"] }); }
@@ -148,7 +148,7 @@ export class XPool extends XGroup {
     get orbitals() { return this._orbitals; }
     get xOrbits() { return Array.from(Object.values(this.orbitals)); }
     get xItems() {
-        return this.xOrbits.map((xOrbit) => xOrbit.getXKids()).flat();
+        return this.xOrbits.map((xOrbit) => xOrbit.getXKids(XItem)).flat();
     }
     async addXItem(xItem, orbit) {
         const orbital = this.orbitals.get(orbit);
@@ -159,4 +159,20 @@ export class XPool extends XGroup {
     }
 }
 export class XRoll extends XPool {
+    constructor() {
+        super(...arguments);
+        this._hasRolled = false;
+    }
+    get hasRolled() { return this._hasRolled; }
+    get diceRolls() {
+        if (this.hasRolled) {
+            return this.getXKids(XDie, true).map((xDie) => xDie.value || 0);
+        }
+        return [];
+    }
+    // Rolls all XDie in the XRoll.
+    rollDice() {
+        this.getXKids(XDie, true).map((xDie) => xDie.roll());
+        this._hasRolled = true;
+    }
 }

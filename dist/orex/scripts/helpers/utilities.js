@@ -224,20 +224,32 @@ const getUID = () => {
 };
 // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
-const isList = (ref) => Boolean(ref) && Object.getPrototypeOf(ref) === Object.prototype;
 const isArray = (ref) => Array.isArray(ref);
+const isSimpleObj = (ref) => ref === Object(ref) && !isArray(ref);
+const isList = (ref) => ref === Object(ref) && !isArray(ref); // Boolean(ref) && Object.getPrototypeOf(ref) === Object.prototype;
 const isFunc = (ref) => typeof ref === "function";
 const isInt = (ref) => isNumber(ref) && Math.round(ref) === ref;
-const isFloat = (ref) => isNumber(ref) && Math.round(ref) !== ref;
+const isFloat = (ref) => isNumber(ref) && /\./.test(`${ref}`);
 const isPosInt = (ref) => isInt(ref) && ref >= 0;
 const isIndex = (ref) => isList(ref) || isArray(ref);
 const isIterable = (ref) => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref) => typeof ref === "string" && /^<.*>$/u.test(ref);
 const isUndefined = (ref) => ref === undefined;
 const isDefined = (ref) => !isUndefined(ref);
-const isEmpty = (ref) => Object.keys(ref).length === 0;
-const hasItems = (ref) => Object.keys(ref).length > 0;
+const isEmpty = (ref) => !(() => { for (const i in ref) {
+    return true;
+} return false; })();
+const hasItems = (ref) => !isEmpty(ref);
+const isInstance = (classRef, ref) => ref instanceof classRef;
+const isInstanceFunc = (clazz) => (instance) => instance instanceof clazz;
 const areEqual = (...refs) => {
+    do {
+        const ref = refs.pop();
+        if (refs.length && !checkEquality(ref, refs[0])) {
+            return false;
+        }
+    } while (refs.length);
+    return true;
     function checkEquality(ref1, ref2) {
         if (typeof ref1 !== typeof ref2) {
             return false;
@@ -279,16 +291,6 @@ const areEqual = (...refs) => {
             }
         }
     }
-    let ref = refs.pop();
-    while (refs.length) {
-        if (checkEquality(ref, refs[0])) {
-            ref = refs.pop();
-        }
-        else {
-            return false;
-        }
-    }
-    return true;
 };
 const pFloat = (ref, sigDigits, isStrict = false) => {
     if (typeof ref === "string") {
@@ -896,8 +898,8 @@ export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
     GMID, getUID,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
-    isNumber, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
-    isUndefined, isDefined, isEmpty, hasItems,
+    isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
+    isUndefined, isDefined, isEmpty, hasItems, isInstance, isInstanceFunc,
     areEqual,
     pFloat, pInt, radToDeg, degToRad,
     // ████████ REGEXP: Regular Expressions, Replacing, Matching ████████

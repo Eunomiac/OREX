@@ -13,13 +13,13 @@ import {
 	XElem
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XElemOptions, DOMRenderer, GSAPController} from "../xclasses/xelem.js";
+import type {XElemOptions, DOMRenderer, GSAPController} from"../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
-
 export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElemOptions> {
 	id: string;
 	keepID?: boolean;
 }
+
 export default class XItem extends Application implements Partial<DOMRenderer>, Partial<GSAPController> {
 
 	public static override get defaultOptions(): ApplicationOptions {
@@ -74,17 +74,17 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	public get hasChildren() { return this.xKids.size > 0 }
 	public registerXKid(xKid: XItem) { xKid.xParent = this; this.xKids.add(xKid) }
 	public unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
-	public getXKids<X extends typeof XItem>(classRef?: X, isGettingAll = false): Array<XItem> {
-		const classCheck: typeof XItem = U.isUndefined(classRef) ? XItem : classRef;
+	public getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): Array<X> {
 		if (isGettingAll) {
 			return Array.from(this.xKids.values())
-				.map((xItem) => xItem.getXKids(undefined, true))
+				.map((xItem) => xItem.getXKids(classRef, true))
 				.flat()
-				.filter((xItem) => xItem instanceof classCheck);
+				.filter(U.isInstanceFunc(classRef));
 		}
-		return Array.from(this.xKids.values()).filter((xKid) => xKid instanceof classCheck);
+		return Array.from(this.xKids.values())
+			.flat()
+			.filter(U.isInstanceFunc(classRef));
 	}
-
 	constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
 		if (!xOptions.keepID) {
 			xOptions.id += U.getUID();
@@ -106,7 +106,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	async initialize(): Promise<boolean> {
 		if (this.isInitialized) { return Promise.resolve(true) }
 		if (await this.xElem.confirmRender(true)) {
-			return Promise.allSettled(this.getXKids().map((xItem) => xItem.initialize()))
+			return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize()))
 				.then(
 					() => { this._isInitialized = true; return Promise.resolve(true) },
 					() => Promise.resolve(false)
@@ -148,7 +148,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 
 	public kill() {
 		if (this.hasChildren) {
-			this.getXKids().forEach((xItem) => xItem.kill());
+			this.getXKids(XItem).forEach((xItem) => xItem.kill());
 		}
 		this._TICKERS.forEach((func) => gsap.ticker.remove(func));
 		this._TICKERS.clear();

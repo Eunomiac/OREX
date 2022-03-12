@@ -51,7 +51,6 @@ export interface DOMRenderer extends Position {
 
 	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void,
 }
-
 export interface GSAPController {
 	tweens: Record<string, gsap.core.Tween|gsap.core.Timeline>;
 
@@ -60,9 +59,7 @@ export interface GSAPController {
 	from: (vars: gsap.TweenVars) => gsap.core.Tween | false,
 	fromTo: (fromVars: gsap.TweenVars, toVars: gsap.TweenVars) => gsap.core.Tween | false
 }
-
 export default class XElem implements DOMRenderer, GSAPController {
-	protected _isRenderReady = false;
 	private renderPromise?: Promise<boolean>;
 	public tweens: Record<string, gsap.core.Tween | gsap.core.Timeline> = {};
 
@@ -79,9 +76,10 @@ export default class XElem implements DOMRenderer, GSAPController {
 	public get elem() { this.validateRender(); return this.renderApp.element[0] }
 	public get elem$() { return $(this.elem) }
 
+	protected _isRenderReady = false;
 	public get isRenderReady(): boolean { return this._isRenderReady }
+
 	public async confirmRender(isRendering = true): Promise<boolean> {
-		const gsapt = gsap.timeline();
 		this._isRenderReady = this.isRenderReady || isRendering;
 		if (this.isRendered) { return Promise.resolve(true) }
 		if (!this.isRenderReady) { return Promise.resolve(false) }

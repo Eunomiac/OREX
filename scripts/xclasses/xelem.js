@@ -9,8 +9,8 @@ U,
 XItem } from "../helpers/bundler.js";
 export default class XElem {
     constructor(xOptions) {
-        this._isRenderReady = false;
         this.tweens = {};
+        this._isRenderReady = false;
         this.renderApp = xOptions.renderApp;
         this.id = this.renderApp.id;
         this.onRender = xOptions.onRender ?? {};
@@ -20,7 +20,6 @@ export default class XElem {
     get elem$() { return $(this.elem); }
     get isRenderReady() { return this._isRenderReady; }
     async confirmRender(isRendering = true) {
-        const gsapt = gsap.timeline();
         this._isRenderReady = this.isRenderReady || isRendering;
         if (this.isRendered) {
             return Promise.resolve(true);

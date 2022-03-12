@@ -35,7 +35,8 @@ export default class XDie extends XItem {
             ...xOptions.onRender.set ?? {}
         };
         super(xParent, xOptions);
-        this.value = xOptions.value ?? false;
+        this.value = 0;
+        this.value = xOptions.value ?? 0;
         this.termType = xOptions.type;
     }
     static get defaultOptions() {
@@ -51,6 +52,8 @@ export default class XDie extends XItem {
             }
         });
     }
+    get isRolled() { return this.value > 0; }
+    roll() { return (this.value = U.randInt(1, 10)); }
     get xParent() { return super.xParent; }
     set xParent(xItem) { super.xParent = xItem; }
     ApplyEffect(xRoll) {

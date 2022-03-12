@@ -18,13 +18,10 @@ import {
 	XElem,
 	XItem,
 	XGroup, XPool, XRoll,
-	XDie
+	XDie,
+	XTermType
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./helpers/bundler.js";
-import {XTermType} from "./xclasses/xterm.js";
-import type {XDieOptions} from "./xclasses/xterm.js";
-import type * as CONF from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/foundry.js/config.js";
-
 
 /*DEVCODE*/ // import DB from "./helpers/debug.js"; /*!DEVCODE*/
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
@@ -230,8 +227,8 @@ Hooks.once("ready", () => {
 		}),
 		testGroups: async () => {
 			const POOLS = [
-				{x: 550, y: 350, size: 200, color: "gold", orbitals: {main: 0.75, outer: 1.25, inner: 0.25}, dice: {main: [5, "cyan"], outer: [10, "silver", [3, "gold"]], inner: [3, "red"]}},
-				{x: 1150, y: 750, size: 200, color: "rgba(255, 0, 0, 0.5)", orbitals: {main: 0.6, outer: 1, inner: 0.25}, dice: {main: [6, "cyan"], outer: [10, "silver"], inner: [3, "red"]}}
+				{x: 550, y: 350, size: 200, color: "gold", orbitals: {main: 0.75, outer: 1.25, inner: 0.25}, dice: {main: [5, "cyan", [3, "red"]]}}
+				// {x: 1150, y: 750, size: 200, color: "rgba(255, 0, 0, 0.5)", orbitals: {main: 0.6, outer: 1, inner: 0.25}, dice: {main: [6, "cyan"], outer: [10, "silver"], inner: [3, "red"]}}
 			].map(async ({x, y, size, color, orbitals, dice}, i) => {
 				const xPool = DBCONTROLS.makePool(XItem.XROOT, {
 					id: `test-pool-${i+1}`,
@@ -286,6 +283,12 @@ Hooks.once("ready", () => {
 	};
 	Object.entries(DBCONTROLS).forEach(([key, val]) => { Object.assign(globalThis, {[key]: val}) });
 
+
+	setTimeout(() => {
+		// @ts-expect-error DEBUGGING CODE
+		globalThis.testGroups();
+	}, 1000);
+	return;
 	// @ts-expect-error DEBUGGING CODE
 	globalThis.testCoords();
 	setTimeout(() => {

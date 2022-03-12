@@ -15,11 +15,10 @@ import {
 	U, DB,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem, XItem
+	XElem, XItem, XDie
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
-import type {XItemOptions} from "./xitem.js";
+import type {XItemOptions} from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 /* SCHEMA SORTA:
@@ -29,10 +28,10 @@ import type {XItemOptions} from "./xitem.js";
 
 		🟢XItem = an object linking a renderable Application to an XElem, passing most XElem setters & animation methods through
 				🔺<DOMRenderer>XElem = linked to an XItem, governs DOM element directly
-			🔵XGroup = any XItem intended to contain other XItems, with the exception of XItem.XROOT.
-				🟣XPool = a collection of drag&droppable XTerms, arranged into orbits and animated
+			🔵XGroup = any XItem intended to contain other XItems.
+				🟣XPool = an XGroup containing top-level drag&droppable XTerms, arranged into orbits and animated
 						🔺XGroup.XOrbit = a single orbital containing XItems and parented to an XPool
-							🔺XItem.XArm = an element holding and rotating a single XItem
+							🔺XGroup.XArm = an element holding and rotating a single XItem
 					🟡XRoll = an XPool that can be rolled, its XTerms evaluated and reanimated as a roll result
 					🟡XSource = an XPool containing XTerms meant to be taken and dragged onto other XRolls
 					🟡XSink = an XPool meant to drop evaluated XTerms to spend them for some benefit
@@ -202,7 +201,7 @@ export class XPool extends XGroup {
 	public get orbitals() { return this._orbitals }
 	public get xOrbits(): Array<XOrbit> { return Array.from(Object.values(this.orbitals)) }
 	public get xItems(): Array<XItem> {
-		return this.xOrbits.map((xOrbit) => xOrbit.getXKids()).flat();
+		return this.xOrbits.map((xOrbit) => xOrbit.getXKids(XItem)).flat();
 	}
 
 	constructor(xParent: XItem, {orbitals, ...xOptions}: XPoolOptions) {
@@ -224,5 +223,19 @@ export class XPool extends XGroup {
 }
 
 export class XRoll extends XPool {
+	protected _hasRolled = false;
+	public get hasRolled() { return this._hasRolled }
+	public get diceRolls(): Array<number> {
+		if (this.hasRolled) {
+			return this.getXKids(XDie, true).map((xDie) => (<XDie>xDie).value || 0);
+		}
+		return [];
+	}
+
+	// Rolls all XDie in the XRoll.
+	public rollDice() {
+		this.getXKids(XDie, true).map((xDie) => xDie.roll());
+		this._hasRolled = true;
+	}
 
 }

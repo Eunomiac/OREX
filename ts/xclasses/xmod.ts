@@ -15,11 +15,11 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem, XItem, XPool, XRoll
+	XElem, XItem, XPool, XRoll,
+	XTermType
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
-import {XTermType} from "./xterm.js";
-import type {XTerm, XTermOptions} from "./xterm.js";
+import type {XTerm, XTermOptions} from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 export interface XModOptions extends XTermOptions {

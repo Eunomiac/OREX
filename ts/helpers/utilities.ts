@@ -1,24 +1,24 @@
 // #region ████████ IMPORTS ████████ ~
 import {AlphaField} from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/fields.mjs";
+import {readFileSync} from "fs";
 import gsap from "gsap/all";
 import {DB} from "./bundler.js";
 // import Fuse from "/scripts/fuse.js/dist/fuse.esm.js"; // https://fusejs.io/api/options.html
 // import Hyphenopoly from "/scripts/hyphenopoly/min/Hyphenopoly.js"; // https://github.com/mnater/Hyphenopoly/blob/master/docs/Node-Module.md
 // <Input, Output>(arr: Input[], func: (arg: Input) => Output): Output[]
 
-export type int = number;
-export type float = number;
-export type posInt = number;
-export type posFloat = number;
-export type HTMLCode = string;
-
-export type keyFunc = (key: number | string, val?: unknown) => unknown;
-export type valFunc = (val: unknown, key?: number | string) => unknown;
-export type testFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => boolean;
-export type mapFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => unknown;
-
-export type List<Type> = Record<number | string, Type>
-export type Index<Type> = List<Type> | Array<Type>;
+type int = number;
+type float = number;
+type posInt = number;
+type posFloat = number;
+type HTMLCode = string;
+type keyFunc = (key: number | string, val?: unknown) => unknown;
+type valFunc = (val: unknown, key?: number | string) => unknown;
+type testFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => boolean;
+type mapFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => unknown;
+type List<Type> = Record<number | string | symbol, Type>
+type Index<Type> = List<Type> | Array<Type>;
+type ConstructorOf<X> = new (...args: Array<any>) => X;
 
 // #region ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮ ~
 const _hyph = (str: string) => str; /* Hyphenopoly.config(
@@ -292,20 +292,31 @@ const getUID = (): string => {
 
 // #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
 const isNumber = (ref: unknown): ref is number => typeof ref === "number" && !isNaN(ref);
-const isList = (ref: unknown): ref is List<unknown> => Boolean(ref) && Object.getPrototypeOf(ref) === Object.prototype;
 const isArray = (ref: unknown): ref is Array<unknown> => Array.isArray(ref);
+const isSimpleObj = (ref: unknown): ref is Record<string | number | symbol, unknown> => ref === Object(ref) && !isArray(ref);
+const isList = (ref: unknown): ref is List<unknown> => ref === Object(ref) && !isArray(ref); // Boolean(ref) && Object.getPrototypeOf(ref) === Object.prototype;
 const isFunc = (ref: unknown): ref is typeof Function => typeof ref === "function";
 const isInt = (ref: unknown): ref is int => isNumber(ref) && Math.round(ref) === ref;
-const isFloat = (ref: unknown): ref is float => isNumber(ref) && Math.round(ref) !== ref;
+const isFloat = (ref: unknown): ref is float => isNumber(ref) && /\./.test(`${ref}`);
 const isPosInt = (ref: unknown): ref is posInt => isInt(ref) && ref >= 0;
 const isIndex = (ref: unknown): ref is Index<unknown> => isList(ref) || isArray(ref);
 const isIterable = (ref: unknown): ref is Iterable<unknown> => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref: unknown): ref is HTMLCode => typeof ref === "string" && /^<.*>$/u.test(ref);
 const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
 const isDefined = (ref: unknown): ref is NonNullable<unknown> | null => !isUndefined(ref);
-const isEmpty = (ref: Index<unknown>): boolean => Object.keys(ref).length === 0;
-const hasItems = (ref: Index<unknown>): boolean => Object.keys(ref).length > 0;
+const isEmpty = (ref: Index<unknown>): boolean => !(() => { for (const i in ref) { return true } return false })();
+const hasItems = (ref: Index<unknown>): boolean => !isEmpty(ref);
+const isInstance = <T extends new (...args: unknown[]) => unknown>(classRef: T, ref: unknown): ref is InstanceType<T> => ref instanceof classRef;
+const isInstanceFunc = <T extends new (...args: ConstructorParameters<T>) => InstanceType<T>>(clazz: T) => (instance: unknown): instance is InstanceType<T> => instance instanceof clazz;
 const areEqual = (...refs: Array<unknown>) => {
+	do {
+		const ref = refs.pop();
+		if (refs.length && !checkEquality(ref, refs[0])) {
+			return false;
+		}
+	} while (refs.length);
+	return true;
+
 	function checkEquality(ref1: unknown, ref2: unknown): boolean {
 		if (typeof ref1 !== typeof ref2) { return false }
 		if ([ref1, ref2].includes(null)) { return ref1 === ref2 }
@@ -333,15 +344,7 @@ const areEqual = (...refs: Array<unknown>) => {
 			}
 		}
 	}
-	let ref = refs.pop();
-	while (refs.length) {
-		if (checkEquality(ref, refs[0])) {
-			ref = refs.pop();
-		} else {
-			return false;
-		}
-	}
-	return true;
+
 };
 const pFloat = (ref: unknown, sigDigits?: posInt, isStrict = false): number => {
 	if (typeof ref === "string") {
@@ -972,8 +975,8 @@ export default {
 	GMID, getUID,
 
 	// ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
-	isNumber, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
-	isUndefined, isDefined, isEmpty, hasItems,
+	isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
+	isUndefined, isDefined, isEmpty, hasItems, isInstance, isInstanceFunc,
 	areEqual,
 	pFloat, pInt, radToDeg, degToRad,
 
@@ -1028,4 +1031,5 @@ export default {
 	formatAsClass,
 	getGSAngleDelta
 };
+export type {int, float, posInt, posFloat, HTMLCode, List, Index, ConstructorOf};
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

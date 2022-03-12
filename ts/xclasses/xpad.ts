@@ -15,12 +15,11 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem, XItem, XPool, XRoll
+	XElem, XItem, XPool, XRoll,
+	XTermType
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
-import {XTermType} from "./xterm.js";
-import type {XItemOptions} from "./xitem.js";
-import type {XTerm} from "./xterm.js";
+import type {XItemOptions, XTerm} from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 
 export default class XPad extends XItem {

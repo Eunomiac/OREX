@@ -15,8 +15,8 @@ import {
 	XItem, XGroup, XPool, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
+import type {XItemOptions} from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
-import type {XItemOptions} from "./xitem.js";
 
 export interface XTermOptions extends XItemOptions {
 	type: XTermType,
@@ -55,8 +55,12 @@ export default class XDie extends XItem implements XTerm {
 			}
 		});
 	}
-	public value: number | false;
+	public value = 0;
 	termType: XTermType;
+
+	public get isRolled() { return this.value > 0 }
+
+	public roll() { return (this.value = U.randInt(1, 10)) }
 
 	public override get xParent() { return <XItem>super.xParent }
 	public override set xParent(xItem: XItem) { super.xParent = xItem }
@@ -74,7 +78,7 @@ export default class XDie extends XItem implements XTerm {
 			...xOptions.onRender.set ?? {}
 		};
 		super(xParent, xOptions);
-		this.value = xOptions.value ?? false;
+		this.value = xOptions.value ?? 0;
 		this.termType = xOptions.type;
 	}
 
