@@ -2,11 +2,6 @@
 import {
 	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
 	gsap,
-	Dragger,
-	InertiaPlugin,
-	MotionPathPlugin,
-	GSDevTools,
-	RoughEase,
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U, DB,
@@ -60,6 +55,56 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		return XItem._XROOT.initialize();
 	}
 
+	private static _TICKERS: Set<() => void> = new Set();
+	public static AddGlobalTicker(func: () => void): void {
+		XItem._TICKERS.add(func);
+		gsap.ticker.add(func);
+	}
+	public static RemGlobalTicker(func: () => void): void {
+		XItem._TICKERS.delete(func);
+		gsap.ticker.remove(func);
+	}
+
+	private static _counterRotateFunc?: () => void;
+	private static get CounterRotateFunc() {
+		return (this._counterRotateFunc = this._counterRotateFunc ?? (() => {
+			this.CounterRotatingXItems.forEach((xItem) => {
+				xItem.set({rotation: -1 * gsap.utils.wrap(0, 360, xItem.global.rotation)});
+			});
+		}));
+	}
+
+	public static CounterRotatingXItems: XItem[] = [];
+
+	public static LockRotation(xItem: XItem): void
+	public static LockRotation(xItems: XItem[]): void
+	public static LockRotation(xItems: XItem | XItem[]): void {
+		xItems = [xItems].flat();
+		if (xItems.length && xItems.some((xItem) => !this.CounterRotatingXItems.includes(xItem))) {
+			if (this._counterRotateFunc) {
+				this.RemGlobalTicker(this._counterRotateFunc);
+			}
+			this.CounterRotatingXItems = U.unique([...this.CounterRotatingXItems, ...xItems]);
+			this.AddGlobalTicker(this.CounterRotateFunc);
+		}
+	}
+
+	public static UnlockRotation(xItem: XItem): void
+	public static UnlockRotation(xItems: XItem[]): void
+	public static UnlockRotation(xItems: XItem | XItem[]): void {
+		xItems = [xItems].flat();
+		if (xItems.length && xItems.some((xItem) => this.CounterRotatingXItems.includes(xItem))) {
+			if (this._counterRotateFunc) {
+				this.RemGlobalTicker(this._counterRotateFunc);
+			}
+			const unlockIDs = xItems.map((xItem) => xItem.id);
+			this.CounterRotatingXItems = this.CounterRotatingXItems.filter((crItem) => !unlockIDs.includes(crItem.id));
+			if (this.CounterRotatingXItems.length) {
+				this.AddGlobalTicker(this.CounterRotateFunc);
+			}
+		}
+	}
+
 	protected _isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
 	protected _xParent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
 	protected _xKids: Set<XItem> = new Set();
@@ -74,16 +119,14 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	public get hasChildren() { return this.xKids.size > 0 }
 	public registerXKid(xKid: XItem) { xKid.xParent = this; this.xKids.add(xKid) }
 	public unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
-	public getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): Array<X> {
-		if (isGettingAll) {
-			return Array.from(this.xKids.values())
-				.map((xItem) => xItem.getXKids(classRef, true))
-				.flat()
-				.filter(U.isInstanceFunc(classRef));
-		}
-		return Array.from(this.xKids.values())
+	public getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
+		const xKids: X[] = Array.from(this.xKids.values())
 			.flat()
 			.filter(U.isInstanceFunc(classRef));
+		if (isGettingAll) {
+			xKids.push(...Array.from(this.xKids.values()).map((xKid) => xKid.getXKids(classRef, true)).flat());
+		}
+		return xKids;
 	}
 	constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
 		if (!xOptions.keepID) {
@@ -131,13 +174,13 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	get confirmRender() { return this.xElem.confirmRender.bind(this.xElem) }
 	get adopt() { return this.xElem.adopt.bind(this.xElem) }
 
-	private _TICKERS: Set<() => void> = new Set();
+	private _tickers: Set<() => void> = new Set();
 	public addTicker(func: () => void): void {
-		this._TICKERS.add(func);
+		this._tickers.add(func);
 		gsap.ticker.add(func);
 	}
 	public removeTicker(func: () => void): void {
-		this._TICKERS.delete(func);
+		this._tickers.delete(func);
 		gsap.ticker.remove(func);
 	}
 
@@ -150,8 +193,8 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		if (this.hasChildren) {
 			this.getXKids(XItem).forEach((xItem) => xItem.kill());
 		}
-		this._TICKERS.forEach((func) => gsap.ticker.remove(func));
-		this._TICKERS.clear();
+		this._tickers.forEach((func) => gsap.ticker.remove(func));
+		this._tickers.clear();
 		if (this.xParent instanceof XItem) {
 			this.xParent.unregisterXKid(this);
 		}

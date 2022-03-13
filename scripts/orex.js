@@ -190,9 +190,20 @@ Hooks.once("ready", () => {
                         "left": x - (0.5 * size),
                         "top": y - (0.5 * size),
                         "--bg-color": color
+                    },
+                    to: {
+                        id: "poolRotation",
+                        rotation: "+=360",
+                        duration: 10,
+                        ease: "none",
+                        repeat: -1
                     }
                 },
-                orbitals
+                orbitals: {
+                    main: { size: 0.75, rotationRate: 10 },
+                    outer: { size: 1.25, rotationRate: 15 },
+                    inner: { size: 0.25, rotationRate: 5 }
+                }
             });
         },
         makeDie: ({ value = undefined, color = "white", numColor = "black", strokeColor = "black", size = 50 } = {}) => new XDie(XItem.XROOT, {
@@ -206,8 +217,15 @@ Hooks.once("ready", () => {
         }),
         testGroups: async () => {
             const POOLS = [
-                { x: 550, y: 350, size: 200, color: "gold", orbitals: { main: 0.75, outer: 1.25, inner: 0.25 }, dice: { main: [5, "cyan", [3, "red"]] } }
-                // {x: 1150, y: 750, size: 200, color: "rgba(255, 0, 0, 0.5)", orbitals: {main: 0.6, outer: 1, inner: 0.25}, dice: {main: [6, "cyan"], outer: [10, "silver"], inner: [3, "red"]}}
+                // {x: 550, y: 350, size: 200, color: "gold", orbitals: {main: 0.75, outer: 1.25, inner: 0.25}, dice: {main: [5, "cyan", [3, "red"]]}},
+                { x: 1150, y: 550, size: 300, color: "rgba(255, 0, 0, 0.5)",
+                    orbitals: { main: 0.75, outer: 1.25, inner: 0.25 },
+                    dice: {
+                        main: [6, "cyan", [2, "lime"]],
+                        outer: [5, "silver", [3, "gold"], [4, "blue"]],
+                        inner: [3, "red"]
+                    }
+                }
             ].map(async ({ x, y, size, color, orbitals, dice }, i) => {
                 const xPool = DBCONTROLS.makePool(XItem.XROOT, {
                     id: `test-pool-${i + 1}`,
@@ -243,12 +261,15 @@ Hooks.once("ready", () => {
                             await nestedPool.initialize();
                             for (let k = 0; k < nestedNumDice; k++) {
                                 const id = `${nestedPool.id}-x-die-${k + 1}`;
-                                if (!(await nestedPool.addXItem(new XDie(XItem.XROOT, {
-                                    id,
-                                    type: XTermType.BasicDie,
-                                    value: U.randInt(0, 9),
-                                    color: typeof nestedColor === "string" ? nestedColor : undefined
-                                }), name))) {
+                                try {
+                                    await nestedPool.addXItem(new XDie(XItem.XROOT, {
+                                        id,
+                                        type: XTermType.BasicDie,
+                                        value: U.randInt(0, 9),
+                                        color: typeof nestedColor === "string" ? nestedColor : undefined
+                                    }), "main");
+                                }
+                                catch (error) {
                                     DB.error(`Error rendering xDie '${id}'`);
                                 }
                             }
@@ -256,12 +277,14 @@ Hooks.once("ready", () => {
                     }
                 }
             });
+            await Promise.allSettled(POOLS);
+            globalThis.POOLS = POOLS;
             return Promise.allSettled(POOLS);
         },
         killAll: XItem.InitializeXROOT
     };
     Object.entries(DBCONTROLS).forEach(([key, val]) => { Object.assign(globalThis, { [key]: val }); });
-    setTimeout(() => {
+    setTimeout(async () => {
         // @ts-expect-error DEBUGGING CODE
         globalThis.testGroups();
     }, 1000);

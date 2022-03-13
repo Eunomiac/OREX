@@ -1,6 +1,6 @@
 import {C} from "./bundler.js";
 
-const XDebugger = (type: keyof typeof STYLES, message: string, ...content: Array<unknown>) => {
+const XDebugger = (type: keyof typeof STYLES, message: string, ...content: unknown[]) => {
 	if (C.isDebugging) {
 		const styleLine = Object.entries({
 			...STYLES.base,
@@ -50,9 +50,9 @@ const STYLES = {
 const DB = {
 	group: (label: string) => XDebugger("group", label),
 	groupEnd: () => XDebugger("groupEnd", ""),
-	display: (message: string, ...content: Array<unknown>) => XDebugger("display", message, ...content),
-	log: (message: string, ...content: Array<unknown>) => XDebugger("base", message, ...content),
-	error: (message: string, ...content: Array<unknown>) => XDebugger("error", message, ...content)
+	display: (message: string, ...content: unknown[]) => XDebugger("display", message, ...content),
+	log: (message: string, ...content: unknown[]) => XDebugger("base", message, ...content),
+	error: (message: string, ...content: unknown[]) => XDebugger("error", message, ...content)
 };
 
 export default DB;

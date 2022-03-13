@@ -1,8 +1,5 @@
 // #region ████████ IMPORTS ████████ ~
-import {AlphaField} from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/fields.mjs";
-import {readFileSync} from "fs";
 import gsap from "gsap/all";
-import {DB} from "./bundler.js";
 // import Fuse from "/scripts/fuse.js/dist/fuse.esm.js"; // https://fusejs.io/api/options.html
 // import Hyphenopoly from "/scripts/hyphenopoly/min/Hyphenopoly.js"; // https://github.com/mnater/Hyphenopoly/blob/master/docs/Node-Module.md
 // <Input, Output>(arr: Input[], func: (arg: Input) => Output): Output[]
@@ -17,8 +14,8 @@ type valFunc = (val: unknown, key?: number | string) => unknown;
 type testFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => boolean;
 type mapFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => unknown;
 type List<Type> = Record<number | string | symbol, Type>
-type Index<Type> = List<Type> | Array<Type>;
-type ConstructorOf<X> = new (...args: Array<any>) => X;
+type Index<Type> = List<Type> | Type[];
+type ConstructorOf<X> = new (...args: any[]) => X;
 
 // #region ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮ ~
 const _hyph = (str: string) => str; /* Hyphenopoly.config(
@@ -71,10 +68,10 @@ const _hyph = (str: string) => str; /* Hyphenopoly.config(
 const _noCapWords = [ // Regexp tests that should not be capitalized when converting to title case.
 	"above", "after", "at", "below", "by", "down", "for", "from", "in", "onto", "of", "off", "on", "out",
 	"to", "under", "up", "with", "for", "and", "nor", "but", "or", "yet", "so", "the", "an", "a"
-].map((word) => new RegExp(`\\b${word}\\b`, "gui")) as Array<RegExp>;
+].map((word) => new RegExp(`\\b${word}\\b`, "gui")) ;
 const _capWords = [ // Words that should always be capitalized when converting to sentence case.
 	"I", /[^a-z]{3,}|[\.0-9]/gu
-].map((word) => (/RegExp/.test(Object.prototype.toString.call(word)) ? word : new RegExp(`\\b${word}\\b`, "gui"))) as Array<RegExp>;
+].map((word) => (/RegExp/.test(Object.prototype.toString.call(word)) ? word : new RegExp(`\\b${word}\\b`, "gui"))) as RegExp[];
 const _loremIpsumText = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies
 nibh sed massa euismod lacinia. Aliquam nec est ac nunc ultricies scelerisque porta vulputate odio.
 Integer gravida mattis odio, semper volutpat tellus. Ut elit leo, auctor eget fermentum hendrerit,
@@ -275,7 +272,7 @@ const _romanNumerals = {
 /* eslint-enable array-element-newline, object-property-newline */
 // #endregion ▮▮▮▮[HELPERS]▮▮▮▮
 
-const UIDLOG: Array<string> = [];
+const UIDLOG: string[] = [];
 
 // #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
 // @ts-expect-error Leauge of foundry developers is wrong about user not being on game.
@@ -292,7 +289,7 @@ const getUID = (): string => {
 
 // #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
 const isNumber = (ref: unknown): ref is number => typeof ref === "number" && !isNaN(ref);
-const isArray = (ref: unknown): ref is Array<unknown> => Array.isArray(ref);
+const isArray = (ref: unknown): ref is unknown[] => Array.isArray(ref);
 const isSimpleObj = (ref: unknown): ref is Record<string | number | symbol, unknown> => ref === Object(ref) && !isArray(ref);
 const isList = (ref: unknown): ref is List<unknown> => ref === Object(ref) && !isArray(ref); // Boolean(ref) && Object.getPrototypeOf(ref) === Object.prototype;
 const isFunc = (ref: unknown): ref is typeof Function => typeof ref === "function";
@@ -308,7 +305,7 @@ const isEmpty = (ref: Index<unknown>): boolean => !(() => { for (const i in ref)
 const hasItems = (ref: Index<unknown>): boolean => !isEmpty(ref);
 const isInstance = <T extends new (...args: unknown[]) => unknown>(classRef: T, ref: unknown): ref is InstanceType<T> => ref instanceof classRef;
 const isInstanceFunc = <T extends new (...args: ConstructorParameters<T>) => InstanceType<T>>(clazz: T) => (instance: unknown): instance is InstanceType<T> => instance instanceof clazz;
-const areEqual = (...refs: Array<unknown>) => {
+const areEqual = (...refs: unknown[]) => {
 	do {
 		const ref = refs.pop();
 		if (refs.length && !checkEquality(ref, refs[0])) {
@@ -484,7 +481,7 @@ const verbalizeNum = (num: number | string) => {
 	};
 	const parseThreeDigits = (trio: string) => {
 		if (pInt(trio) === 0) { return "" }
-		const digits = `${trio}`.split("").map((digit) => pInt(digit)) as Array<number>;
+		const digits = `${trio}`.split("").map((digit) => pInt(digit)) ;
 		let result = "";
 		if (digits.length === 3) {
 			const hundreds = digits.shift();
@@ -593,7 +590,7 @@ const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)]
 // #endregion ▄▄▄▄▄ STRINGS ▄▄▄▄▄
 
 // #region ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████ ~
-const isIn = (needle: unknown, haystack: Array<unknown> = [], fuzziness = 0) => {
+const isIn = (needle: unknown, haystack: unknown[] = [], fuzziness = 0) => {
 	// Looks for needle in haystack using fuzzy matching, then returns value as it appears in haystack.
 
 	// STEP ONE: POPULATE SEARCH TESTS ACCORDING TO FUZZINESS SETTING
@@ -622,13 +619,13 @@ const isIn = (needle: unknown, haystack: Array<unknown> = [], fuzziness = 0) => 
 	const searchNeedle = `${needle}`;
 	const searchStack = (() => {
 		if (isArray(haystack)) {
-			return [...haystack] as Array<unknown>;
+			return [...haystack] as unknown[];
 		}
 		if (isList(haystack)) {
-			return Object.keys(haystack) as Array<unknown>;
+			return Object.keys(haystack) as unknown[];
 		}
 		try {
-			return Array.from(haystack) as Array<unknown>;
+			return Array.from(haystack) ;
 		} catch {
 			throw new Error(`Haystack type must be [list, array], not ${typeof haystack}: ${JSON.stringify(haystack)}`);
 		}
@@ -649,7 +646,7 @@ const isIn = (needle: unknown, haystack: Array<unknown> = [], fuzziness = 0) => 
 	}
 	return false;
 };
-const isInExact = (needle: unknown, haystack: Array<unknown>) => isIn(needle, haystack, 0);
+const isInExact = (needle: unknown, haystack: unknown[]) => isIn(needle, haystack, 0);
 // #endregion ▄▄▄▄▄ SEARCHING ▄▄▄▄▄
 
 // #region ████████ NUMBERS: Number Casting, Mathematics, Conversion ████████ ~
@@ -659,8 +656,8 @@ const coinFlip = () => randNum(0, 1, 1) === 1;
 const cycleNum = (num: number, [min = 0, max = Infinity] = []): number => gsap.utils.wrap(min, max, num);
 const cycleAngle = (angle: number) => cycleNum(angle, [-180, 180]);
 const roundNum = (num: number, sigDigits: posInt = 0) => (sigDigits === 0 ? pInt(num) : pFloat(num, sigDigits));
-const sum = (...nums: Array<number | Array<number>>) => nums.flat().reduce((num, tot) => tot + num, 0);
-const average = (...nums: Array<number | Array<number>>) => sum(...nums) / nums.flat().length;
+const sum = (...nums: Array<number | number[]>) => nums.flat().reduce((num, tot) => tot + num, 0);
+const average = (...nums: Array<number | number[]>) => sum(...nums) / nums.flat().length;
 // #region ░░░░░░░[Positioning]░░░░ Relationships On 2D Cartesian Plane ░░░░░░░ ~
 const getDistance = ({x: x1, y: y1}: Point, {x: x2, y: y2}: Point) => (((x1 - x2) ** 2) + ((y1 - y2) ** 2)) ** 0.5;
 const getAngle = ({x: x1, y: y1}: Point, {x: x2, y: y2}: Point, {x: xO = 0, y: yO = 0}: Point = {x: 0, y: 0}) => {
@@ -672,9 +669,9 @@ const getAngleDelta = (angleStart: number, angleEnd: number) => cycleAngle(angle
 // #endregion ▄▄▄▄▄ NUMBERS ▄▄▄▄▄
 
 // #region ████████ ARRAYS: Array Manipulation ████████ ~
-const randElem = (array: Array<unknown>): unknown => gsap.utils.random(array);
-const randIndex = (array: Array<unknown>): posInt => randInt(0, array.length - 1);
-const makeCycler = (array: Array<unknown>, index = 0): Generator => {
+const randElem = (array: unknown[]): unknown => gsap.utils.random(array);
+const randIndex = (array: unknown[]): posInt => randInt(0, array.length - 1);
+const makeCycler = (array: unknown[], index = 0): Generator => {
 	// Given an array and a starting index, returns a generator function that can be used
 	// to iterate over the array indefinitely, or wrap out-of-bounds index values
 	const wrapper = gsap.utils.wrap(array);
@@ -686,18 +683,18 @@ const makeCycler = (array: Array<unknown>, index = 0): Generator => {
 		}
 	}());
 };
-const getLast = (array: Array<unknown>) => (array.length ? array[array.length - 1] : undefined);
-const unique = <Type>(array: Array<Type>): Array<Type> => {
-	const returnArray: Array<Type> = [];
+const getLast = (array: unknown[]) => (array.length ? array[array.length - 1] : undefined);
+const unique = <Type>(array: Type[]): Type[] => {
+	const returnArray: Type[] = [];
 	array.forEach((item) => { if (!returnArray.includes(item)) { returnArray.push(item) } });
 	return returnArray;
 };
-const removeFirst = (array: Array<unknown>, element: unknown) => array.splice(array.findIndex((v) => v === element));
-const pullElement = (array: Array<unknown>, checkFunc = (_v: unknown = true, _i = 0, _a: Array<unknown> = []) => { checkFunc(_v, _i, _a) }) => {
+const removeFirst = (array: unknown[], element: unknown) => array.splice(array.findIndex((v) => v === element));
+const pullElement = (array: unknown[], checkFunc = (_v: unknown = true, _i = 0, _a: unknown[] = []) => { checkFunc(_v, _i, _a) }) => {
 	const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
 	return index !== -1 && array.splice(index, 1).pop();
 };
-const pullIndex = (array: Array<unknown>, index: posInt) => pullElement(array, (v, i) => i === index);
+const pullIndex = (array: unknown[], index: posInt) => pullElement(array, (v, i) => i === index);
 
 /*~ #region TO PROCESS: ARRAY FUNCTIONS: Last, Flip, Insert, Change, Remove
 export const Last = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : undefined);
@@ -734,7 +731,7 @@ export const Remove = (arr, findFunc = (e, i, a) => true) => {
 
 // #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type checkTestRef = ((...args: Array<any>) => any) | testFunc<keyFunc> | testFunc<valFunc> | RegExp | number | string;
+type checkTestRef = ((...args: any[]) => any) | testFunc<keyFunc> | testFunc<valFunc> | RegExp | number | string;
 const checkVal = ({k, v}: { k?: unknown, v?: unknown }, checkTest: checkTestRef) => {
 	if (typeof checkTest === "function") {
 		if (isDefined(v)) { return checkTest(v, k) }
@@ -838,7 +835,7 @@ const objForEach = (obj: Index<unknown>, func: valFunc): void => {
 	}
 };
 // Prunes an object of certain values (undefined by default)
-const objCompact = <Type extends (Index<unknown>)>(obj: Type, preserve: Array<unknown> = []): Type => objFilter(obj, (val: unknown) => preserve.includes(`${val}`));
+const objCompact = <Type extends (Index<unknown>)>(obj: Type, preserve: unknown[] = []): Type => objFilter(obj, (val: unknown) => preserve.includes(`${val}`));
 const objClone = <Type>(obj: Type, isStrictlySafe = false): Type => {
 	try {
 		return JSON.parse(JSON.stringify(obj));
@@ -850,23 +847,15 @@ const objClone = <Type>(obj: Type, isStrictlySafe = false): Type => {
 	return obj;
 };
 function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true} = {}): Type {
-	DB.group("U.objMerge()");
-	DB.log("target, source", target, source);
 	/* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
 	target = isMutatingOk ? target : objClone(target, isStrictlySafe);
 	if (source instanceof Application) {
-		DB.log("... SOURCE is APPLICATION, returning SOURCE:", source);
-		DB.groupEnd();
 		return <Type><unknown>source;
 	}
 	if (isUndefined(target)) {
-		DB.log("... TARGET undefined, returning SOURCE:", objClone(source));
-		DB.groupEnd();
 		return <Type>objClone(source);
 	}
 	if (isUndefined(source)) {
-		DB.log("... SOURCE undefined, returning TARGET:", target);
-		DB.groupEnd();
 		return target;
 	}
 	if (isIndex(source)) {
@@ -887,8 +876,6 @@ function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, is
 			}
 		}
 	}
-	DB.log("... RETURNING", target);
-	DB.groupEnd();
 	return target;
 }
 const objExpand = (obj: List<unknown>): List<unknown> => {
@@ -917,9 +904,9 @@ const objFlatten = (obj: Index<unknown>) => {
 // #endregion ▄▄▄▄▄ OBJECTS ▄▄▄▄▄
 
 // #region ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████ ~
-const getDynamicFunc = (funcName: string, func: (...args: Array<unknown>) => unknown, context: object) => {
+const getDynamicFunc = (funcName: string, func: (...args: unknown[]) => unknown, context: object) => {
 	if (typeof func === "function") {
-		const dFunc = {[funcName](...args: Array<unknown>) { return func(...args) }}[funcName];
+		const dFunc = {[funcName](...args: unknown[]) { return func(...args) }}[funcName];
 		return context ? dFunc.bind(context) : dFunc;
 	}
 	return false;

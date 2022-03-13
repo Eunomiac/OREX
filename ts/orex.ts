@@ -211,9 +211,20 @@ Hooks.once("ready", () => {
 						"left": x - (0.5 * size),
 						"top": y - (0.5 * size),
 						"--bg-color": color
+					},
+					to: {
+						id: "poolRotation",
+						rotation: "+=360",
+						duration: 10,
+						ease: "none",
+						repeat: -1
 					}
 				},
-				orbitals
+				orbitals: {
+					main: {size: 0.75, rotationRate: 10},
+					outer: {size: 1.25, rotationRate: 15},
+					inner: {size: 0.25, rotationRate: 5}
+				}
 			});
 		},
 		makeDie: ({value = undefined, color = "white", numColor = "black", strokeColor = "black", size = 50} = {}) => new XDie(<XGroup>XItem.XROOT, {
@@ -227,8 +238,14 @@ Hooks.once("ready", () => {
 		}),
 		testGroups: async () => {
 			const POOLS = [
-				{x: 550, y: 350, size: 200, color: "gold", orbitals: {main: 0.75, outer: 1.25, inner: 0.25}, dice: {main: [5, "cyan", [3, "red"]]}}
-				// {x: 1150, y: 750, size: 200, color: "rgba(255, 0, 0, 0.5)", orbitals: {main: 0.6, outer: 1, inner: 0.25}, dice: {main: [6, "cyan"], outer: [10, "silver"], inner: [3, "red"]}}
+				// {x: 550, y: 350, size: 200, color: "gold", orbitals: {main: 0.75, outer: 1.25, inner: 0.25}, dice: {main: [5, "cyan", [3, "red"]]}},
+				{x: 1150, y: 550, size: 300, color: "rgba(255, 0, 0, 0.5)",
+					orbitals: {main: 0.75, outer: 1.25, inner: 0.25},
+					dice: {
+						main: [6, "cyan", [2, "lime"]],
+						outer: [5, "silver", [3, "gold"], [4, "blue"]],
+						inner: [3, "red"]}
+				}
 			].map(async ({x, y, size, color, orbitals, dice}, i) => {
 				const xPool = DBCONTROLS.makePool(XItem.XROOT, {
 					id: `test-pool-${i+1}`,
@@ -237,10 +254,10 @@ Hooks.once("ready", () => {
 				await xPool.initialize(); // @ts-expect-error How to tell TS the type of object literal's values?
 				globalThis.CIRCLE ??= []; // @ts-expect-error How to tell TS the type of object literal's values?
 				globalThis.CIRCLE.push(xPool);
-				for (const [name, [numDice, color, ...nestedPools]] of Object.entries(dice)) {
+				for (const [name, [numDice, color, ...nestedPools]] of Object.entries(dice) as Array<[string, [number, string, ...Array<[number, string]>]]>) {
 					for (let j = 0; j < numDice; j++) {
 						const id = `${xPool.id}-x-die-${j+1}`;
-						if (!(await xPool.addXItem(new XDie(<XGroup>XItem.XROOT, {
+						if (!(await xPool.addXItem(new XDie(XItem.XROOT as XGroup, {
 							id,
 							type: XTermType.BasicDie,
 							value: U.randInt(0, 9),
@@ -251,7 +268,7 @@ Hooks.once("ready", () => {
 					}
 					if (nestedPools.length) {
 						DB.log("Nested Pools", nestedPools);
-						for (const [nestedNumDice, nestedColor] of <Array<Array<number|string>>>nestedPools) {
+						for (const [nestedNumDice, nestedColor] of nestedPools) {
 							const nestedPool = DBCONTROLS.makePool(XItem.XROOT, {
 								id: `test-pool-${i+1}-nested-pool-${U.getUID()}`,
 								x: 0,
@@ -264,12 +281,14 @@ Hooks.once("ready", () => {
 							await nestedPool.initialize();
 							for (let k = 0; k < nestedNumDice; k++) {
 								const id = `${nestedPool.id}-x-die-${k+1}`;
-								if (!(await nestedPool.addXItem(new XDie(<XGroup>XItem.XROOT, {
-									id,
-									type: XTermType.BasicDie,
-									value: U.randInt(0, 9),
-									color: typeof nestedColor === "string" ? nestedColor : undefined
-								}), name))) {
+								try {
+									await nestedPool.addXItem(new XDie(XItem.XROOT as XGroup, {
+										id,
+										type: XTermType.BasicDie,
+										value: U.randInt(0, 9),
+										color: typeof nestedColor === "string" ? nestedColor : undefined
+									}), "main");
+								} catch (error) {
 									DB.error(`Error rendering xDie '${id}'`);
 								}
 							}
@@ -277,6 +296,8 @@ Hooks.once("ready", () => {
 					}
 				}
 			});
+			await Promise.allSettled(POOLS);
+			globalThis.POOLS = POOLS;
 			return Promise.allSettled(POOLS);
 		},
 		killAll: XItem.InitializeXROOT
@@ -284,7 +305,7 @@ Hooks.once("ready", () => {
 	Object.entries(DBCONTROLS).forEach(([key, val]) => { Object.assign(globalThis, {[key]: val}) });
 
 
-	setTimeout(() => {
+	setTimeout(async () => {
 		// @ts-expect-error DEBUGGING CODE
 		globalThis.testGroups();
 	}, 1000);

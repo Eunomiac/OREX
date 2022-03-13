@@ -1,6 +1,6 @@
 const C = {
     xGroupOrbitalDefaults: {
-        main: 0.75
+        main: { size: 0.75, rotationRate: 10 }
     },
     isDebugging: true,
     minFuzzyMatchScore: 0.8 // Determines strictness of FuzzyMatcher
