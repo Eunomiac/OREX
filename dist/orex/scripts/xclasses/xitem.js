@@ -14,7 +14,7 @@ export default class XItem extends Application {
         super(xOptions);
         this._isInitialized = false;
         this._xKids = new Set();
-        this._TICKERS = new Set();
+        this._tickers = new Set();
         this.options.classes.push(...classes);
         this.xOptions = Object.assign(xOptions, this.options);
         if (xParent === null) {
@@ -73,15 +73,13 @@ export default class XItem extends Application {
     registerXKid(xKid) { xKid.xParent = this; this.xKids.add(xKid); }
     unregisterXKid(xKid) { this.xKids.delete(xKid); }
     getXKids(classRef, isGettingAll = false) {
-        if (isGettingAll) {
-            return Array.from(this.xKids.values())
-                .map((xItem) => xItem.getXKids(classRef, true))
-                .flat()
-                .filter(U.isInstanceFunc(classRef));
-        }
-        return Array.from(this.xKids.values())
+        const xKids = Array.from(this.xKids.values())
             .flat()
             .filter(U.isInstanceFunc(classRef));
+        if (isGettingAll) {
+            xKids.push(...Array.from(this.xKids.values()).map((xKid) => xKid.getXKids(classRef, true)).flat());
+        }
+        return xKids;
     }
     async initialize() {
         if (this.isInitialized) {
@@ -108,11 +106,11 @@ export default class XItem extends Application {
     get confirmRender() { return this.xElem.confirmRender.bind(this.xElem); }
     get adopt() { return this.xElem.adopt.bind(this.xElem); }
     addTicker(func) {
-        this._TICKERS.add(func);
+        this._tickers.add(func);
         gsap.ticker.add(func);
     }
     removeTicker(func) {
-        this._TICKERS.delete(func);
+        this._tickers.delete(func);
         gsap.ticker.remove(func);
     }
     get set() { return this.xElem.set.bind(this.xElem); }
@@ -123,8 +121,8 @@ export default class XItem extends Application {
         if (this.hasChildren) {
             this.getXKids(XItem).forEach((xItem) => xItem.kill());
         }
-        this._TICKERS.forEach((func) => gsap.ticker.remove(func));
-        this._TICKERS.clear();
+        this._tickers.forEach((func) => gsap.ticker.remove(func));
+        this._tickers.clear();
         if (this.xParent instanceof XItem) {
             this.xParent.unregisterXKid(this);
         }

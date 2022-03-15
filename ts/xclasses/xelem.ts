@@ -70,7 +70,7 @@ export default class XElem implements DOMRenderer, GSAPController {
 		set?: gsap.TweenVars,
 		to?: gsap.TweenVars,
 		from?: gsap.TweenVars,
-		funcs?: Array<(xItem: XItem) => void>
+		funcs?: Array<<X extends typeof XItem>(xItem: InstanceType<X>) => void>
 	};
 
 	public get elem() { this.validateRender(); return this.renderApp.element[0] }

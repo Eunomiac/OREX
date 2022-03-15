@@ -55,16 +55,30 @@ export default class XDie extends XItem implements XTerm {
 			}
 		});
 	}
-	public value = 0;
+	private _value = 0;
+	protected get value$() { return $(`#${this.id} .die-val`) }
+
+	public get value() { return (this._value = this._value ?? 0) }
+	public set value(val: number) {
+		if (val >= 0 && val <= 10) {
+			this._value = val;
+			if (this.isInitialized) {
+				this.value$.html(this.face);
+			}
+		}
+	}
+	public get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "<span style=\"color: red;\">X</span>"][this._value]}
 	termType: XTermType;
 
 	public get isRolled() { return this.value > 0 }
 
-	public roll() { return (this.value = U.randInt(1, 10)) }
+	public roll() { this.value = U.randInt(1, 10) }
 
 	public override get xParent() { return <XItem>super.xParent }
 	public override set xParent(xItem: XItem) { super.xParent = xItem }
-	constructor(xParent: XGroup, xOptions: XDieOptions) {
+
+
+	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XDieOptions) {
 		const dieSize = xOptions.size ?? 40;
 		xOptions.id = `${xOptions.id}-${U.getUID()}`;
 		xOptions.onRender ??= {};
@@ -88,9 +102,10 @@ export default class XDie extends XItem implements XTerm {
 
 	override getData() {
 		const context = super.getData();
+		const faceNum = this.value === 10 ? 0 : (this.value || " ");
 
 		Object.assign(context, {
-			value: this.value ?? " "
+			value: faceNum
 		});
 
 		return context;

@@ -36,7 +36,7 @@ export default class XDie extends XItem {
             ...xOptions.onRender.set ?? {}
         };
         super(xParent, xOptions);
-        this.value = 0;
+        this._value = 0;
         this.value = xOptions.value ?? 0;
         this.termType = xOptions.type;
     }
@@ -53,8 +53,19 @@ export default class XDie extends XItem {
             }
         });
     }
+    get value$() { return $(`#${this.id} .die-val`); }
+    get value() { return (this._value = this._value ?? 0); }
+    set value(val) {
+        if (val >= 0 && val <= 10) {
+            this._value = val;
+            if (this.isInitialized) {
+                this.value$.html(this.face);
+            }
+        }
+    }
+    get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "<span style=\"color: red;\">X</span>"][this._value]; }
     get isRolled() { return this.value > 0; }
-    roll() { return (this.value = U.randInt(1, 10)); }
+    roll() { this.value = U.randInt(1, 10); }
     get xParent() { return super.xParent; }
     set xParent(xItem) { super.xParent = xItem; }
     ApplyEffect(xRoll) {
@@ -62,8 +73,9 @@ export default class XDie extends XItem {
     }
     getData() {
         const context = super.getData();
+        const faceNum = this.value === 10 ? 0 : (this.value || " ");
         Object.assign(context, {
-            value: this.value ?? " "
+            value: faceNum
         });
         return context;
     }

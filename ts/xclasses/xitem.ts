@@ -2,11 +2,6 @@
 import {
 	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
 	gsap,
-	Dragger,
-	InertiaPlugin,
-	MotionPathPlugin,
-	GSDevTools,
-	RoughEase,
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U, DB,
@@ -74,16 +69,14 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	public get hasChildren() { return this.xKids.size > 0 }
 	public registerXKid(xKid: XItem) { xKid.xParent = this; this.xKids.add(xKid) }
 	public unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
-	public getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): Array<X> {
-		if (isGettingAll) {
-			return Array.from(this.xKids.values())
-				.map((xItem) => xItem.getXKids(classRef, true))
-				.flat()
-				.filter(U.isInstanceFunc(classRef));
-		}
-		return Array.from(this.xKids.values())
+	public getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
+		const xKids: X[] = Array.from(this.xKids.values())
 			.flat()
 			.filter(U.isInstanceFunc(classRef));
+		if (isGettingAll) {
+			xKids.push(...Array.from(this.xKids.values()).map((xKid) => xKid.getXKids(classRef, true)).flat());
+		}
+		return xKids;
 	}
 	constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
 		if (!xOptions.keepID) {
@@ -131,13 +124,13 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	get confirmRender() { return this.xElem.confirmRender.bind(this.xElem) }
 	get adopt() { return this.xElem.adopt.bind(this.xElem) }
 
-	private _TICKERS: Set<() => void> = new Set();
+	private _tickers: Set<() => void> = new Set();
 	public addTicker(func: () => void): void {
-		this._TICKERS.add(func);
+		this._tickers.add(func);
 		gsap.ticker.add(func);
 	}
 	public removeTicker(func: () => void): void {
-		this._TICKERS.delete(func);
+		this._tickers.delete(func);
 		gsap.ticker.remove(func);
 	}
 
@@ -150,8 +143,8 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		if (this.hasChildren) {
 			this.getXKids(XItem).forEach((xItem) => xItem.kill());
 		}
-		this._TICKERS.forEach((func) => gsap.ticker.remove(func));
-		this._TICKERS.clear();
+		this._tickers.forEach((func) => gsap.ticker.remove(func));
+		this._tickers.clear();
 		if (this.xParent instanceof XItem) {
 			this.xParent.unregisterXKid(this);
 		}
