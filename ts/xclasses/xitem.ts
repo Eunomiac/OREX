@@ -55,56 +55,6 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		return XItem._XROOT.initialize();
 	}
 
-	private static _TICKERS: Set<() => void> = new Set();
-	public static AddGlobalTicker(func: () => void): void {
-		XItem._TICKERS.add(func);
-		gsap.ticker.add(func);
-	}
-	public static RemGlobalTicker(func: () => void): void {
-		XItem._TICKERS.delete(func);
-		gsap.ticker.remove(func);
-	}
-
-	private static _counterRotateFunc?: () => void;
-	private static get CounterRotateFunc() {
-		return (this._counterRotateFunc = this._counterRotateFunc ?? (() => {
-			this.CounterRotatingXItems.forEach((xItem) => {
-				xItem.set({rotation: -1 * gsap.utils.wrap(0, 360, xItem.global.rotation)});
-			});
-		}));
-	}
-
-	public static CounterRotatingXItems: XItem[] = [];
-
-	public static LockRotation(xItem: XItem): void
-	public static LockRotation(xItems: XItem[]): void
-	public static LockRotation(xItems: XItem | XItem[]): void {
-		xItems = [xItems].flat();
-		if (xItems.length && xItems.some((xItem) => !this.CounterRotatingXItems.includes(xItem))) {
-			if (this._counterRotateFunc) {
-				this.RemGlobalTicker(this._counterRotateFunc);
-			}
-			this.CounterRotatingXItems = U.unique([...this.CounterRotatingXItems, ...xItems]);
-			this.AddGlobalTicker(this.CounterRotateFunc);
-		}
-	}
-
-	public static UnlockRotation(xItem: XItem): void
-	public static UnlockRotation(xItems: XItem[]): void
-	public static UnlockRotation(xItems: XItem | XItem[]): void {
-		xItems = [xItems].flat();
-		if (xItems.length && xItems.some((xItem) => this.CounterRotatingXItems.includes(xItem))) {
-			if (this._counterRotateFunc) {
-				this.RemGlobalTicker(this._counterRotateFunc);
-			}
-			const unlockIDs = xItems.map((xItem) => xItem.id);
-			this.CounterRotatingXItems = this.CounterRotatingXItems.filter((crItem) => !unlockIDs.includes(crItem.id));
-			if (this.CounterRotatingXItems.length) {
-				this.AddGlobalTicker(this.CounterRotateFunc);
-			}
-		}
-	}
-
 	protected _isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
 	protected _xParent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
 	protected _xKids: Set<XItem> = new Set();

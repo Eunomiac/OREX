@@ -5,6 +5,12 @@ C,
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 U, DB, XItem, XDie } from "../helpers/bundler.js";
+export var XOrbitType;
+(function (XOrbitType) {
+    XOrbitType["Main"] = "Main";
+    XOrbitType["Core"] = "Core";
+    XOrbitType["Outer"] = "Outer";
+})(XOrbitType || (XOrbitType = {}));
 export default class XGroup extends XItem {
     static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-group"] }); }
     get xParent() { return super.xParent; }
@@ -52,7 +58,25 @@ class XArm extends XItem {
     }
 }
 export class XOrbit extends XGroup {
-    constructor(id, weight, parentGroup, rotationRate) {
+    // constructor(id: string, weight: number, parentGroup: XGroup, rotationRate: number) {
+    // 	super(parentGroup, {
+    // 		id,
+    // 		onRender: {
+    // 			set: {
+    // 				height: parentGroup.height,
+    // 				width: parentGroup.width,
+    // 				left: 0.5 * parentGroup.width,
+    // 				top: 0.5 * parentGroup.height
+    // 			},
+    // 			to: {
+    // 				rotation: `${rotationRate > 0 ? "+" : "-"}=360`,
+    // 				duration: rotationRate,
+    // 				ease: "none",
+    // 				repeat: -1
+    // 			}
+    // 		}
+    // 	});
+    constructor(id, weight, parentGroup, rotationScaling = 1) {
         super(parentGroup, {
             id,
             onRender: {
@@ -62,16 +86,15 @@ export class XOrbit extends XGroup {
                     left: 0.5 * parentGroup.width,
                     top: 0.5 * parentGroup.height
                 },
-                to: {
-                    rotation: `${rotationRate > 0 ? "+" : "-"}=360`,
-                    duration: rotationRate,
-                    ease: "none",
-                    repeat: -1
-                }
+                funcs: [
+                    (self) => self.startRotating()
+                ]
             }
         });
-        this._rotationRate = rotationRate;
-        this._weight = weight;
+        this.rotationAngle = weight > 0 ? "+=360" : "-=360";
+        console.log(this.rotationAngle);
+        this.rotationScaling = rotationScaling;
+        this._weight = Math.abs(weight);
     }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
@@ -88,7 +111,28 @@ export class XOrbit extends XGroup {
             this.updateArms();
         }
     }
-    get rotationRate() { return this._rotationRate; }
+    get rotationDuration() { return 10 * this._weight * this.rotationScaling; }
+    async startRotating() {
+        if (this.isRendered) {
+            const rotationTween = this.to({
+                rotation: this.rotationAngle,
+                repeat: -1,
+                duration: this.rotationDuration,
+                ease: "none",
+                callbackScope: this,
+                onUpdate() {
+                    this.xItems.forEach((xItem) => {
+                        if (xItem.xParent?.isInitialized) {
+                            xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
+                        }
+                    });
+                }
+            });
+            if (rotationTween) {
+                this.rotationTween = rotationTween;
+            }
+        }
+    }
     updateArms() {
         DB.log(`[${this.id}] Updating Arms`, this.arms);
         const angleStep = 360 / this.arms.length;
@@ -101,9 +145,6 @@ export class XOrbit extends XGroup {
         const xArm = new XArm(xItem, this);
         if (await xArm.initialize()) {
             this.updateArms();
-            if (xItem instanceof XDie) {
-                XItem.LockRotation(xItem);
-            }
             return Promise.resolve(true);
         }
         return Promise.resolve(false);
@@ -116,52 +157,61 @@ export class XOrbit extends XGroup {
         });
         if (await Promise.allSettled(allPromises)) {
             this.updateArms();
-            XItem.LockRotation(xItems.filter((xItem) => xItem instanceof XDie));
             return Promise.resolve(true);
         }
         return Promise.resolve(false);
     }
 }
 export class XPool extends XGroup {
-    constructor(xParent, { orbitals, ...xOptions }) {
+    constructor(xParent, { orbitals = U.objClone(C.xGroupOrbitalDefaults), ...xOptions }) {
         super(xParent, xOptions);
         this._core = [];
         this._orbitals = new Map();
         this._orbitalWeights = new Map();
         this._orbitalSpeeds = new Map();
-        orbitals = orbitals ?? U.objClone(C.xGroupOrbitalDefaults);
-        for (const [orbitName, { size, rotationRate }] of Object.entries(orbitals)) {
-            this._orbitalWeights.set(orbitName, size);
+        for (const [orbitName, { radiusRatio, rotationRate }] of Object.entries(orbitals)) {
+            this._orbitalWeights.set(orbitName, radiusRatio);
             this._orbitalSpeeds.set(orbitName, rotationRate);
-            this._orbitals.set(orbitName, new XOrbit(orbitName, size, this, rotationRate));
+            this._orbitals.set(orbitName, new XOrbit(orbitName, radiusRatio, this, rotationRate));
         }
     }
-    static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-pool"] }); }
+    static get defaultOptions() {
+        return U.objMerge(super.defaultOptions, {
+            classes: ["x-pool"],
+            onRender: {
+                set: {
+                    height: 200,
+                    width: 200
+                }
+            }
+        });
+    }
     get orbitals() { return this._orbitals; }
     get xOrbits() { return Array.from(Object.values(this.orbitals)); }
     get xItems() {
         return this.xOrbits.map((xOrbit) => xOrbit.xItems).flat();
     }
     async addXItem(xItem, orbit) {
-        DB.group(`${xItem.constructor.name}.addXItem(${xItem.id}, ${orbit})`);
+        // DB.group(`${xItem.constructor.name}.addXItem(${xItem.id}, ${orbit})`);
         const orbital = this.orbitals.get(orbit);
-        DB.log("orbital", orbital);
-        DB.log("is XOrbit?", orbital instanceof XOrbit);
+        // DB.log("orbital", orbital);
+        // DB.log("is XOrbit?", orbital instanceof XOrbit);
         if (orbital instanceof XOrbit && await orbital.initialize()) {
-            DB.log("Orbital Initialized, Adding Item...");
-            const returnItem = await orbital.addXItem(xItem);
-            DB.log("Item Added", returnItem);
-            DB.groupEnd();
-            return returnItem;
+            // DB.log("Orbital Initialized, Adding Item...");
+            return orbital.addXItem(xItem);
             // return orbital.addXItem(xItem);
         }
-        DB.error(`FAILED adding ${xItem.id} to '${orbit}' of ${xItem.id}`);
+        // DB.error(`FAILED adding ${xItem.id} to '${orbit}' of ${xItem.id}`);
         return Promise.resolve(false);
+    }
+    async addXItems(xItemsByOrbit) {
+        const self = this;
+        return Promise.allSettled(Object.entries(xItemsByOrbit).map(([orbitName, xItems]) => xItems.map((xItem) => self.addXItem(xItem, orbitName))));
     }
 }
 export class XRoll extends XPool {
-    constructor() {
-        super(...arguments);
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
         this._hasRolled = false;
     }
     get hasRolled() { return this._hasRolled; }
@@ -172,8 +222,14 @@ export class XRoll extends XPool {
         return [];
     }
     // Rolls all XDie in the XRoll.
-    rollDice() {
-        this.getXKids(XDie, true).map((xDie) => xDie.roll());
-        this._hasRolled = true;
+    rollDice(isForcingReroll = false) {
+        if (isForcingReroll || !this._hasRolled) {
+            this._hasRolled = true;
+            const xDice = this.getXKids(XDie, true);
+            gsap.timeline()
+                .fadeDieText(`#${this.id} .x-die`)
+                .call(() => xDice.map((xDie) => xDie.roll()))
+                .pulseRolledDie(`#${this.id} .x-die`);
+        }
     }
 }

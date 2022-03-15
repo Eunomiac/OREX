@@ -65,44 +65,6 @@ export default class XItem extends Application {
         });
         return XItem._XROOT.initialize();
     }
-    static AddGlobalTicker(func) {
-        XItem._TICKERS.add(func);
-        gsap.ticker.add(func);
-    }
-    static RemGlobalTicker(func) {
-        XItem._TICKERS.delete(func);
-        gsap.ticker.remove(func);
-    }
-    static get CounterRotateFunc() {
-        return (this._counterRotateFunc = this._counterRotateFunc ?? (() => {
-            this.CounterRotatingXItems.forEach((xItem) => {
-                xItem.set({ rotation: -1 * gsap.utils.wrap(0, 360, xItem.global.rotation) });
-            });
-        }));
-    }
-    static LockRotation(xItems) {
-        xItems = [xItems].flat();
-        if (xItems.length && xItems.some((xItem) => !this.CounterRotatingXItems.includes(xItem))) {
-            if (this._counterRotateFunc) {
-                this.RemGlobalTicker(this._counterRotateFunc);
-            }
-            this.CounterRotatingXItems = U.unique([...this.CounterRotatingXItems, ...xItems]);
-            this.AddGlobalTicker(this.CounterRotateFunc);
-        }
-    }
-    static UnlockRotation(xItems) {
-        xItems = [xItems].flat();
-        if (xItems.length && xItems.some((xItem) => this.CounterRotatingXItems.includes(xItem))) {
-            if (this._counterRotateFunc) {
-                this.RemGlobalTicker(this._counterRotateFunc);
-            }
-            const unlockIDs = xItems.map((xItem) => xItem.id);
-            this.CounterRotatingXItems = this.CounterRotatingXItems.filter((crItem) => !unlockIDs.includes(crItem.id));
-            if (this.CounterRotatingXItems.length) {
-                this.AddGlobalTicker(this.CounterRotateFunc);
-            }
-        }
-    }
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
     get xParent() { return this._xParent; }
@@ -197,5 +159,3 @@ export default class XItem extends Application {
         }
     }
 }
-XItem._TICKERS = new Set();
-XItem.CounterRotatingXItems = [];
