@@ -1,6 +1,9 @@
+<<<<<<< HEAD
 <<<<<<< Updated upstream
+=======
+// #region ████████ IMPORTS ████████ ~
+>>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
 import gsap from "/scripts/greensock/esm/all.js";
-import { DB } from "./bundler.js";
 // #region ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮ ~
 const _hyph = (str) => str; /* Hyphenopoly.config(
   {
@@ -849,23 +852,15 @@ const objClone = (obj, isStrictlySafe = false) => {
     return obj;
 };
 function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true } = {}) {
-    DB.group("U.objMerge()");
-    DB.log("target, source", target, source);
     /* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
     target = isMutatingOk ? target : objClone(target, isStrictlySafe);
     if (source instanceof Application) {
-        DB.log("... SOURCE is APPLICATION, returning SOURCE:", source);
-        DB.groupEnd();
         return source;
     }
     if (isUndefined(target)) {
-        DB.log("... TARGET undefined, returning SOURCE:", objClone(source));
-        DB.groupEnd();
         return objClone(source);
     }
     if (isUndefined(source)) {
-        DB.log("... SOURCE undefined, returning TARGET:", target);
-        DB.groupEnd();
         return target;
     }
     if (isIndex(source)) {
@@ -892,8 +887,6 @@ function objMerge(target, source, { isMutatingOk = false, isStrictlySafe = false
             }
         }
     }
-    DB.log("... RETURNING", target);
-    DB.groupEnd();
     return target;
 }
 const objExpand = (obj) => {

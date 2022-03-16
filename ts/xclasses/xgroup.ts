@@ -74,32 +74,24 @@ class XArm extends XItem {
 			}
 		);
 	}
-	public xItem: XItem;
+	public xItem: XTerm;
 
 	constructor(xItem: XItem, parentOrbit: XOrbit) {
 		super(parentOrbit, {
 			id: `${parentOrbit.id}-arm-${parentOrbit.xKids.size}`,
 			keepID: true
 		});
-		this.xItem = xItem;
+		this.xItem = xItem as XTerm;
 		this.adopt(xItem, false);
-		if (xItem instanceof XGroup) {
-			this.xItem.set({
-				// x: 0,
-				// y: 0,
-				// top: 0,
-				// left: 0,
-				// xPercent: 0,
-				// yPercent: 0,
-				// right: 0,
-				// bottom: 0
-			});
-		}
 	}
 
 	override async initialize(): Promise<boolean> {
 		if (await super.initialize()) {
-			this.xItem.set({right: -1 * this.xItem.width});
+			this.xItem.set({
+				left: "unset",
+				top: "unset",
+				right: -1 * this.xItem.width
+			});
 			this.adopt(this.xItem, false);
 			return this.xItem.confirmRender();
 		}
@@ -152,10 +144,14 @@ export class XOrbit extends XGroup {
 					width: parentGroup.width,
 					left: 0.5 * parentGroup.width,
 					top: 0.5 * parentGroup.height
-				}
+				},
+				funcs: [
+					(self) => (self as XOrbit).startRotating()
+				]
 			}
 		});
 		this.rotationAngle = weight > 0 ? "+=360" : "-=360";
+		console.log(this.rotationAngle);
 		this.rotationScaling = rotationScaling;
 		this._weight = Math.abs(weight);
 	}
@@ -200,8 +196,8 @@ export class XOrbit extends XGroup {
 		return Promise.resolve(false);
 	}
 
-	public async addXItems(xItems: Array<XItem>): Promise<boolean> {
-		const allPromises = xItems.map((xItem, i) => {
+	public async addXItems(xItems: XItem[]): Promise<boolean> {
+		const allPromises = xItems.map((xItem) => {
 			const xArm = new XArm(xItem, this);
 			this.adopt(xArm);
 			return xArm.initialize();
@@ -220,10 +216,24 @@ export interface XPoolOptions extends XGroupOptions {
 	orbitals?: Partial<Record<XOrbitType, XOrbitSpecs>>;
 }
 export class XPool extends XGroup {
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-pool"]}) }
-	protected _core: Array<XItem> = [];
-	protected _orbitals: Map<string, XOrbit> = new Map();
-	protected _orbitalWeights: Map<string, number>;
+	static override get defaultOptions() {
+		return U.objMerge(
+			super.defaultOptions,
+			{
+				classes: ["x-pool"],
+				onRender: {
+					set: {
+						height: 200,
+						width: 200
+					}
+				}
+			}
+		);
+	}
+	protected _core: XItem[] = [];
+	protected _orbitals: Map<XOrbitType, XOrbit> = new Map();
+	protected _orbitalWeights: Map<XOrbitType, number> = new Map();
+	protected _orbitalSpeeds: Map<XOrbitType, number> = new Map();
 
 	public get orbitals() { return this._orbitals }
 	public get xOrbits(): XOrbit[] { return Array.from(this.orbitals.values()) }
@@ -231,20 +241,26 @@ export class XPool extends XGroup {
 		return this.xOrbits.map((xOrbit) => xOrbit.xItems).flat();
 	}
 
-	constructor(xParent: XItem, {orbitals, ...xOptions}: XPoolOptions) {
+	constructor(xParent: XItem, {orbitals = U.objClone(C.xGroupOrbitalDefaults), ...xOptions}: XPoolOptions) {
 		super(xParent, xOptions);
-		orbitals = orbitals ?? {...C.xGroupOrbitalDefaults};
-		this._orbitalWeights = new Map(Object.entries(orbitals));
-		this._orbitalWeights.forEach((weight, name) => {
-			this._orbitals.set(name, new XOrbit(name, weight, this));
-		});
+		for (const [orbitName, {radiusRatio, rotationRate}] of Object.entries(orbitals)) {
+			this._orbitalWeights.set(orbitName as XOrbitType, radiusRatio);
+			this._orbitalSpeeds.set(orbitName as XOrbitType, rotationRate);
+			this._orbitals.set(orbitName as XOrbitType, new XOrbit(orbitName, radiusRatio, this, rotationRate));
+		}
 	}
 
-	public async addXItem(xItem: XItem, orbit: string): Promise<boolean> {
+	public async addXItem(xItem: XItem, orbit: XOrbitType) {
+		// DB.group(`${xItem.constructor.name}.addXItem(${xItem.id}, ${orbit})`);
 		const orbital = this.orbitals.get(orbit);
+		// DB.log("orbital", orbital);
+		// DB.log("is XOrbit?", orbital instanceof XOrbit);
 		if (orbital instanceof XOrbit && await orbital.initialize()) {
+			// DB.log("Orbital Initialized, Adding Item...");
 			return orbital.addXItem(xItem);
+			// return orbital.addXItem(xItem);
 		}
+		// DB.error(`FAILED adding ${xItem.id} to '${orbit}' of ${xItem.id}`);
 		return Promise.resolve(false);
 	}
 
@@ -261,17 +277,27 @@ export interface XRollOptions extends XPoolOptions { }
 export class XRoll extends XPool {
 	protected _hasRolled = false;
 	public get hasRolled() { return this._hasRolled }
-	public get diceRolls(): Array<number> {
+	public get diceRolls(): number[] {
 		if (this.hasRolled) {
-			return this.getXKids(XDie, true).map((xDie) => (<XDie>xDie).value || 0);
+			return this.getXKids(XDie, true).map((xDie) => (xDie).value || 0);
 		}
 		return [];
 	}
 
+	constructor(xParent: XItem, xOptions: XRollOptions) {
+		super(xParent, xOptions);
+	}
+
 	// Rolls all XDie in the XRoll.
-	public rollDice() {
-		this.getXKids(XDie, true).map((xDie) => xDie.roll());
-		this._hasRolled = true;
+	public rollDice(isForcingReroll = false) {
+		if (isForcingReroll || !this._hasRolled) {
+			this._hasRolled = true;
+			const xDice = this.getXKids(XDie, true);
+			gsap.timeline()
+				.fadeDieText(`#${this.id} .x-die`)
+				.call(() => xDice.map((xDie) => xDie.roll()))
+				.pulseRolledDie(`#${this.id} .x-die`);
+		}
 	}
 
 }

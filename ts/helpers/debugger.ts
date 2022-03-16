@@ -1,20 +1,39 @@
-import {C} from "./bundler.js";
+/*DEVCODE*/
 
-const XDebugger = (type: keyof typeof STYLES, message: string, ...content: Array<unknown>) => {
+/*!DEVCODE*/
+// #region ████████ IMPORTS ████████ ~
+import {
+	// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
+	C,
+	// #endregion ▮▮▮▮[Constants]▮▮▮▮
+	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
+	U,
+	// #endregion ▮▮▮▮[Utility]▮▮▮▮
+	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
+	XItem,
+	XGroup, XPool,
+	XDie,
+	XTermType, XOrbitType, XRoll
+	// #endregion ▮▮▮▮[XItems]▮▮▮▮
+} from "./bundler.js";
+import type {XOrbitSpecs, XTermOptions} from "./bundler.js";
+
+const XDebugger = (type: keyof typeof STYLES, message: string, ...content: unknown[]) => {
 	if (C.isDebugging) {
 		const styleLine = Object.entries({
 			...STYLES.base,
 			...STYLES[type] ?? {}
 		}).map(([prop, val]) => `${prop}: ${val};`).join(" ");
-		switch (type) {
-			case "group": console.groupCollapsed(`%c${message}`, styleLine); break;
-			case "groupEnd": console.groupEnd(); break;
-			default: {
+		if (content.length) {
+			if (content[0] === "NOGROUP") {
+				console.log(`%c${message}`, styleLine);
+			} else {
 				console.groupCollapsed(`%c${message}`, styleLine, ...content);
 				console.trace();
 				console.groupEnd();
-				break;
 			}
+		} else {
+			console.groupCollapsed(`%c${message}`, styleLine);
 		}
 	}
 };
@@ -27,22 +46,23 @@ const STYLES = {
 		"padding": "0 25px"
 	},
 	display: {
-		"color": "#EDB620",
+		"background": "#EDB620",
+		"color": "black",
 		"font-family": "AlverataInformalW01-Regular",
 		"font-size": "16px",
-		"margin-left": "-100px",
-		"padding": "0 100px"
+		// "margin-left": "-100px",
+		"padding": "0 10vw 0 10px"
 	},
 	error: {
 		"color": "#FF0000",
 		"background": "#950A0F",
 		"font-weight": "bold"
 	},
-	group: {
-		"background": "#EDB620",
-		"color": "black",
+	info: {
+		"background": "transparent",
+		"color": "white",
 		"font-weight": "bold",
-		"text-transform": "uppercase"
+		"font-family": "Pragmata Pro"
 	},
 	groupEnd: {}
 };
@@ -325,4 +345,4 @@ const TESTS = {
 	}
 };
 
-export default DB;
+export {DB as default, TESTS};

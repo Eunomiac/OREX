@@ -813,23 +813,15 @@ const objClone = <Type>(obj: Type, isStrictlySafe = false): Type => {
 	return obj;
 };
 function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true} = {}): Type {
-	DB.group("U.objMerge()");
-	DB.log("target, source", target, source);
 	/* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
 	target = isMutatingOk ? target : objClone(target, isStrictlySafe);
 	if (source instanceof Application) {
-		DB.log("... SOURCE is APPLICATION, returning SOURCE:", source);
-		DB.groupEnd();
 		return <Type><unknown>source;
 	}
 	if (isUndefined(target)) {
-		DB.log("... TARGET undefined, returning SOURCE:", objClone(source));
-		DB.groupEnd();
 		return <Type>objClone(source);
 	}
 	if (isUndefined(source)) {
-		DB.log("... SOURCE undefined, returning TARGET:", target);
-		DB.groupEnd();
 		return target;
 	}
 	if (isIndex(source)) {
@@ -850,8 +842,6 @@ function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, is
 			}
 		}
 	}
-	DB.log("... RETURNING", target);
-	DB.groupEnd();
 	return target;
 }
 const objExpand = (obj: List<unknown>): List<unknown> => {
