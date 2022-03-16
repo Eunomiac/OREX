@@ -1,9 +1,14 @@
 
+<<<<<<< Updated upstream
 import gsap from "/scripts/greensock/esm/all.js";
 import { DB } from "./bundler.js";
 // ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮
 const _hyph = (str) => str;
 
+=======
+// ████████ IMPORTS ████████
+import { gsap } from "/scripts/greensock/esm/all.js";
+>>>>>>> Stashed changes
 // ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮
 
 const _noCapWords = [
@@ -203,14 +208,8 @@ const _romanNumerals = {
         ["", "ↈ", "ↈↈ", "ↈↈↈ"]
     ]
 };
-// const parseSearchFunc = (val: unknown, searchFunc: ((val: unknown, key?: unknown) => boolean) | RegExp | number | string) => {
-// 	if (searchFunc instanceof RegExp) {
-// 		return ([, val]: [never, string]): boolean => searchFunc.test(val);
-// 	}
-// 	return searchFunc;
-// }
-
 const UIDLOG = [];
+
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
@@ -222,7 +221,7 @@ const getUID = () => {
     UIDLOG.push(uid);
     return uid;
 };
-// ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
+
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isArray = (ref) => Array.isArray(ref);
 const isSimpleObj = (ref) => ref === Object(ref) && !isArray(ref);
@@ -338,14 +337,25 @@ const testRegExp = (str, patterns = [], flags = "gui", isTestingAll = false) => 
     .map((pattern) => (pattern instanceof RegExp
     ? pattern
     : new RegExp(`\\b${pattern}\\b`, flags)))[isTestingAll ? "every" : "some"]((pattern) => pattern.test(`${str}`));
-const regExtract = (ref, pattern, flags = "u") => {
-    pattern = new RegExp(pattern, flags.replace(/g/g, ""));
-    const isGrouping = /[)(]/.test(pattern.toString());
+const regExtract = (ref, pattern, flags) => {
+
+    const splitFlags = [];
+    [...(flags ?? "").replace(/g/g, ""), "u"].forEach((flag) => {
+        if (flag && !splitFlags.includes(flag)) {
+            splitFlags.push(flag);
+        }
+    });
+    const isGrouping = /[)(]/.test(pattern.toString().replace(/\\\)|\\\(/g, ""));
+    if (isGrouping) {
+        splitFlags.push("g");
+    }
+    flags = splitFlags.join("");
+    pattern = new RegExp(pattern, flags);
     const matches = `${ref}`.match(pattern) || [];
-    return isGrouping ? matches.slice(1) : matches.pop();
+    return isGrouping ? Array.from(matches) : matches.pop();
 };
 // ░░░░░░░[Formatting]░░░░ Hyphenation, Pluralization, "a"/"an" Fixing ░░░░░░░
-const hyphenate = (str) => (/^<|\u00AD|\u200B/.test(`${str}`) ? `${str}` : _hyph(`${str}`));
+// const hyphenate = (str: unknown) => (/^<|\u00AD|\u200B/.test(`${str}`) ? `${str}` : _hyph(`${str}`));
 const unhyphenate = (str) => `${str}`.replace(/\u00AD|\u200B/gu, "");
 const parseArticles = (str) => `${str}`.replace(/\b(a|A)\s([aeiouAEIOU])/gu, "$1n $2");
 const pluralize = (singular, num, plural) => {
@@ -909,7 +919,7 @@ export default {
     // ░░░░░░░ Case Conversion ░░░░░░░
     uCase, lCase, sCase, tCase,
     // ░░░░░░░ Formatting ░░░░░░░
-    hyphenate, unhyphenate, pluralize, oxfordize, ellipsize,
+unhyphenate, pluralize, oxfordize, ellipsize,
     parseArticles,
     signNum, padNum, stringifyNum, verbalizeNum, ordinalizeNum, romanizeNum,
     // ░░░░░░░ Content ░░░░░░░

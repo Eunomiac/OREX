@@ -30,18 +30,29 @@ export const enum XTermType {
 	Difficulty, Modifier, Trait, Styler
 }
 
-export interface XTerm {
-	termType: XTermType
-	ApplyEffect(xRoll: XRoll): XRoll
-}
+class XTerm extends XItem {
+	static override get defaultOptions() {
+		return U.objMerge(super.defaultOptions, {classes: ["x-term"]});
+	}
 
+	protected _termType: XTermType;
+	public get type() { return this._termType }
+	public ApplyEffect(xRoll: XRoll) {
+		return xRoll;
+	}
+
+	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XTermOptions) {
+		super(xParent, xOptions);
+		this._termType = xOptions.type;
+	}
+}
 export interface XDieOptions extends XTermOptions {
 	color?: string,
 	numColor?: string,
 	strokeColor?: string,
 }
 
-export default class XDie extends XItem implements XTerm {
+export default class XDie extends XTerm {
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
 			classes: ["x-die"],
@@ -77,13 +88,10 @@ export default class XDie extends XItem implements XTerm {
 			},
 			...xOptions.onRender.set ?? {}
 		};
+		xOptions.type = xOptions.type ?? XTermType.BasicDie;
 		super(xParent, xOptions);
 		this.value = xOptions.value ?? 0;
 		this.termType = xOptions.type;
-	}
-
-	public ApplyEffect(xRoll: XRoll) {
-		return xRoll;
 	}
 
 	override getData() {

@@ -10,7 +10,7 @@ import {
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U, DB,
-	XElem
+	XElem, XGroup
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XElemOptions, DOMRenderer, GSAPController} from"../helpers/bundler.js";

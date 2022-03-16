@@ -12,7 +12,8 @@ import {
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	preloadTemplates,
-	U, DB,
+	XAnimVars,
+	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
 	XElem,

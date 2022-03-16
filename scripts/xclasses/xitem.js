@@ -4,9 +4,7 @@ import {
 gsap, 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, DB, XElem
-// #endregion ▮▮▮▮[Utility]▮▮▮▮
- } from "../helpers/bundler.js";
+U, DB, XElem } from "../helpers/bundler.js";
 export default class XItem extends Application {
     constructor(xParent, { classes = [], ...xOptions }) {
         if (!xOptions.keepID) {

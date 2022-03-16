@@ -26,4 +26,4 @@ const templatePaths = {
 	}
 };
 
-export default async () => loadTemplates(<Array<string>>Object.values(U.objFlatten(templatePaths)));
+export default async () => loadTemplates(<string[]>Object.values(U.objFlatten(templatePaths)));

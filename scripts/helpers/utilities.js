@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import gsap from "/scripts/greensock/esm/all.js";
 import { DB } from "./bundler.js";
 // #region ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮ ~
@@ -44,6 +45,10 @@ const _hyph = (str) => str; /* Hyphenopoly.config(
   }
 ).get("en-us"); */
 // #endregion ▮▮▮▮[IMPORT CONFIG]▮▮▮▮
+=======
+// #region ████████ IMPORTS ████████ ~
+import { gsap } from "/scripts/greensock/esm/all.js";
+>>>>>>> Stashed changes
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 // #region ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮ ~
 /* eslint-disable array-element-newline */
@@ -244,15 +249,9 @@ const _romanNumerals = {
         ["", "ↈ", "ↈↈ", "ↈↈↈ"]
     ]
 };
-// const parseSearchFunc = (val: unknown, searchFunc: ((val: unknown, key?: unknown) => boolean) | RegExp | number | string) => {
-// 	if (searchFunc instanceof RegExp) {
-// 		return ([, val]: [never, string]): boolean => searchFunc.test(val);
-// 	}
-// 	return searchFunc;
-// }
+const UIDLOG = [];
 /* eslint-enable array-element-newline, object-property-newline */
 // #endregion ▮▮▮▮[HELPERS]▮▮▮▮
-const UIDLOG = [];
 // #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
 // @ts-expect-error Leauge of foundry developers is wrong about user not being on game.
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
@@ -264,8 +263,8 @@ const getUID = () => {
     UIDLOG.push(uid);
     return uid;
 };
-// #endregion ▄▄▄▄▄ GETTERS ▄▄▄▄▄
-// #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
+/* eslint-enable @typescript-eslint/no-explicit-any */
+// #endregion ░░░░[TypeScript]░░░░
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isArray = (ref) => Array.isArray(ref);
 const isSimpleObj = (ref) => ref === Object(ref) && !isArray(ref);
@@ -362,7 +361,7 @@ const degToRad = (deg, isConstrained = true) => {
     return deg;
 };
 // #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
-// #region ████████ STRINGS: String Parsing, Manipulation, Conversion, Regular Expressions ████████ ~
+// #region ████████ STRINGS: String Parsing, Manipulation, Conversion, Regular Expressions ████████
 // #region ░░░░░░░[Case Conversion]░░░░ Upper, Lower, Sentence & Title Case ░░░░░░░ ~
 const uCase = (str) => `${str ?? ""}`.toUpperCase();
 const lCase = (str) => `${str ?? ""}`.toLowerCase();
@@ -383,15 +382,28 @@ const testRegExp = (str, patterns = [], flags = "gui", isTestingAll = false) => 
     .map((pattern) => (pattern instanceof RegExp
     ? pattern
     : new RegExp(`\\b${pattern}\\b`, flags)))[isTestingAll ? "every" : "some"]((pattern) => pattern.test(`${str}`));
-const regExtract = (ref, pattern, flags = "u") => {
-    pattern = new RegExp(pattern, flags.replace(/g/g, ""));
-    const isGrouping = /[)(]/.test(pattern.toString());
+const regExtract = (ref, pattern, flags) => {
+    /* Wrapper around String.match() that removes the need to worry about match()'s different handling of the 'g' flag.
+            - IF your pattern contains unescaped parentheses -> Returns Array of all matching groups.
+            - OTHERWISE -> Returns string that matches the provided pattern. */
+    const splitFlags = [];
+    [...(flags ?? "").replace(/g/g, ""), "u"].forEach((flag) => {
+        if (flag && !splitFlags.includes(flag)) {
+            splitFlags.push(flag);
+        }
+    });
+    const isGrouping = /[)(]/.test(pattern.toString().replace(/\\\)|\\\(/g, ""));
+    if (isGrouping) {
+        splitFlags.push("g");
+    }
+    flags = splitFlags.join("");
+    pattern = new RegExp(pattern, flags);
     const matches = `${ref}`.match(pattern) || [];
-    return isGrouping ? matches.slice(1) : matches.pop();
+    return isGrouping ? Array.from(matches) : matches.pop();
 };
 // #endregion ░░░░[RegExp]░░░░
 // #region ░░░░░░░[Formatting]░░░░ Hyphenation, Pluralization, "a"/"an" Fixing ░░░░░░░ ~
-const hyphenate = (str) => (/^<|\u00AD|\u200B/.test(`${str}`) ? `${str}` : _hyph(`${str}`));
+// const hyphenate = (str: unknown) => (/^<|\u00AD|\u200B/.test(`${str}`) ? `${str}` : _hyph(`${str}`));
 const unhyphenate = (str) => `${str}`.replace(/\u00AD|\u200B/gu, "");
 const parseArticles = (str) => `${str}`.replace(/\b(a|A)\s([aeiouAEIOU])/gu, "$1n $2");
 const pluralize = (singular, num, plural) => {
@@ -956,7 +968,7 @@ const drawCirclePath = (radius, origin) => {
 const formatAsClass = (str) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^-/, "").trim().toLowerCase();
 const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
-// #region ████████ EXPORTS ████████ ~
+// #region ████████ EXPORTS ████████
 export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
     GMID, getUID,
@@ -972,7 +984,7 @@ export default {
     // ░░░░░░░ Case Conversion ░░░░░░░
     uCase, lCase, sCase, tCase,
     // ░░░░░░░ Formatting ░░░░░░░
-    hyphenate, unhyphenate, pluralize, oxfordize, ellipsize,
+    /* hyphenate, */ unhyphenate, pluralize, oxfordize, ellipsize,
     parseArticles,
     signNum, padNum, stringifyNum, verbalizeNum, ordinalizeNum, romanizeNum,
     // ░░░░░░░ Content ░░░░░░░

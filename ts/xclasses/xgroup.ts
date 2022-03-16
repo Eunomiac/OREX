@@ -1,26 +1,17 @@
 // #region ████████ IMPORTS ████████ ~
 import {
-	// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
-	C,
-	// #endregion ▮▮▮▮[Constants]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
-	gsap,
-	Dragger,
-	InertiaPlugin,
-	MotionPathPlugin,
-	GSDevTools,
-	RoughEase,
-	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-	U, DB,
+	// #region ▮▮▮▮▮▮▮[Constants & Utility]▮▮▮▮▮▮▮
+	C, U, DB,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem, XItem, XDie
+	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
+	XItem, XDie, XTerm,
+	XAnimVars
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XItemOptions} from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
-
+/*DEVCODE*/
+// #region ▮▮▮▮▮▮▮[SCHEMA] Breakdown of Classes & Subclasses ▮▮▮▮▮▮▮ ~
 /* SCHEMA SORTA:
 							🟥 - Squares indicate classes that implement the XTerm interface
 
@@ -44,22 +35,25 @@ import type {XItemOptions} from "../helpers/bundler.js";
 				🟨XInfo = a strictly informational XTerm to be rendered and animated
 			🔵XPad = a hover-over time trigger that applies some effect to a held (dragged-over) XItem
 */
-
-export type XGroupOptions = XItemOptions
-export interface XPoolOptions extends XGroupOptions {
-	orbitals?: Record<string,number>;
-}
-
+// #endregion ▮▮▮▮[SCHEMA]▮▮▮▮
+/*!DEVCODE*/
+// #region 🟩🟩🟩 XGroup: Any XItem That Can Contain Child XItems 🟩🟩🟩
+export interface XGroupOptions extends XItemOptions { }
 export default class XGroup extends XItem {
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-group"]}) }
 
 	public override get xParent() { return <XItem>super.xParent }
 	public override set xParent(xItem: XItem) { super.xParent = xItem }
 
+	public get xItems() { return Array.from(this.xKids) }
+
 	constructor(xParent: XItem, xOptions: XGroupOptions) {
 		super(xParent, xOptions);
 	}
 }
+// #endregion ▄▄▄▄▄ XGroup ▄▄▄▄▄
+
+// #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
 class XArm extends XItem {
 	static override get defaultOptions() {
 		return U.objMerge(
@@ -112,6 +106,18 @@ class XArm extends XItem {
 		return Promise.resolve(false);
 	}
 }
+// #endregion ░░░░[XArm]░░░░
+
+// #region 🟥🟥🟥 XOrbit: A Single Orbital Containing XItems & Parented to an XPool 🟥🟥🟥 ~
+export type XOrbitSpecs = {
+	radiusRatio: number,
+	rotationRate: number
+}
+export enum XOrbitType {
+	Main = "Main",
+	Core = "Core",
+	Outer = "Outer"
+}
 export class XOrbit extends XGroup {
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
@@ -119,9 +125,10 @@ export class XOrbit extends XGroup {
 		});
 	}
 	protected _weight: number;
+	protected _rotationTween?: gsap.core.Animation;
 
-	protected get arms(): Array<XArm> { return Array.from(<Set<XArm>>this.xKids) }
-	public get xItems() { return this.arms.map((arm) => arm.xItem) }
+	protected get arms(): XArm[] { return Array.from(this.xKids) as XArm[] }
+	public override get xItems(): XTerm[] { return this.arms.map((xArm) => xArm.xItem) }
 
 	public get orbitRadius() { return this.weight * 0.5 * this.xParent.width }
 	public get weight() { return this._weight }
@@ -131,8 +138,12 @@ export class XOrbit extends XGroup {
 			this.updateArms();
 		}
 	}
+	protected rotationAngle: "+=360" | "-=360";
+	protected rotationScaling: number;
+	protected get rotationDuration() { return 10 * this._weight * this.rotationScaling }
+	protected rotationTween?: gsap.core.Tween;
 
-	constructor(id: string, weight: number, parentGroup: XGroup) {
+	constructor(id: string, weight: number, parentGroup: XGroup, rotationScaling = 1) {
 		super(parentGroup, {
 			id,
 			onRender: {
@@ -144,33 +155,43 @@ export class XOrbit extends XGroup {
 				}
 			}
 		});
-		const self = this;
-		const rotationTween = this.to({
-			rotation: "+=360",
-			repeat: -1,
-			duration: 10 * weight,
-			ease: "none",
-			onUpdate() {
-				self.xItems.forEach((xItem: XItem) => {
-					if (xItem.xParent?.isInitialized) {
-						xItem.set({rotation: -1 * xItem.xParent.global.rotation});
-					}
-				});
-			}
-		});
-		this._weight = weight;
+		this.rotationAngle = weight > 0 ? "+=360" : "-=360";
+		this.rotationScaling = rotationScaling;
+		this._weight = Math.abs(weight);
 	}
 
-	protected updateArms() {
-		DB.log(`[${this.id}] Updating Arms`, this.arms);
+	protected startRotating() {
+		const [{type, ...animVars}] = XAnimVars.rotateXPool({
+			xGroup: this,
+			rotation: this.rotationAngle,
+			duration: this.rotationDuration
+		});
+		this.to(animVars);
+	}
+
+	protected updateArms(duration = 0.5) {
 		const angleStep = 360 / this.arms.length;
+		const staggerStep = duration / this.arms.length;
 		this.arms.forEach((arm, i) => {
-			arm.to({width: this.orbitRadius, rotation: angleStep * i, delay: 0.2 * i, ease: "power2.inOut", duration: 1});
+			arm.set({
+				width: 0,
+				rotation: (angleStep * i) - 90
+			})
+				.to({
+					width: this.orbitRadius,
+					delay: staggerStep * i,
+					ease: "back.out(8)",
+					duration
+				})
+				.to({
+					rotation: angleStep * i,
+					ease: "power2.out",
+					duration
+				});
 		});
 	}
 
-	public async addXItem(xItem: XItem, angle = 0): Promise<boolean> {
-		DB.log(`[${this.id}] Adding XItem: ${xItem.id}`);
+	public async addXItem(xItem: XItem): Promise<boolean> {
 		const xArm = new XArm(xItem, this);
 		if (await xArm.initialize()) {
 			this.updateArms();
@@ -192,6 +213,12 @@ export class XOrbit extends XGroup {
 		return Promise.resolve(false);
 	}
 }
+// #endregion ▄▄▄▄▄ XOrbit ▄▄▄▄▄
+
+// #region 🟥🟥🟥 XPool: An XGroup Containing Drag-&-Droppable XTerms Contained in XOrbits 🟥🟥🟥 ~
+export interface XPoolOptions extends XGroupOptions {
+	orbitals?: Partial<Record<XOrbitType, XOrbitSpecs>>;
+}
 export class XPool extends XGroup {
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-pool"]}) }
 	protected _core: Array<XItem> = [];
@@ -199,9 +226,9 @@ export class XPool extends XGroup {
 	protected _orbitalWeights: Map<string, number>;
 
 	public get orbitals() { return this._orbitals }
-	public get xOrbits(): Array<XOrbit> { return Array.from(Object.values(this.orbitals)) }
-	public get xItems(): Array<XItem> {
-		return this.xOrbits.map((xOrbit) => xOrbit.getXKids(XItem)).flat();
+	public get xOrbits(): XOrbit[] { return Array.from(this.orbitals.values()) }
+	public override get xItems(): XItem[] {
+		return this.xOrbits.map((xOrbit) => xOrbit.xItems).flat();
 	}
 
 	constructor(xParent: XItem, {orbitals, ...xOptions}: XPoolOptions) {
@@ -220,8 +247,17 @@ export class XPool extends XGroup {
 		}
 		return Promise.resolve(false);
 	}
-}
 
+	public async addXItems(xItemsByOrbit: Partial<Record<XOrbitType, XItem[]>>) {
+		const self = this;
+		return Promise.allSettled(Object.entries(xItemsByOrbit).map(([orbitName, xItems]) =>
+			xItems.map((xItem) => self.addXItem(xItem, orbitName as XOrbitType))));
+	}
+}
+// #endregion ▄▄▄▄▄ XPool ▄▄▄▄▄
+
+// #region 🟥🟥🟥 XRoll: An XPool That Can Be Rolled, Its Child XTerms Evaluated Into a Roll Result 🟥🟥🟥 ~
+export interface XRollOptions extends XPoolOptions { }
 export class XRoll extends XPool {
 	protected _hasRolled = false;
 	public get hasRolled() { return this._hasRolled }
@@ -239,3 +275,4 @@ export class XRoll extends XPool {
 	}
 
 }
+// #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄
