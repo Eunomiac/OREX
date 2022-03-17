@@ -4,7 +4,7 @@
   font-family: "Roboto", sans-serif; }
 
 /* Styles for created DOM objects */
-#x-root {
+#XROOT {
   height: 100%;
   width: calc(100% - var(--sidebar-width));
   top: 0;
@@ -14,59 +14,59 @@
   /* .x-elem */
   /* .x-group */
   /* .x-die */ }
-  #x-root .x-elem {
+  #XROOT .x-elem {
     position: absolute;
     pointer-events: none;
     -webkit-transform-origin: 50% 50%;
     -ms-transform-origin: 50% 50%;
     transform-origin: 50% 50%; }
-  #x-root .translate-box {
+  #XROOT .translate-box {
     height: 500px;
     width: 500px;
     top: 450px;
     left: 300px;
     outline: 2px solid blue; }
-    #x-root .translate-box .scale-box {
+    #XROOT .translate-box .scale-box {
       height: 300px;
       width: 300px;
       border-radius: 150px;
       top: 0px;
       left: 0px;
       background: rgba(255, 255, 0, 0.2); }
-      #x-root .translate-box .scale-box .rotate-box {
+      #XROOT .translate-box .scale-box .rotate-box {
         height: 100px;
         width: 100px;
         top: 0px;
         left: 0px;
         outline: 5px outset red; }
-  #x-root .x-pool {
+  #XROOT .x-pool {
     --bg-color: cyan;
     border-radius: 100%;
     background: -o-radial-gradient(var(--bg-color), transparent 75%);
     background: radial-gradient(var(--bg-color), transparent 75%); }
-  #x-root .x-die {
+  #XROOT .x-die {
     height: var(--die-size);
     width: var(--die-size); }
-    #x-root .x-die svg {
+    #XROOT .x-die svg {
       position: absolute;
       left: 0;
       top: 0; }
-      #x-root .x-die svg .base {
+      #XROOT .x-die svg .base {
         fill: var(--die-color-bg);
         stroke: var(--die-color-stroke);
         stroke-width: 18;
         stroke-miterlimit: 10; }
-      #x-root .x-die svg .edges {
+      #XROOT .x-die svg .edges {
         fill: none;
         stroke: var(--die-color-stroke);
         stroke-width: 12;
         stroke-linejoin: bevel;
         stroke-miterlimit: 10; }
-      #x-root .x-die svg .bottom {
+      #XROOT .x-die svg .bottom {
         opacity: 0.5; }
-      #x-root .x-die svg .side {
+      #XROOT .x-die svg .side {
         opacity: 0.3; }
-    #x-root .x-die .die-val {
+    #XROOT .x-die .die-val {
       position: absolute;
       height: 100%;
       width: 100%;

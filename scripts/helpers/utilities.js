@@ -1,57 +1,5 @@
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-// #region ████████ IMPORTS ████████ ~
->>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
-import gsap from "/scripts/greensock/esm/all.js";
-// #region ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮ ~
-const _hyph = (str) => str; /* Hyphenopoly.config(
-  {
-    require: ["en-us"],
-    // loader: "fs", // Whether to load using node's fs or https (default: fs)
-    sync: true, // Whether hyphenator should work synchronously (default: false)
-    paths: {},
-    setup: {
-      defaultLanguage: "en-us",
-      // "compound": "hyphen", // hyphenate hyphenated words (e.g. 'computer-aided') at the hyphen only (default: hyphen)
-      // "hyphen": String.fromCharCode(173), // = default: &shy; | \u00AD
-      leftmin: 2, // minimum size of beginning component of hyphenated word (default: 0)
-      rightmin: 2, // minimum size of ending component of hyphenated word (default: 0)
-      minWordLength: 4, // minimum length of a word for it to be hyphenated (default: 6)
-      // "mixedCase": true, // allow hyphenating mixed-case words (default: true)
-      orphanControl: 3, // don't hyphenate last word AND keep it on the same line as the previous word (default: 1)
-      hide: "text", // hide text (by setting it transparent) before hyphenator has finished (default: "all")
-      // "timeout": 1000, // failure timeout in ms for hyphenation before text is unhidden (default: 1000)
-      dontHyphenateClass: "no-hyphen", // elements with this class will not have their content hyphenated
-      dontHyphenate: Object.fromEntries("video|audio|script|code|pre|img|br|samp|kbd|var|abbr|acronym|sub|sup|button|option|label|textarea|input|math|svg|style"
-        .split(/\|/)
-        .map((item) => [item, ![
-          "textarea" // Add elements from above that SHOULD be hyphenated.
-        ].includes(item)])),
-      keepAlive: true, // whether to keep hyphenator loaded after initialization (default: false)
-      // "normalize": false, // whether to resolve compound characters into precomposed characters (default: false)
-      // "processShadows": false, // whether to search outside window.document for elements to hyphenate (default: false)
-      // "safeCopy": true, // whether to remove soft hyphens when text is copied to clipboard (default: true)
-      substitute: { // mapping out-of-language characters to in-language characters for hyphenating
-        "en-us": {
-          ...Object.fromEntries("àáâãäå".forEach((char) => [char, "a"])),
-          ...Object.fromEntries("èéêë".forEach((char) => [char, "e"])),
-          ...Object.fromEntries("ìíîï".forEach((char) => [char, "i"])),
-          ...Object.fromEntries("òóôõö".forEach((char) => [char, "o"])),
-          ...Object.fromEntries("ùúûü".forEach((char) => [char, "u"])),
-          æ: "a",
-          ç: "s",
-          ñ: "n"
-        }
-      }
-    }
-  }
-).get("en-us"); */
-// #endregion ▮▮▮▮[IMPORT CONFIG]▮▮▮▮
-=======
 // #region ████████ IMPORTS ████████ ~
 import { gsap } from "/scripts/greensock/esm/all.js";
->>>>>>> Stashed changes
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 // #region ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮ ~
 /* eslint-disable array-element-newline */
@@ -252,20 +200,12 @@ const _romanNumerals = {
         ["", "ↈ", "ↈↈ", "ↈↈↈ"]
     ]
 };
-const UIDLOG = [];
+const UUIDLOG = [];
 /* eslint-enable array-element-newline, object-property-newline */
 // #endregion ▮▮▮▮[HELPERS]▮▮▮▮
 // #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
 // @ts-expect-error Leauge of foundry developers is wrong about user not being on game.
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
-const getUID = () => {
-    let uid;
-    do {
-        uid = randString(5);
-    } while (UIDLOG.includes(uid));
-    UIDLOG.push(uid);
-    return uid;
-};
 /* eslint-enable @typescript-eslint/no-explicit-any */
 // #endregion ░░░░[TypeScript]░░░░
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
@@ -581,7 +521,7 @@ const romanizeNum = (num, isUsingGroupedChars = true) => {
 };
 // #endregion _______ Numbers _______
 // #endregion ░░░░[Formatting]░░░░
-// #region ░░░░░░░[Content]░░░░ Lorem Ipsum, Random Content Generation ░░░░░░░ ~
+// #region ░░░░░░░[Content]░░░░ Lorem Ipsum, Random Content Generation, Randum UUID ░░░░░░░ ~
 const loremIpsum = (numWords = 200) => {
     const lrWordList = _loremIpsumText.split(/\n?\s+/g);
     const words = [...lrWordList[randNum(0, lrWordList.length - 1)]];
@@ -593,6 +533,12 @@ const loremIpsum = (numWords = 200) => {
 };
 const randString = (length = 5) => [...new Array(length)].map(() => String.fromCharCode(randInt(...["a", "z"].map((char) => char.charCodeAt(0))))).join("");
 const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)].map(() => randElem([...wordList])).join(" ");
+const UUIDify = (id) => {
+    const indexNum = Math.max(0, ...UUIDLOG.filter(([genericID]) => genericID.startsWith(id)).map(([, , num]) => num)) + 1;
+    const uuid = indexNum === 1 ? id : `${id}_${indexNum}`;
+    UUIDLOG.push([id, uuid, indexNum]);
+    return uuid;
+};
 // #endregion ░░░░[Content]░░░░
 // #region ░░░░░░░[Localization]░░░░ Simplified Localization Functionality ░░░░░░░ ~
 /* const Loc = (locRef, formatDict = {}) => {
@@ -964,7 +910,7 @@ const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta
 // #region ████████ EXPORTS ████████
 export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
-    GMID, getUID,
+    GMID, getUID: UUIDify,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
     isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
     isUndefined, isDefined, isEmpty, hasItems, isInstance, isInstanceFunc,

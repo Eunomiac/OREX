@@ -35,15 +35,15 @@ export class XTerm extends XItem {
 		return U.objMerge(super.defaultOptions, {classes: ["x-term"]});
 	}
 
-	protected _termType: XTermType;
-	public get type() { return this._termType }
-	public ApplyEffect(xRoll: XRoll) {
+	#termType: XTermType;
+	get type() { return this.#termType }
+	ApplyEffect(xRoll: XRoll) {
 		return xRoll;
 	}
 
 	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XTermOptions) {
 		super(xParent, xOptions);
-		this._termType = xOptions.type;
+		this.#termType = xOptions.type;
 	}
 }
 export interface XDieOptions extends XTermOptions {
@@ -69,8 +69,8 @@ export default class XDie extends XTerm {
 	private _value = 0;
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
-	public get value() { return (this._value = this._value ?? 0) }
-	public set value(val: number) {
+	get value() { return (this._value = this._value ?? 0) }
+	set value(val: number) {
 		if (val >= 0 && val <= 10) {
 			this._value = val;
 			if (this.isInitialized) {
@@ -78,20 +78,19 @@ export default class XDie extends XTerm {
 			}
 		}
 	}
-	public get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "<span style=\"color: red;\">X</span>"][this._value]}
+	get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "<span style=\"color: red;\">X</span>"][this._value]}
 	termType: XTermType;
 
-	public get isRolled() { return this.value > 0 }
+	get isRolled() { return this.value > 0 }
 
-	public roll() { this.value = U.randInt(1, 10) }
+	roll() { this.value = U.randInt(1, 10) }
 
-	public override get xParent() { return <XItem>super.xParent }
-	public override set xParent(xItem: XItem) { super.xParent = xItem }
+	override get xParent() { return <XItem>super.xParent }
+	override set xParent(xItem: XItem) { super.xParent = xItem }
 
 
 	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XDieOptions) {
 		const dieSize = xOptions.size ?? 40;
-		xOptions.id = `${xOptions.id}-${U.getUID()}`;
 		xOptions.onRender ??= {};
 		xOptions.onRender.set = {
 			...{

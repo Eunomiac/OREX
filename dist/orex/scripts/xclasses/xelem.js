@@ -1,4 +1,5 @@
 
+var _XElem_isRenderReady;
 // ████████ IMPORTS ████████
 import { 
 // ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮
@@ -11,7 +12,7 @@ XItem
 // 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 export default class XElem {
     constructor(xOptions) {
-        this._isRenderReady = false;
+        _XElem_isRenderReady.set(this, false);
 
         // ████████ GSAP: GSAP Animation Method Wrappers ████████
         this.tweens = {};
@@ -192,3 +193,4 @@ export default class XElem {
         return this.renderApp;
     }
 }
+_XElem_isRenderReady = new WeakMap();

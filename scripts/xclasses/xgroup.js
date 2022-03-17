@@ -1,30 +1,24 @@
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _XOrbit_rotationScaling, _XOrbit_rotationAngle, _XOrbit_rotationDuration, _XOrbit_radiusRatio, _XPool_core, _XPool_orbitals, _XPool_orbitalWeights, _XPool_orbitalSpeeds, _XRoll_hasRolled;
 // #region ████████ IMPORTS ████████ ~
 import { 
-<<<<<<< Updated upstream
-// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
-C, 
-// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
-// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-<<<<<<< HEAD
-U, DB, XItem, XDie
-=======
 // #region ▮▮▮▮▮▮▮[Constants & Utility]▮▮▮▮▮▮▮
 C, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
 XItem, XDie, XAnimVars
->>>>>>> Stashed changes
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "../helpers/bundler.js";
-=======
-U, DB, XItem, XDie } from "../helpers/bundler.js";
-export var XOrbitType;
-(function (XOrbitType) {
-    XOrbitType["Main"] = "Main";
-    XOrbitType["Core"] = "Core";
-    XOrbitType["Outer"] = "Outer";
-})(XOrbitType || (XOrbitType = {}));
->>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
 export default class XGroup extends XItem {
     static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-group"] }); }
     get xParent() { return super.xParent; }
@@ -39,8 +33,8 @@ export default class XGroup extends XItem {
 class XArm extends XItem {
     constructor(xItem, parentOrbit) {
         super(parentOrbit, {
-            id: `${parentOrbit.id}-arm-${parentOrbit.xKids.size}`,
-            keepID: true
+            id: "arm"
+            // keepID: true
         });
         this.xItem = xItem;
         this.adopt(xItem, false);
@@ -77,39 +71,15 @@ class XArm extends XItem {
 export var XOrbitType;
 (function (XOrbitType) {
     XOrbitType["Main"] = "Main";
-    XOrbitType["Core"] = "Core";
+    XOrbitType["Inner"] = "Inner";
     XOrbitType["Outer"] = "Outer";
 })(XOrbitType || (XOrbitType = {}));
 export class XOrbit extends XGroup {
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-    constructor(id, weight, parentGroup) {
-=======
-    constructor(id, weight, parentGroup, rotationScaling = 1) {
->>>>>>> Stashed changes
-=======
-    // constructor(id: string, weight: number, parentGroup: XGroup, rotationRate: number) {
-    // 	super(parentGroup, {
-    // 		id,
-    // 		onRender: {
-    // 			set: {
-    // 				height: parentGroup.height,
-    // 				width: parentGroup.width,
-    // 				left: 0.5 * parentGroup.width,
-    // 				top: 0.5 * parentGroup.height
-    // 			},
-    // 			to: {
-    // 				rotation: `${rotationRate > 0 ? "+" : "-"}=360`,
-    // 				duration: rotationRate,
-    // 				ease: "none",
-    // 				repeat: -1
-    // 			}
-    // 		}
-    // 	});
-    constructor(id, weight, parentGroup, rotationScaling = 1) {
->>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
+    constructor(name, parentGroup, radiusRatio, rotationScaling) {
+        radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
+        rotationScaling ??= C.xGroupOrbitalDefaults[name].rotationScaling;
         super(parentGroup, {
-            id,
+            id: name,
             onRender: {
                 set: {
                     height: parentGroup.height,
@@ -122,34 +92,14 @@ export class XOrbit extends XGroup {
                 ]
             }
         });
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        const self = this;
-        const rotationTween = this.to({
-            rotation: "+=360",
-            repeat: -1,
-            duration: 10 * weight,
-            ease: "none",
-            onUpdate() {
-                self.xItems.forEach((xItem) => {
-                    if (xItem.xParent?.isInitialized) {
-                        xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
-                    }
-                });
-            }
-        });
-        this._weight = weight;
-=======
-        this.rotationAngle = weight > 0 ? "+=360" : "-=360";
-        this.rotationScaling = rotationScaling;
-        this._weight = Math.abs(weight);
->>>>>>> Stashed changes
-=======
-        this.rotationAngle = weight > 0 ? "+=360" : "-=360";
-        console.log(this.rotationAngle);
-        this.rotationScaling = rotationScaling;
-        this._weight = Math.abs(weight);
->>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
+        _XOrbit_rotationScaling.set(this, void 0);
+        _XOrbit_rotationAngle.set(this, void 0);
+        _XOrbit_rotationDuration.set(this, void 0);
+        _XOrbit_radiusRatio.set(this, void 0);
+        __classPrivateFieldSet(this, _XOrbit_radiusRatio, radiusRatio, "f");
+        __classPrivateFieldSet(this, _XOrbit_rotationScaling, Math.abs(rotationScaling), "f");
+        __classPrivateFieldSet(this, _XOrbit_rotationAngle, rotationScaling > 0 ? "+=360" : "-=360", "f");
+        __classPrivateFieldSet(this, _XOrbit_rotationDuration, 10 * __classPrivateFieldGet(this, _XOrbit_radiusRatio, "f") * __classPrivateFieldGet(this, _XOrbit_rotationScaling, "f"), "f");
     }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
@@ -158,54 +108,23 @@ export class XOrbit extends XGroup {
     }
     get arms() { return Array.from(this.xKids); }
     get xItems() { return this.arms.map((xArm) => xArm.xItem); }
-    get orbitRadius() { return this.weight * 0.5 * this.xParent.width; }
-    get weight() { return this._weight; }
-    set weight(weight) {
-        this._weight = weight;
+    get radiusRatio() { return __classPrivateFieldGet(this, _XOrbit_radiusRatio, "f"); }
+    set radiusRatio(radiusRatio) {
+        __classPrivateFieldSet(this, _XOrbit_radiusRatio, radiusRatio, "f");
         if (this.isRendered) {
             this.updateArms();
         }
     }
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-    get rotationDuration() { return 10 * this._weight * this.rotationScaling; }
-    async startRotating() {
-        if (this.isRendered) {
-            const rotationTween = this.to({
-                rotation: this.rotationAngle,
-                repeat: -1,
-                duration: this.rotationDuration,
-                ease: "none",
-                callbackScope: this,
-                onUpdate() {
-                    this.xItems.forEach((xItem) => {
-                        if (xItem.xParent?.isInitialized) {
-                            xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
-                        }
-                    });
-                }
-            });
-            if (rotationTween) {
-                this.rotationTween = rotationTween;
-            }
-        }
-    }
->>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
-    updateArms() {
-        DB.log(`[${this.id}] Updating Arms`, this.arms);
-=======
-    get rotationDuration() { return 10 * this._weight * this.rotationScaling; }
+    get orbitRadius() { return this.radiusRatio * 0.5 * this.xParent.width; }
     startRotating() {
         const [{ type, ...animVars }] = XAnimVars.rotateXPool({
             xGroup: this,
-            rotation: this.rotationAngle,
-            duration: this.rotationDuration
+            rotation: __classPrivateFieldGet(this, _XOrbit_rotationAngle, "f"),
+            duration: __classPrivateFieldGet(this, _XOrbit_rotationDuration, "f")
         });
         this.to(animVars);
     }
     updateArms(duration = 0.5) {
->>>>>>> Stashed changes
         const angleStep = 360 / this.arms.length;
         const staggerStep = duration / this.arms.length;
         this.arms.forEach((arm, i) => {
@@ -226,16 +145,7 @@ export class XOrbit extends XGroup {
             });
         });
     }
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-    async addXItem(xItem, angle = 0) {
-=======
     async addXItem(xItem) {
->>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
-        DB.log(`[${this.id}] Adding XItem: ${xItem.id}`);
-=======
-    async addXItem(xItem) {
->>>>>>> Stashed changes
         const xArm = new XArm(xItem, this);
         if (await xArm.initialize()) {
             this.updateArms();
@@ -247,6 +157,7 @@ export class XOrbit extends XGroup {
         const allPromises = xItems.map((xItem) => {
             const xArm = new XArm(xItem, this);
             this.adopt(xArm);
+            console.log(this.arms);
             return xArm.initialize();
         });
         if (await Promise.allSettled(allPromises)) {
@@ -256,17 +167,18 @@ export class XOrbit extends XGroup {
         return Promise.resolve(false);
     }
 }
+_XOrbit_rotationScaling = new WeakMap(), _XOrbit_rotationAngle = new WeakMap(), _XOrbit_rotationDuration = new WeakMap(), _XOrbit_radiusRatio = new WeakMap();
 export class XPool extends XGroup {
     constructor(xParent, { orbitals = U.objClone(C.xGroupOrbitalDefaults), ...xOptions }) {
         super(xParent, xOptions);
-        this._core = [];
-        this._orbitals = new Map();
-        this._orbitalWeights = new Map();
-        this._orbitalSpeeds = new Map();
-        for (const [orbitName, { radiusRatio, rotationRate }] of Object.entries(orbitals)) {
-            this._orbitalWeights.set(orbitName, radiusRatio);
-            this._orbitalSpeeds.set(orbitName, rotationRate);
-            this._orbitals.set(orbitName, new XOrbit(orbitName, radiusRatio, this, rotationRate));
+        _XPool_core.set(this, []);
+        _XPool_orbitals.set(this, new Map());
+        _XPool_orbitalWeights.set(this, new Map());
+        _XPool_orbitalSpeeds.set(this, new Map());
+        for (const [orbitName, { radiusRatio, rotationScaling }] of Object.entries(orbitals)) {
+            __classPrivateFieldGet(this, _XPool_orbitalWeights, "f").set(orbitName, radiusRatio);
+            __classPrivateFieldGet(this, _XPool_orbitalSpeeds, "f").set(orbitName, rotationScaling);
+            __classPrivateFieldGet(this, _XPool_orbitals, "f").set(orbitName, new XOrbit(orbitName, this, radiusRatio, rotationScaling));
         }
     }
     static get defaultOptions() {
@@ -280,7 +192,7 @@ export class XPool extends XGroup {
             }
         });
     }
-    get orbitals() { return this._orbitals; }
+    get orbitals() { return __classPrivateFieldGet(this, _XPool_orbitals, "f"); }
     get xOrbits() { return Array.from(this.orbitals.values()); }
     get xItems() {
         return this.xOrbits.map((xOrbit) => xOrbit.xItems).flat();
@@ -303,12 +215,14 @@ export class XPool extends XGroup {
         return Promise.allSettled(Object.entries(xItemsByOrbit).map(([orbitName, xItems]) => xItems.map((xItem) => self.addXItem(xItem, orbitName))));
     }
 }
+_XPool_core = new WeakMap(), _XPool_orbitals = new WeakMap(), _XPool_orbitalWeights = new WeakMap(), _XPool_orbitalSpeeds = new WeakMap();
+XPool.REGISTRY = new Map();
 export class XRoll extends XPool {
     constructor(xParent, xOptions) {
         super(xParent, xOptions);
-        this._hasRolled = false;
+        _XRoll_hasRolled.set(this, false);
     }
-    get hasRolled() { return this._hasRolled; }
+    get hasRolled() { return __classPrivateFieldGet(this, _XRoll_hasRolled, "f"); }
     get diceRolls() {
         if (this.hasRolled) {
             return this.getXKids(XDie, true).map((xDie) => (xDie).value || 0);
@@ -317,14 +231,27 @@ export class XRoll extends XPool {
     }
     // Rolls all XDie in the XRoll.
     rollDice(isForcingReroll = false) {
-        if (isForcingReroll || !this._hasRolled) {
-            this._hasRolled = true;
-            const xDice = this.getXKids(XDie, true);
-            gsap.timeline()
-                .fadeDieText(`#${this.id} .x-die`)
-                .call(() => xDice.map((xDie) => xDie.roll()))
-                .pulseRolledDie(`#${this.id} .x-die`);
+        if (isForcingReroll || !__classPrivateFieldGet(this, _XRoll_hasRolled, "f")) {
+            __classPrivateFieldSet(this, _XRoll_hasRolled, true, "f");
+            const xDice = this.getXKids(XDie, true).forEach(async (xKid) => {
+                const vars = {};
+                ["fadeDieText", "pulseRolledDie"].forEach((animName) => {
+                    vars[animName] = XAnimVars[animName]({ xItem: xKid });
+                    delete vars[animName].type;
+                    delete vars[animName].timestamp;
+                });
+                xKid.to(vars.fadeDieText)
+                    .roll();
+                xKid.to();
+                this.runGSAPSequence([""]);
+                gsap.timeline()
+                    .fadeDieText(`#${this.id} .x-die`)
+                    .call(() => xDice.map((xDie) => xDie.roll()))
+                    .pulseRolledDie(`#${this.id} .x-die`);
+            });
         }
     }
 }
+_XRoll_hasRolled = new WeakMap();
+XRoll.REGISTRY = new Map();
 // #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄

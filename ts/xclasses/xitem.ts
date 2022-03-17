@@ -8,7 +8,7 @@ import {
 	XElem, XGroup
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XElemOptions, DOMRenderer, GSAPController} from"../helpers/bundler.js";
+import type {XElemOptions, DOMRenderer, GSAPController, ConstructorOf} from"../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
 export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElemOptions> {
 	id: string;
@@ -17,7 +17,7 @@ export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElem
 
 export default class XItem extends Application implements Partial<DOMRenderer>, Partial<GSAPController> {
 
-	public static override get defaultOptions(): ApplicationOptions {
+	static override get defaultOptions(): ApplicationOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
 			classes: ["x-item"],
@@ -37,39 +37,49 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		});
 	}
 
-	private static _XROOT: XItem;
-	public static get XROOT() { return XItem._XROOT }
-	public static async InitializeXROOT(): Promise<boolean> {
+	static #XROOT: XItem;
+	static get XROOT() { return XItem.#XROOT }
+	static async InitializeXROOT(): Promise<boolean> {
 		if (XItem.XROOT) {
 			XItem.XROOT.kill();
 		}
-		XItem._XROOT = new XItem(null, {
-			id: "x-root",
-			keepID: true,
+		XItem.#XROOT = new XItem(null, {
+			id: "XROOT",
 			onRender: {
 				set: {
 					xPercent: 0,
 					yPercent: 0
 				}
 			}});
-		return XItem._XROOT.initialize();
+		return XItem.#XROOT.initialize();
 	}
 
-	protected _isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
-	protected _xParent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
-	protected _xKids: Set<XItem> = new Set();
-	public readonly xOptions: XItemOptions;
-	public readonly xElem: XElem;
+	protected static REGISTRY: Map<string,XItem> = new Map();
+	static Register(xItem: XItem) {
+		(xItem.constructor as typeof XItem).REGISTRY.set(xItem.id, xItem);
+	}
+	static Unregister(xItem: string | XItem) {
+		(xItem.constructor as typeof XItem).REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
+	}
+	static GetAll() {
+		return Array.from(this.REGISTRY.values());
+	}
 
-	public get elem() { return this.xElem.elem }
-	public get elem$() { return this.xElem.elem$ }
-	public get xParent(): XItem | null { return this._xParent }
-	public set xParent(xParent: XItem | null) { this._xParent = xParent ?? XItem.XROOT }
-	public get xKids(): Set<XItem> { return this._xKids }
-	public get hasChildren() { return this.xKids.size > 0 }
-	public registerXKid(xKid: XItem) { xKid.xParent = this; this.xKids.add(xKid) }
-	public unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
-	public getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
+	#isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
+	#xParent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
+	#xKids: Set<XItem> = new Set();
+	readonly xOptions: XItemOptions;
+	readonly xElem: XElem;
+
+	get elem() { return this.xElem.elem }
+	get elem$() { return this.xElem.elem$ }
+	get xParent(): XItem | null { return this.#xParent }
+	set xParent(xParent: XItem | null) { this.#xParent = xParent ?? XItem.XROOT }
+	get xKids(): Set<XItem> { return this.#xKids }
+	get hasChildren() { return this.xKids.size > 0 }
+	registerXKid(xKid: XItem) { xKid.xParent = this; this.xKids.add(xKid) }
+	unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
+	getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
 		const xKids: X[] = Array.from(this.xKids.values())
 			.flat()
 			.filter(U.isInstanceFunc(classRef));
@@ -79,21 +89,23 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		return xKids;
 	}
 	constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
-		if (!xOptions.keepID) {
-			xOptions.id += U.getUID();
+		if (xParent) {
+			xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^X?ROOT-?/, "X-"));
 		}
 		super(xOptions);
+		// this.constructor().Register(this);
 		this.options.classes.push(...classes);
 		this.xOptions = Object.assign(xOptions, this.options);
 		if (xParent === null) {
-			this._xParent = null;
+			this.#xParent = null;
 		} else {
-			this._xParent = xParent ?? XItem.XROOT;
+			this.#xParent = xParent ?? XItem.XROOT;
 		}
 		this.xElem = new XElem({
 			renderApp: this,
 			onRender: this.xOptions.onRender
 		});
+		(this.constructor as typeof XItem).Register(this);
 	}
 
 	async initialize(): Promise<boolean> {
@@ -101,7 +113,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		if (await this.xElem.confirmRender(true)) {
 			return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize()))
 				.then(
-					() => { this._isInitialized = true; return Promise.resolve(true) },
+					() => { this.#isInitialized = true; return Promise.resolve(true) },
 					() => Promise.resolve(false)
 				);
 		}
@@ -109,7 +121,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	}
 
 	get isRendered() { return this.rendered }
-	get isInitialized() { return this._isInitialized }
+	get isInitialized() { return this.#isInitialized }
 	get x() { return this.xElem.x }
 	get y() { return this.xElem.y }
 	get pos() { return this.xElem.pos }
@@ -125,11 +137,11 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	get adopt() { return this.xElem.adopt.bind(this.xElem) }
 
 	private _tickers: Set<() => void> = new Set();
-	public addTicker(func: () => void): void {
+	addTicker(func: () => void): void {
 		this._tickers.add(func);
 		gsap.ticker.add(func);
 	}
-	public removeTicker(func: () => void): void {
+	removeTicker(func: () => void): void {
 		this._tickers.delete(func);
 		gsap.ticker.remove(func);
 	}
@@ -139,7 +151,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	get from() { return this.xElem.from.bind(this.xElem) }
 	get fromTo() { return this.xElem.fromTo.bind(this.xElem) }
 
-	public kill() {
+	kill() {
 		if (this.hasChildren) {
 			this.getXKids(XItem).forEach((xItem) => xItem.kill());
 		}
@@ -163,7 +175,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		return context;
 	}
 
-	public async renderApplication(): Promise<boolean> {
+	async renderApplication(): Promise<boolean> {
 		if (!this.xElem.isRenderReady) {
 			DB.error("Attempt to render an unready Application");
 			return Promise.resolve(false);

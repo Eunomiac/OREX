@@ -1,17 +1,6 @@
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-// ████████ IMPORTS ████████
->>>>>>> a9a1a28c472c9a7438b75d41370888a95a9074c2
-import gsap from "/scripts/greensock/esm/all.js";
-// ▮▮▮▮▮▮▮[IMPORT CONFIG] Initialization Function for Imports ▮▮▮▮▮▮▮
-const _hyph = (str) => str;
-
-=======
 // ████████ IMPORTS ████████
 import { gsap } from "/scripts/greensock/esm/all.js";
->>>>>>> Stashed changes
 // ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮
 
 const _noCapWords = [
@@ -211,19 +200,11 @@ const _romanNumerals = {
         ["", "ↈ", "ↈↈ", "ↈↈↈ"]
     ]
 };
-const UIDLOG = [];
+const UUIDLOG = [];
 
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
-const getUID = () => {
-    let uid;
-    do {
-        uid = randString(5);
-    } while (UIDLOG.includes(uid));
-    UIDLOG.push(uid);
-    return uid;
-};
 
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isArray = (ref) => Array.isArray(ref);
@@ -532,7 +513,7 @@ const romanizeNum = (num, isUsingGroupedChars = true) => {
         : romanNum;
 };
 
-// ░░░░░░░[Content]░░░░ Lorem Ipsum, Random Content Generation ░░░░░░░
+// ░░░░░░░[Content]░░░░ Lorem Ipsum, Random Content Generation, Randum UUID ░░░░░░░
 const loremIpsum = (numWords = 200) => {
     const lrWordList = _loremIpsumText.split(/\n?\s+/g);
     const words = [...lrWordList[randNum(0, lrWordList.length - 1)]];
@@ -544,6 +525,12 @@ const loremIpsum = (numWords = 200) => {
 };
 const randString = (length = 5) => [...new Array(length)].map(() => String.fromCharCode(randInt(...["a", "z"].map((char) => char.charCodeAt(0))))).join("");
 const randWord = (numWords = 1, wordList = _randomWords) => [...Array(numWords)].map(() => randElem([...wordList])).join(" ");
+const UUIDify = (id) => {
+    const indexNum = Math.max(0, ...UUIDLOG.filter(([genericID]) => genericID.startsWith(id)).map(([, , num]) => num)) + 1;
+    const uuid = indexNum === 1 ? id : `${id}_${indexNum}`;
+    UUIDLOG.push([id, uuid, indexNum]);
+    return uuid;
+};
 // ░░░░░░░[Localization]░░░░ Simplified Localization Functionality ░░░░░░░
 
 // ████████ SEARCHING: Searching Various Data Types w/ Fuzzy Matching ████████
@@ -899,7 +886,7 @@ const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta
 // ████████ EXPORTS ████████
 export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
-    GMID, getUID,
+    GMID, getUID: UUIDify,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
     isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
     isUndefined, isDefined, isEmpty, hasItems, isInstance, isInstanceFunc,

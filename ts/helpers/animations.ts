@@ -32,7 +32,7 @@ namespace XGSAP {
 
 	export type KnownTweenVars = Concrete<Pick<gsap.TweenVars, KnownKeys<gsap.TweenVars>>>;
 	export interface Vars extends Partial<KnownTweenVars> {
-		xGroup: XGroup,
+		xItem: XItem,
 		type?: XGSAP.Type
 	}
 	export interface AnimVars extends gsap.TweenVars {
@@ -57,7 +57,7 @@ const XAnimVars: XGSAP.AnimVarsDict = {
 				duration: config.duration,
 				repeat: -1,
 				ease: "none",
-				callbackScope: config.xGroup,
+				callbackScope: config.xItem,
 				onUpdate() {
 					this.xItems.forEach((xItem: XItem) => {
 						if (xItem.xParent?.isInitialized) {

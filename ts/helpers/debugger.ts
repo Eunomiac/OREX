@@ -39,11 +39,13 @@ const XDebugger = (type: keyof typeof STYLES, message: string, ...content: unkno
 };
 
 const STYLES = {
-	base: {
-		"background": "#000000",
-		"color": "#EDB620",
-		"font-family": "Pragmata Pro",
-		"padding": "0 25px"
+	title: {
+		"background": "linear-gradient(to right,#ff8a00,#da1b60)",
+		"color": "#100e17",
+		"width": "1000px",
+		"font-family": "Candal",
+		"font-size": "18px",
+		"padding": "0 600px 0 10px"
 	},
 	display: {
 		"background": "#EDB620",
@@ -51,29 +53,40 @@ const STYLES = {
 		"font-family": "AlverataInformalW01-Regular",
 		"font-size": "16px",
 		// "margin-left": "-100px",
-		"padding": "0 10vw 0 10px"
-	},
-	error: {
-		"color": "#FF0000",
-		"background": "#950A0F",
+		"padding": "0 400px 0 10px",
 		"font-weight": "bold"
+	},
+	base: {
+		"background": "#000000",
+		"color": "#EDB620",
+		"font-family": "Pragmata Pro",
+		"padding": "0 300px 0 32px"
 	},
 	info: {
 		"background": "transparent",
 		"color": "white",
 		"font-weight": "bold",
-		"font-family": "Pragmata Pro"
+		"font-family": "Pragmata Pro",
+		"padding": "0 300px 0 50px"
+	},
+	error: {
+		"color": "#FF0000",
+		"background": "#950A0F",
+		"font-weight": "bold",
+		"padding": "0 800px 0 50px"
 	},
 	groupEnd: {}
 };
 
 const DB = {
-	display: (message: string, ...content: unknown[]) => XDebugger("display", message, ...(content.length ? content : ["NOGROUP"])),
 	log: (message: string, ...content: unknown[]) => XDebugger("base", message, ...(content.length ? content : ["NOGROUP"])),
+	title: (message: string) => XDebugger("title", message, "NOGROUP"),
+	display: (message: string, ...content: unknown[]) => XDebugger("display", message, ...(content.length ? content : ["NOGROUP"])),
 	info: (message: string, ...content: unknown[]) => XDebugger("info", message, ...(content.length ? content : ["NOGROUP"])),
 	error: (message: string, ...content: unknown[]) => XDebugger("error", message, ...(content.length ? content : ["NOGROUP"])),
-	groupDisplay: (label: string) => XDebugger("display", label),
 	groupLog: (label: string) => XDebugger("base", label),
+	groupTitle: (label: string) => XDebugger("title", label),
+	groupDisplay: (label: string) => XDebugger("display", label),
 	groupInfo: (label: string) => XDebugger("info", label),
 	groupError: (label: string) => XDebugger("error", label),
 	groupEnd: () => console.groupEnd()
@@ -216,7 +229,7 @@ const TESTS = {
 
 		DB.log("Test Die Objs =>", dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, TestDie);
 	},
-	makePool: (xParent: XItem = XItem.XROOT, {id, x, y, size = 200, color = "cyan", orbitals = C.xGroupOrbitalDefaults}: {id: string, x: number, y: number, size: number, color: string, orbitals: Partial<Record<XOrbitType, XOrbitSpecs>>}) => {
+	makePool: (xParent: XItem, {id, x, y, size = 200, color = "cyan"}: {id: string, x: number, y: number, size: number, color: string}) => {
 		return new XPool(xParent, {
 			id,
 			onRender: {
@@ -228,11 +241,7 @@ const TESTS = {
 					"--bg-color": color
 				}
 			},
-			orbitals: {
-				[XOrbitType.Main]: {radiusRatio: -0.8, rotationRate: 0.5},
-				[XOrbitType.Outer]: {radiusRatio: 1.5, rotationRate: 1},
-				[XOrbitType.Core]: {radiusRatio: 0.15, rotationRate: 1}
-			}
+			orbitals: C.xGroupOrbitalDefaults
 		});
 	},
 	makeDie: ({value = undefined, color = "white", numColor = "black", strokeColor = "black", size = 50} = {}) => new XDie(XItem.XROOT, {
@@ -249,52 +258,51 @@ const TESTS = {
 			// {x: 550, y: 350, size: 200, color: "gold", orbitals: {main: 0.75, outer: 1.25, inner: 0.25}, dice: {main: [5, "cyan", [3, "red"]]}},
 			{
 				x: 950, y: 650, size: 400, color: "rgba(255, 0, 0, 0.5)",
-				orbitals: {
-					[XOrbitType.Core]: {radiusRatio: 0.35, rotationRate: 1},
-					[XOrbitType.Main]: {radiusRatio: 1, rotationRate: 1},
-					[XOrbitType.Outer]: {radiusRatio: 1.5, rotationRate: 1}
-				},
+				/* orbitals: {
+					[XOrbitType.Core]: { radiusRatio: 0.35, rotationScaling: 1},
+					[XOrbitType.Main]: { radiusRatio: 1, rotationScaling: 1},
+					[XOrbitType.Outer]: { radiusRatio: 1.5, rotationScaling: 1}
+				}, */
 				dice: {
 					main: [6, "cyan", [2, "lime"]],
 					outer: [5, "silver", [3, "gold"], [4, "rgba(0, 0, 255, 0.5)"]],
 					inner: [3, "red"]
 				}
 			}
-		].map(async ({x, y, size, color, orbitals, dice}, i) => {
+		].map(async ({x, y, size, color, /* orbitals, */ dice}, i) => {
 			const xPool = TESTS.makePool(XItem.XROOT, {
-				id: `test-pool-${i + 1}`,
-				x, y, size, color, orbitals
+				id: "POOL",
+				x, y, size, color/* , orbitals */
 			});
 			await xPool.initialize(); // @ts-expect-error How to tell TS the type of object literal's values?
 			globalThis.CIRCLE ??= []; // @ts-expect-error How to tell TS the type of object literal's values?
 			globalThis.CIRCLE.push(xPool);
 			for (const [name, [numDice, color, ...nestedPools]] of Object.entries(dice) as Array<[XOrbitType, [number, string, ...Array<[number, string]>]]>) {
 				for (let j = 0; j < numDice; j++) {
-					const id = `${xPool.id}-x-die-${j + 1}`;
-					if (!(await xPool.addXItem(new XDie(XItem.XROOT as XGroup, {
-						id,
+					const xDie = new XDie(XItem.XROOT as XGroup, {
+						id: "xDie",
 						type: XTermType.BasicDie,
 						value: U.randInt(0, 9),
 						color: typeof color === "string" ? color : undefined
-					}), name))) {
-						DB.error(`Error rendering xDie '${id}'`);
+					});
+					if (!(await xPool.addXItem(xDie, name))) {
+						DB.error(`Error rendering xDie '${xDie.id}'`);
 					}
 				}
 				if (nestedPools.length) {
 					DB.log("Nested Pools", nestedPools);
 					for (const [nestedNumDice, nestedColor] of nestedPools) {
 						const nestedPool = TESTS.makePool(XItem.XROOT, {
-							id: `test-pool-${i + 1}-nested-pool-${U.getUID()}`,
+							id: "subPool",
 							x: 0,
 							y: 0,
 							size: 75,
-							color: nestedColor,
-							orbitals: C.xGroupOrbitalDefaults
+							color: nestedColor
 						});
 						await xPool.addXItem(nestedPool, name);
 						await nestedPool.initialize();
 						for (let k = 0; k < nestedNumDice; k++) {
-							const id = `${nestedPool.id}-x-die-${k + 1}`;
+							const id = "xDie";
 							try {
 								await nestedPool.addXItem(new XDie(XItem.XROOT as XGroup, {
 									id,
@@ -317,8 +325,8 @@ const TESTS = {
 	},
 	createRoll: async (dice: number[]) => {
 		const rollPool = new XRoll(XItem.XROOT, {
-			id: "test-roll",
-			keepID: true,
+			id: "ROLL",
+			// keepID: true,
 			onRender: {
 				set: {
 					x: 500,
@@ -329,11 +337,10 @@ const TESTS = {
 			}});
 		await rollPool.initialize();
 		const dieColors = ["white", "cyan", "gold", "lime"];
-		let count = 0;
 		const diceToAdd = dice.flatMap((qty) => {
 			const color = dieColors.shift();
 			return [...new Array(qty)].map(() => new XDie(XItem.XROOT, {
-				id: `xDie${(count++)}`,
+				id: "xDie",
 				type: XTermType.BasicDie,
 				value: 0, // 0 = blank, unrolled die; a '10' represents a 10-value die showing a '0'.
 				color

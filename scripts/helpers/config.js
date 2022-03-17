@@ -1,6 +1,9 @@
 export default {
     xGroupOrbitalDefaults: {
-        Main: { radiusRatio: 0.75, rotationRate: 1 }
+        Core: { radiusRatio: 0, rotationScaling: 0 },
+        Main: { radiusRatio: 0.75, rotationScaling: 1 },
+        Inner: { radiusRatio: 0.45, rotationScaling: 4 },
+        Outer: { radiusRatio: 1.25, rotationScaling: 0.5 }
     },
     xDieStyles: {
         BasicDie: {

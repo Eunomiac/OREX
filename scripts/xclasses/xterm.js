@@ -1,3 +1,15 @@
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _XTerm_termType;
 // #region ████████ IMPORTS ████████ ~
 import { 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
@@ -21,24 +33,25 @@ export var XTermType;
     XTermType[XTermType["Trait"] = 10] = "Trait";
     XTermType[XTermType["Styler"] = 11] = "Styler";
 })(XTermType || (XTermType = {}));
-class XTerm extends XItem {
+export class XTerm extends XItem {
     constructor(xParent, xOptions) {
         super(xParent, xOptions);
-        this._termType = xOptions.type;
+        _XTerm_termType.set(this, void 0);
+        __classPrivateFieldSet(this, _XTerm_termType, xOptions.type, "f");
     }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, { classes: ["x-term"] });
     }
-    get type() { return this._termType; }
+    get type() { return __classPrivateFieldGet(this, _XTerm_termType, "f"); }
     ApplyEffect(xRoll) {
         return xRoll;
     }
 }
+_XTerm_termType = new WeakMap();
 export default class XDie extends XTerm {
     constructor(xParent, xOptions) {
         const dieSize = xOptions.size ?? 40;
-        xOptions.id = `${xOptions.id}-${U.getUID()}`;
-        xOptions.onRender ?? (xOptions.onRender = {});
+        xOptions.onRender ??= {};
         xOptions.onRender.set = {
             ...{
                 "--die-size": `${dieSize}px`,

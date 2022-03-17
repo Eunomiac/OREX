@@ -27,7 +27,7 @@ export interface XModOptions extends XTermOptions {
 }
 
 class XMod extends XItem implements XTerm {
-	public static override get defaultOptions() {
+	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
 			classes: ["x-mod"]
 		});
@@ -40,7 +40,7 @@ class XMod extends XItem implements XTerm {
 		this.termType = xOptions.type;
 	}
 
-	public ApplyEffect(xRoll: XRoll) {
+	ApplyEffect(xRoll: XRoll) {
 		return xRoll;
 	}
 

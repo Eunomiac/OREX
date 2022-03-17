@@ -69,9 +69,9 @@ export default class XElem implements DOMRenderer, GSAPController {
 
 	// #region ▮▮▮▮▮▮▮[Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮ ~
 	private renderPromise?: Promise<boolean>;
-	protected _isRenderReady = false;
-	public get isRenderReady(): boolean { return this._isRenderReady }
-	public async confirmRender(isRendering = true): Promise<boolean> {
+	#isRenderReady = false;
+	get isRenderReady(): boolean { return this._isRenderReady }
+	async confirmRender(isRendering = true): Promise<boolean> {
 		this._isRenderReady = this.isRenderReady || isRendering;
 		if (this.isRendered) { return Promise.resolve(true) }
 		if (!this.isRenderReady) { return Promise.resolve(false) }
@@ -98,14 +98,14 @@ export default class XElem implements DOMRenderer, GSAPController {
 		return this.renderPromise;
 	}
 
-	public get isRendered() { return this.renderApp.rendered }
+	get isRendered() { return this.renderApp.rendered }
 	protected validateRender() {
 		if (!this.isRendered) {
 			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await confirmRender?`);
 		}
 	}
 
-	public readonly onRender: {
+	readonly onRender: {
 		set?: gsap.TweenVars,
 		to?: gsap.TweenVars,
 		from?: gsap.TweenVars,
@@ -114,20 +114,20 @@ export default class XElem implements DOMRenderer, GSAPController {
 	// #endregion ▮▮▮▮[Render Control]▮▮▮▮
 
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
-	public readonly id: string;
-	public readonly renderApp: XItem;
-	public get elem() { this.validateRender(); return this.renderApp.element[0] }
-	public get elem$() { return $(this.elem) }
+	readonly id: string;
+	readonly renderApp: XItem;
+	get elem() { this.validateRender(); return this.renderApp.element[0] }
+	get elem$() { return $(this.elem) }
 
 	constructor(xOptions: XElemOptions) {
-		this.renderApp = xOptions.renderApp;
+		this.renderApp = xOptions.renderApp as typeof xOptions.renderApp;
 		this.id = this.renderApp.id;
 		this.onRender = xOptions.onRender ?? {};
 	}
 	// #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
 
 	// #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
-	public get parentApp(): XItem | null { return this.renderApp.xParent }
+	get parentApp(): XItem | null { return this.renderApp.xParent }
 
 	adopt(child: XItem, isRetainingPosition = true): void {
 		child.xParent?.unregisterXKid(child);
@@ -213,12 +213,12 @@ export default class XElem implements DOMRenderer, GSAPController {
 	// #endregion ▄▄▄▄▄ Positioning ▄▄▄▄▄
 
 	// #region ████████ GSAP: GSAP Animation Method Wrappers ████████ ~
-	public tweens: Record<string, gsap.core.Tween | gsap.core.Timeline> = {};
+	tweens: Record<string, gsap.core.Tween | gsap.core.Timeline> = {};
 	/*~ Figure out a way to have to / from / fromTo methods on all XItems that:
 			- will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
 			- if timescale is small enough, just uses.set() ~*/
 
-	set(vars: gsap.TweenVars): XItem {
+	set(vars: gsap.TweenVars): typeof this.renderApp {
 		if (this.isRendered) {
 			gsap.set(this.elem, vars);
 		} else {
@@ -229,7 +229,7 @@ export default class XElem implements DOMRenderer, GSAPController {
 		}
 		return this.renderApp;
 	}
-	to(vars: gsap.TweenVars): XItem {
+	to(vars: gsap.TweenVars): typeof this.renderApp {
 		if (this.isRendered) {
 			const tween = gsap.to(this.elem, vars);
 			if (vars.id) {
@@ -243,7 +243,7 @@ export default class XElem implements DOMRenderer, GSAPController {
 		}
 		return this.renderApp;
 	}
-	from(vars: gsap.TweenVars): XItem {
+	from(vars: gsap.TweenVars): typeof this.renderApp {
 		if (this.isRendered) {
 			const tween = gsap.from(this.elem, vars);
 			if (vars.id) {
@@ -257,7 +257,7 @@ export default class XElem implements DOMRenderer, GSAPController {
 		}
 		return this.renderApp;
 	}
-	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): XItem {
+	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): typeof this.renderApp {
 		if (this.isRendered) {
 			const tween = gsap.fromTo(this.elem, fromVars, toVars);
 			if (toVars.id) {

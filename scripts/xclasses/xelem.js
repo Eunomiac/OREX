@@ -1,3 +1,4 @@
+var _XElem_isRenderReady;
 // #region ████████ IMPORTS ████████ ~
 import { 
 // #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮
@@ -14,7 +15,7 @@ XItem
 // #region 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 export default class XElem {
     constructor(xOptions) {
-        this._isRenderReady = false;
+        _XElem_isRenderReady.set(this, false);
         // #endregion ░░░░[Converting from Global to Element's Local Space]░░░░
         // #endregion ▄▄▄▄▄ Positioning ▄▄▄▄▄
         // #region ████████ GSAP: GSAP Animation Method Wrappers ████████ ~
@@ -200,4 +201,5 @@ export default class XElem {
         return this.renderApp;
     }
 }
+_XElem_isRenderReady = new WeakMap();
 // #endregion 🟩🟩🟩 XElem 🟩🟩🟩

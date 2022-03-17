@@ -24,7 +24,7 @@ const XAnimVars = {
                 duration: config.duration,
                 repeat: -1,
                 ease: "none",
-                callbackScope: config.xGroup,
+                callbackScope: config.xItem,
                 onUpdate() {
                     this.xItems.forEach((xItem) => {
                         if (xItem.xParent?.isInitialized) {
