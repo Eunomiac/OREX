@@ -1,18 +1,21 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
-	// #region ▮▮▮▮▮▮▮[Constants & Utility]▮▮▮▮▮▮▮
+	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 	C, U, DB,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
 	XItem, XDie, XTerm,
-	XAnimVars
+	XTermType, XMod,
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
+	// #region ▮▮▮▮▮▮▮[Enums]▮▮▮▮▮▮▮
+	Dir
+	// #endregion ▮▮▮▮[Enums]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XItemOptions} from "../helpers/bundler.js";
-import { stringify } from "querystring";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+import {stringify} from "querystring";
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 /*DEVCODE*/
-// #region ▮▮▮▮▮▮▮[SCHEMA] Breakdown of Classes & Subclasses ▮▮▮▮▮▮▮ ~
+// #region ▮▮▮▮▮▮▮ [SCHEMA] Breakdown of Classes & Subclasses ▮▮▮▮▮▮▮ ~
 /* SCHEMA SORTA:
 							🟥 - Squares indicate classes that implement the XTerm interface
 
@@ -39,13 +42,12 @@ import { stringify } from "querystring";
 // #endregion ▮▮▮▮[SCHEMA]▮▮▮▮
 /*!DEVCODE*/
 // #region 🟩🟩🟩 XGroup: Any XItem That Can Contain Child XItems 🟩🟩🟩
-export interface XGroupOptions extends XItemOptions {
-
-}
+export interface XGroupOptions extends XItemOptions { }
 export default class XGroup extends XItem {
+	protected static override REGISTRY: Map<string, XGroup> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-group"]}) }
 
-	override get xParent() { return <XItem>super.xParent }
+	override get xParent() { return super.xParent as XItem }
 	override set xParent(xItem: XItem) { super.xParent = xItem }
 
 	get xItems() { return Array.from(this.xKids) }
@@ -58,6 +60,7 @@ export default class XGroup extends XItem {
 
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
 class XArm extends XItem {
+	protected static override REGISTRY: Map<string, XArm> = new Map();
 	static override get defaultOptions() {
 		return U.objMerge(
 			super.defaultOptions,
@@ -77,14 +80,13 @@ class XArm extends XItem {
 			}
 		);
 	}
-	xItem: XTerm;
+	xItem: XItem;
 
 	constructor(xItem: XItem, parentOrbit: XOrbit) {
 		super(parentOrbit, {
 			id: "arm"
-			// keepID: true
 		});
-		this.xItem = xItem as XTerm;
+		this.xItem = xItem;
 		this.adopt(xItem, false);
 	}
 
@@ -114,6 +116,7 @@ export enum XOrbitType {
 	Outer = "Outer"
 }
 export class XOrbit extends XGroup {
+	protected static override REGISTRY: Map<string, XOrbit> = new Map();
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
 			classes: ["x-orbit"]
@@ -123,9 +126,10 @@ export class XOrbit extends XGroup {
 	#rotationAngle: "+=360" | "-=360";
 	#rotationDuration: number;
 
-	protected get arms(): XArm[] { return Array.from(this.xKids) as XArm[] }
-	override get xItems(): XTerm[] { return this.arms.map((xArm) => xArm.xItem) }
-
+	protected get arms$() { return $(`#${this.id} .x-arm`) }
+	protected get arms() { return Array.from(this.xKids) as XArm[] }
+	override get xItems(): XItem[] { return this.arms.map((xArm) => xArm.xItem) }
+	get xTerms(): Array<XItem & XTerm> { return this.xItems.filter((xItem) => xItem instanceof XDie || xItem instanceof XMod) as Array<XItem & XTerm> }
 
 	#radiusRatio: number;
 	get radiusRatio() { return this.#radiusRatio }
@@ -136,9 +140,6 @@ export class XOrbit extends XGroup {
 		}
 	}
 	get orbitRadius() { return this.radiusRatio * 0.5 * this.xParent.width }
-
-	rotationTween?: gsap.core.Tween;
-
 
 	constructor(name: XOrbitType, parentGroup: XGroup, radiusRatio?: number, rotationScaling?: number) {
 		radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
@@ -153,7 +154,7 @@ export class XOrbit extends XGroup {
 					top: 0.5 * parentGroup.height
 				},
 				funcs: [
-					(self) => (self as XOrbit).startRotating()
+					(self) => (self as this).startRotating()
 				]
 			}
 		});
@@ -163,35 +164,50 @@ export class XOrbit extends XGroup {
 		this.#rotationDuration = 10 * this.#radiusRatio * this.#rotationScaling;
 	}
 
-	protected startRotating() {
-		const [{type, ...animVars}] = XAnimVars.rotateXPool({
-			xGroup: this,
-			rotation: this.#rotationAngle,
-			duration: this.#rotationDuration
-		});
-		this.to(animVars);
+	protected startRotating(dir: Dir.L|Dir.R = Dir.L, duration = 10) {
+		if (this.isRendered) {
+			this.to({
+				id: "rotationTween",
+				rotation: `${dir === Dir.L ? "+" : "-"}=360`,
+				duration,
+				repeat: -1,
+				ease: "none",
+				callbackScope: this,
+				onUpdate() {
+					this.xItems.forEach((xItem: XItem) => {
+						if (xItem.xParent?.isInitialized) {
+							xItem.set({rotation: -1 * xItem.xParent.global.rotation});
+						}
+					});
+				}
+			});
+		}
 	}
+	protected updateArmsThrottle?: NodeJS.Timeout;
 
-	protected updateArms(duration = 0.5) {
-		const angleStep = 360 / this.arms.length;
-		const staggerStep = duration / this.arms.length;
-		this.arms.forEach((arm, i) => {
-			arm.set({
-				width: 0,
-				rotation: (angleStep * i) - 90
-			})
-				.to({
-					width: this.orbitRadius,
-					delay: staggerStep * i,
-					ease: "back.out(8)",
-					duration
-				})
-				.to({
-					rotation: angleStep * i,
+	protected updateArms(duration = 3, widthOverride?: number) {
+		if (this.updateArmsThrottle) {
+			clearTimeout(this.updateArmsThrottle);
+		}
+		this.updateArmsThrottle = setTimeout(() => {
+			DB.log("Update Arms RUNNING!");
+			const angleStep = 360 / this.arms.length;
+			gsap.timeline()
+				.to(this.arms$, {
+					width: widthOverride ?? this.orbitRadius,
+					ease: "back.out(4)",
+					duration,
+					stagger: {
+						amount: 1,
+						from: "end"
+					}
+				}, "<")
+				.to(this.arms$, {
+					rotation(i) { return angleStep * i },
 					ease: "power2.out",
 					duration
-				});
-		});
+				}, "<");
+		}, 10);
 	}
 
 	async addXItem(xItem: XItem): Promise<boolean> {
@@ -224,6 +240,7 @@ export interface XPoolOptions extends XGroupOptions {
 	orbitals?: Partial<Record<XOrbitType, XOrbitSpecs>>;
 }
 export class XPool extends XGroup {
+	protected static override REGISTRY: Map<string, XPool> = new Map();
 	static override get defaultOptions() {
 		return U.objMerge(
 			super.defaultOptions,
@@ -239,7 +256,6 @@ export class XPool extends XGroup {
 		);
 	}
 
-	protected static override REGISTRY: Map<string, XItem> = new Map();
 	#core: XItem[] = [];
 	#orbitals: Map<XOrbitType, XOrbit> = new Map();
 	#orbitalWeights: Map<XOrbitType, number> = new Map();
@@ -261,16 +277,10 @@ export class XPool extends XGroup {
 	}
 
 	async addXItem(xItem: XItem, orbit: XOrbitType) {
-		// DB.group(`${xItem.constructor.name}.addXItem(${xItem.id}, ${orbit})`);
 		const orbital = this.orbitals.get(orbit);
-		// DB.log("orbital", orbital);
-		// DB.log("is XOrbit?", orbital instanceof XOrbit);
 		if (orbital instanceof XOrbit && await orbital.initialize()) {
-			// DB.log("Orbital Initialized, Adding Item...");
 			return orbital.addXItem(xItem);
-			// return orbital.addXItem(xItem);
 		}
-		// DB.error(`FAILED adding ${xItem.id} to '${orbit}' of ${xItem.id}`);
 		return Promise.resolve(false);
 	}
 
@@ -285,7 +295,7 @@ export class XPool extends XGroup {
 // #region 🟥🟥🟥 XRoll: An XPool That Can Be Rolled, Its Child XTerms Evaluated Into a Roll Result 🟥🟥🟥 ~
 export interface XRollOptions extends XPoolOptions { }
 export class XRoll extends XPool {
-	protected static override REGISTRY: Map<string, XItem> = new Map();
+	protected static override REGISTRY: Map<string, XRoll> = new Map();
 	#hasRolled = false;
 	get hasRolled() { return this.#hasRolled }
 	get diceRolls(): number[] {
@@ -295,6 +305,9 @@ export class XRoll extends XPool {
 		return [];
 	}
 
+	get dice$() { return $(`#${this.id} .x-die`) }
+	get diceVals$() { return $(`#${this.id} .x-die .die-val`) }
+
 	constructor(xParent: XItem, xOptions: XRollOptions) {
 		super(xParent, xOptions);
 	}
@@ -303,32 +316,32 @@ export class XRoll extends XPool {
 	rollDice(isForcingReroll = false) {
 		if (isForcingReroll || !this.#hasRolled) {
 			this.#hasRolled = true;
-			const xDice = this.getXKids(XDie, true).forEach(async (xKid) => {
-				const vars: gsap.TweenVars = {};
-				["fadeDieText", "pulseRolledDie"].forEach((animName) => {
-					vars[animName] = XAnimVars[animName]({xItem: xKid});
-					delete vars[animName].type;
-					delete vars[animName].timestamp;
+			const xDice = this.getXKids(XDie, true);
+			gsap.timeline(({stagger: 0.1}))
+				.to(this.diceVals$, {
+					color: "transparent",
+					autoAlpha: 0,
+					duration: 0.15,
+					ease: "power2.out"
+				})
+				.call(() => xDice.forEach((xDie) => xDie.roll()))
+				.to(this.diceVals$, {
+					color: "black",
+					autoAlpha: 1
 				});
-				xKid.to(vars.fadeDieText)
-					.roll()
-				xKid.to()
-
-
-
-
-
-
-
-				this.runGSAPSequence([""])
-				gsap.timeline()
-					.fadeDieText(`#${this.id} .x-die`)
-					.call(() => xDice.map((xDie) => xDie.roll()))
-					.pulseRolledDie(`#${this.id} .x-die`);
-
-			});
 		}
 	}
 
+}
+// #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄
+
+// #region 🟥🟥🟥 XSource: An XPool containing XItems that players can grab and use 🟥🟥🟥 ~
+export interface XSourceOptions extends XPoolOptions { }
+export class XSource extends XPool {
+	// protected static override REGISTRY: Map<string, this> = new Map();
+
+	constructor(xParent: XItem, xOptions: XSourceOptions) {
+		super(xParent, xOptions);
+	}
 }
 // #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄

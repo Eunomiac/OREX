@@ -1,7 +1,7 @@
 
-// ████████ IMPORTS ████████
+// ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { gsap } from "/scripts/greensock/esm/all.js";
-// ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮
+// ▮▮▮▮▮▮▮ [HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮
 
 const _noCapWords = [
     "above", "after", "at", "below", "by", "down", "for", "from", "in", "onto", "of", "off", "on", "out",
@@ -205,7 +205,16 @@ const UUIDLOG = [];
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
+// ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░
+var Dir;
+(function (Dir) {
+    Dir["U"] = "U";
+    Dir["L"] = "L";
+    Dir["R"] = "R";
+    Dir["D"] = "D";
+})(Dir || (Dir = {}));
 
+// ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isArray = (ref) => Array.isArray(ref);
 const isSimpleObj = (ref) => ref === Object(ref) && !isArray(ref);
@@ -935,3 +944,4 @@ unhyphenate, pluralize, oxfordize, ellipsize,
     formatAsClass,
     getGSAngleDelta
 };
+export { Dir };

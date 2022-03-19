@@ -10,9 +10,9 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _a, _XItem_XROOT, _XItem_isInitialized, _XItem_xParent, _XItem_xKids;
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
-// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+// #region ====== GreenSock Animation ====== ~
 gsap, 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
@@ -36,8 +36,7 @@ export default class XItem extends Application {
         else {
             __classPrivateFieldSet(this, _XItem_xParent, xParent ?? XItem.XROOT, "f");
         }
-        this.xElem = new XElem({
-            renderApp: this,
+        this.xElem = new XElem(this, {
             onRender: this.xOptions.onRender
         });
         this.constructor.Register(this);

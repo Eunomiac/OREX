@@ -1,6 +1,6 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮
+	// #region ====== GreenSock Animation ====== ~
 	gsap,
 	Dragger,
 	InertiaPlugin,
@@ -16,15 +16,15 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {KnownKeys} from "../helpers/bundler.js";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 // #region ████████ Type Definitions: TypeScript Interfaces Related to DOM Elements ████████ ~
 export interface Position extends Exclude<Point, PIXI.Point> {
 	rotation: number;
 	scale: number;
 }
+export type XAnim = gsap.core.Tween | gsap.core.Timeline;
 export interface XElemOptions {
-	renderApp: XItem;
 	onRender?: {
 		set?: gsap.TweenVars,
 		to?: gsap.TweenVars,
@@ -55,7 +55,7 @@ export interface DOMRenderer extends Position {
 	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void,
 }
 export interface GSAPController {
-	tweens: Record<string, gsap.core.Tween|gsap.core.Timeline>;
+	tweens: Record<string, XAnim>;
 
 	set: (vars: gsap.TweenVars) => XItem,
 	to: (vars: gsap.TweenVars) => XItem,
@@ -65,14 +65,14 @@ export interface GSAPController {
 // #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
 
 // #region 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
-export default class XElem implements DOMRenderer, GSAPController {
+export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSAPController {
 
-	// #region ▮▮▮▮▮▮▮[Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮ ~
+	// #region ▮▮▮▮▮▮▮ [Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮ ~
 	private renderPromise?: Promise<boolean>;
 	#isRenderReady = false;
-	get isRenderReady(): boolean { return this._isRenderReady }
+	get isRenderReady(): boolean { return this.#isRenderReady }
 	async confirmRender(isRendering = true): Promise<boolean> {
-		this._isRenderReady = this.isRenderReady || isRendering;
+		this.#isRenderReady = this.isRenderReady || isRendering;
 		if (this.isRendered) { return Promise.resolve(true) }
 		if (!this.isRenderReady) { return Promise.resolve(false) }
 		this.renderPromise = this.renderApp.renderApplication();
@@ -115,12 +115,12 @@ export default class XElem implements DOMRenderer, GSAPController {
 
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
 	readonly id: string;
-	readonly renderApp: XItem;
+	readonly renderApp: RenderItem;
 	get elem() { this.validateRender(); return this.renderApp.element[0] }
 	get elem$() { return $(this.elem) }
 
-	constructor(xOptions: XElemOptions) {
-		this.renderApp = xOptions.renderApp as typeof xOptions.renderApp;
+	constructor(renderApp: RenderItem, xOptions: XElemOptions) {
+		this.renderApp = renderApp;
 		this.id = this.renderApp.id;
 		this.onRender = xOptions.onRender ?? {};
 	}
@@ -213,12 +213,12 @@ export default class XElem implements DOMRenderer, GSAPController {
 	// #endregion ▄▄▄▄▄ Positioning ▄▄▄▄▄
 
 	// #region ████████ GSAP: GSAP Animation Method Wrappers ████████ ~
-	tweens: Record<string, gsap.core.Tween | gsap.core.Timeline> = {};
+	tweens: Record<string, XAnim> = {};
 	/*~ Figure out a way to have to / from / fromTo methods on all XItems that:
 			- will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
 			- if timescale is small enough, just uses.set() ~*/
 
-	set(vars: gsap.TweenVars): typeof this.renderApp {
+	set(vars: gsap.TweenVars): RenderItem {
 		if (this.isRendered) {
 			gsap.set(this.elem, vars);
 		} else {
@@ -229,7 +229,7 @@ export default class XElem implements DOMRenderer, GSAPController {
 		}
 		return this.renderApp;
 	}
-	to(vars: gsap.TweenVars): typeof this.renderApp {
+	to(vars: gsap.TweenVars): RenderItem {
 		if (this.isRendered) {
 			const tween = gsap.to(this.elem, vars);
 			if (vars.id) {
@@ -243,7 +243,7 @@ export default class XElem implements DOMRenderer, GSAPController {
 		}
 		return this.renderApp;
 	}
-	from(vars: gsap.TweenVars): typeof this.renderApp {
+	from(vars: gsap.TweenVars): RenderItem {
 		if (this.isRendered) {
 			const tween = gsap.from(this.elem, vars);
 			if (vars.id) {
@@ -257,7 +257,7 @@ export default class XElem implements DOMRenderer, GSAPController {
 		}
 		return this.renderApp;
 	}
-	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): typeof this.renderApp {
+	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): RenderItem {
 		if (this.isRendered) {
 			const tween = gsap.fromTo(this.elem, fromVars, toVars);
 			if (toVars.id) {

@@ -1,7 +1,7 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { gsap } from "/scripts/greensock/esm/all.js";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
-// #region ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮ ~
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
+// #region ▮▮▮▮▮▮▮ [HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮ ~
 /* eslint-disable array-element-newline */
 const _noCapWords = [
     "above", "after", "at", "below", "by", "down", "for", "from", "in", "onto", "of", "off", "on", "out",
@@ -206,8 +206,18 @@ const UUIDLOG = [];
 // #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
 // @ts-expect-error Leauge of foundry developers is wrong about user not being on game.
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
-/* eslint-enable @typescript-eslint/no-explicit-any */
-// #endregion ░░░░[TypeScript]░░░░
+// #endregion ░░░░[Types]░░░░
+// #region ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░ ~
+var Dir;
+(function (Dir) {
+    Dir["U"] = "U";
+    Dir["L"] = "L";
+    Dir["R"] = "R";
+    Dir["D"] = "D";
+})(Dir || (Dir = {}));
+// #endregion ░░░░[Enums]░░░░
+// #endregion 🟩🟩🟩 TYPESCRIPT 🟩🟩🟩
+// #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isArray = (ref) => Array.isArray(ref);
 const isSimpleObj = (ref) => ref === Object(ref) && !isArray(ref);
@@ -959,4 +969,5 @@ export default {
     formatAsClass,
     getGSAngleDelta
 };
+export { Dir };
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

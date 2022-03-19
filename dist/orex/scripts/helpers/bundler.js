@@ -15,7 +15,8 @@ export { default as preloadTemplates } from "./templates.js";
 export { default as XElem } from "../xclasses/xelem.js";
 export { default as XItem } from "../xclasses/xitem.js";
 export { default as XGroup, XPool, XRoll, XOrbitType } from "../xclasses/xgroup.js";
-export { default as XDie, XTermType } from "../xclasses/xterm.js";
+export { default as XDie, XMod, XTermType } from "../xclasses/xterm.js";
 export { XGhost, XMutator, XInfo } from "../xclasses/xmod.js";
 export { default as XPad } from "../xclasses/xpad.js";
-export { default as XAnimVars } from "./animations.js";
+// ████████ ENUMS: TypeScript Enums ████████
+export { Dir } from "./utilities.js";

@@ -1,6 +1,6 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+	// #region ====== GreenSock Animation ====== ~
 	gsap,
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
@@ -9,7 +9,7 @@ import {
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XElemOptions, DOMRenderer, GSAPController, ConstructorOf} from"../helpers/bundler.js";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElemOptions> {
 	id: string;
 	keepID?: boolean;
@@ -55,7 +55,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	}
 
 	protected static REGISTRY: Map<string,XItem> = new Map();
-	static Register(xItem: XItem) {
+	public static Register(xItem: XItem) {
 		(xItem.constructor as typeof XItem).REGISTRY.set(xItem.id, xItem);
 	}
 	static Unregister(xItem: string | XItem) {
@@ -69,7 +69,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	#xParent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
 	#xKids: Set<XItem> = new Set();
 	readonly xOptions: XItemOptions;
-	readonly xElem: XElem;
+	readonly xElem: XElem<typeof this>;
 
 	get elem() { return this.xElem.elem }
 	get elem$() { return this.xElem.elem$ }
@@ -101,8 +101,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		} else {
 			this.#xParent = xParent ?? XItem.XROOT;
 		}
-		this.xElem = new XElem({
-			renderApp: this,
+		this.xElem = new XElem(this, {
 			onRender: this.xOptions.onRender
 		});
 		(this.constructor as typeof XItem).Register(this);

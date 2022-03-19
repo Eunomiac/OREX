@@ -1,8 +1,8 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {gsap} from "gsap/all";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
-// #region ▮▮▮▮▮▮▮[HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮ ~
+// #region ▮▮▮▮▮▮▮ [HELPERS] Internal Functions, Data & References Used by Utility Functions ▮▮▮▮▮▮▮ ~
 /* eslint-disable array-element-newline */
 const _noCapWords = [ // Regexp tests that should not be capitalized when converting to title case.
 	"above", "after", "at", "below", "by", "down", "for", "from", "in", "onto", "of", "off", "on", "out",
@@ -210,9 +210,8 @@ const UUIDLOG: Array<[string, string, number]> = [];
 const GMID = (): string | false => game?.user?.find((user) => user.isGM)?.id ?? false;
 // #endregion ▄▄▄▄▄ GETTERS ▄▄▄▄▄
 
-// #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
-// #region ░░░░░░░[TypeScript]░░░░ Typescript Type Definitions ░░░░░░░ ~
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// #region 🟩🟩🟩 TYPESCRIPT: Type Data & Other TypeScript-Related Utilities 🟩🟩🟩
+// #region ░░░░░░░[Types]░░░░ Typescript Type Definitions ░░░░░░░ ~
 type int = number;
 type float = number;
 type posInt = number;
@@ -230,8 +229,19 @@ type RemoveIndex<T> = {
 };
 type Concrete<T> = { [Prop in keyof T]-?: T[Prop] }
 type KnownKeys<T> = keyof RemoveIndex<T>;
-/* eslint-enable @typescript-eslint/no-explicit-any */
-// #endregion ░░░░[TypeScript]░░░░
+// #endregion ░░░░[Types]░░░░
+// #region ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░ ~
+enum Dir {
+	U = "U",
+	L = "L",
+	R = "R",
+	D = "D"
+}
+// #endregion ░░░░[Enums]░░░░
+// #endregion 🟩🟩🟩 TYPESCRIPT 🟩🟩🟩
+
+// #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
+
 const isNumber = (ref: unknown): ref is number => typeof ref === "number" && !isNaN(ref);
 const isArray = (ref: unknown): ref is unknown[] => Array.isArray(ref);
 const isSimpleObj = (ref: unknown): ref is Record<string | number | symbol, unknown> => ref === Object(ref) && !isArray(ref);
@@ -694,7 +704,6 @@ export const Remove = (arr, findFunc = (e, i, a) => true) => {
 // #endregion ▄▄▄▄▄ ARRAYS ▄▄▄▄▄
 
 // #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type checkTestRef = ((...args: any[]) => any) | testFunc<keyFunc> | testFunc<valFunc> | RegExp | number | string;
 const checkVal = ({k, v}: { k?: unknown, v?: unknown }, checkTest: checkTestRef) => {
 	if (typeof checkTest === "function") {
@@ -983,4 +992,5 @@ export default {
 	getGSAngleDelta
 };
 export type {int, float, posInt, posFloat, HTMLCode, List, Index, ConstructorOf, KnownKeys, Concrete};
+export {Dir};
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

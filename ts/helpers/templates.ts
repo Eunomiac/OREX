@@ -1,4 +1,4 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U,
@@ -7,7 +7,7 @@ import {
 	XItem
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./bundler.js";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 
 export const getTemplatePath = (fileRelativePath: string) => `/systems/orex/templates/${
@@ -19,7 +19,8 @@ const templatePaths = {
 		xRoot: getTemplatePath("xroot"),
 		xItem: getTemplatePath("xitem"),
 		xArm: getTemplatePath("xarm"),
-		xDie: getTemplatePath("xdie")
+		xDie: getTemplatePath("xdie"),
+		xMod: getTemplatePath("xmod")
 	},
 	CHAT: {
 		xRoll: getTemplatePath("chat/xroll")

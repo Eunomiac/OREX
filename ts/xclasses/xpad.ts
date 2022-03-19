@@ -1,9 +1,9 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
 	// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
 	C,
 	// #endregion ▮▮▮▮[Constants]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+	// #region ====== GreenSock Animation ====== ~
 	gsap,
 	Dragger,
 	InertiaPlugin,
@@ -20,7 +20,7 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XItemOptions, XTerm} from "../helpers/bundler.js";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 export default class XPad extends XItem {
 

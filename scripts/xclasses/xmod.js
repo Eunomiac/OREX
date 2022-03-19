@@ -1,4 +1,4 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
@@ -6,7 +6,7 @@ U, XItem } from "../helpers/bundler.js";
 class XMod extends XItem {
     constructor(xParent, xOptions) {
         super(xParent, xOptions);
-        this.termType = xOptions.type;
+        this.type = xOptions.type;
     }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {

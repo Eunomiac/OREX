@@ -1,9 +1,9 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
 	// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
 	C,
 	// #endregion ▮▮▮▮[Constants]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+	// #region ====== GreenSock Animation ====== ~
 	gsap,
 	Dragger,
 	InertiaPlugin,
@@ -20,24 +20,23 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XTerm, XTermOptions} from "../helpers/bundler.js";
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 export interface XModOptions extends XTermOptions {
 	value?: number;
 }
 
 class XMod extends XItem implements XTerm {
+	type: XTermType;
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
 			classes: ["x-mod"]
 		});
 	}
 
-	termType: XTermType;
-
 	constructor(xParent: XPool, xOptions: XModOptions) {
 		super(xParent, xOptions);
-		this.termType = xOptions.type;
+		this.type = xOptions.type;
 	}
 
 	ApplyEffect(xRoll: XRoll) {

@@ -1,6 +1,6 @@
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
-	// #region ▮▮▮▮▮▮▮[External Libraries]▮▮▮▮▮▮▮ ~
+	// #region ====== GreenSock Animation ====== ~
 	gsap,
 	Dragger,
 	InertiaPlugin,
@@ -9,7 +9,6 @@ import {
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	preloadTemplates,
-	XAnimVars,
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
@@ -24,13 +23,15 @@ import {
 	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
 	/*!DEVCODE*/
 } from "./helpers/bundler.js";
+// #region ====== GreenSock Animation ====== ~
 
+// #endregion _______ GreenSock Animation _______
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 // @ts-expect-error Cheating by directly accessing protected member for debug purposes.
 Hooks._hooks.init.unshift(() => {
-	DB.title("BOOTING");
+	DB.groupTitle("BOOTING");
 	DB.groupDisplay("BOOTING DEV-MODE");
 });
 
@@ -38,7 +39,9 @@ Hooks._hooks.init.unshift(() => {
 Hooks.once("init", async () => {
 	DB.groupEnd();
 	DB.log("DEV-MODE BOOTED");
-	DB.title("INITIALIZING");
+	DB.groupEnd();
+	DB.log("... Booting Complete.");
+	DB.groupTitle("INITIALIZING");
 	DB.display("INITIALIZING ORE-X");
 	DB.groupInfo("Preloading Templates...");
 	preloadTemplates();
@@ -47,15 +50,16 @@ Hooks.once("init", async () => {
 	XItem.InitializeXROOT();
 	DB.groupEnd();
 	DB.log("ORE-X INITIALIZED");
-	DB.groupDisplay("Continuing  Initialization ...");
+	DB.groupDisplay("Finishing Initialization ...");
 });
 // #endregion ▄▄▄▄▄ ON INIT ▄▄▄▄▄
 
 Hooks.once("ready", async () => {
 	DB.groupEnd();
+	DB.groupEnd();
 	DB.log("... Initialization Complete.");
 	/*DEVCODE*/
-	DB.title("READYING");
+	DB.groupTitle("READYING");
 	DB.display("READYING ORE-X");
 	DB.groupInfo("Preparing Debug Controls...");
 	const DBCONTROLS = {
@@ -80,15 +84,15 @@ Hooks.once("ready", async () => {
 	DB.groupInfo("Declaring Debug Console Globals... ");
 	Object.entries({...DBCONTROLS, ...TESTS}).forEach(([key, val]) => { Object.assign(globalThis, {[key]: val}) });
 	DB.groupEnd();
-	DB.groupInfo("Initializing Test XRoll... ");
-	const ROLL = await TESTS.createRoll([3,4,5,2]);
-	Object.assign(globalThis, {ROLL});
-	DB.groupEnd();
 	DB.log("ORE-X READY");
 	DB.groupDisplay("Finishing Readying...");
-	setTimeout(() => {
+	setTimeout(async () => {
+		DB.groupEnd();
 		DB.groupEnd();
 		DB.log("... Readying Complete.");
+		DB.display("Initializing Test XRoll... ");
+		const ROLL = await TESTS.createRoll([3, 4, 5, 2]);
+		Object.assign(globalThis, {ROLL});
 	}, 1000);
 /*!DEVCODE*/
 });

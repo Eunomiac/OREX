@@ -1,5 +1,5 @@
-// #endregion ▄▄▄▄▄ IMPORTS ▄▄▄▄▄
-var XGSAP;
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
+export var XGSAP;
 (function (XGSAP) {
     let Type;
     (function (Type) {
@@ -7,9 +7,13 @@ var XGSAP;
         Type["FROM"] = "FROM";
         Type["FROMTO"] = "FROMTO";
         Type["SET"] = "SET";
+        Type["CALL"] = "CALL";
         Type["TIMELINE"] = "TIMELINE";
     })(Type = XGSAP.Type || (XGSAP.Type = {}));
 })(XGSAP || (XGSAP = {}));
+export const isTimeline = (vars) => {
+    return vars.type === XGSAP.Type.TIMELINE;
+};
 const XAnimVars = {
     rotateXPool: (config) => {
         config = {
@@ -20,17 +24,19 @@ const XAnimVars = {
         return [
             {
                 type: XGSAP.Type.TO,
-                rotation: config.rotation,
-                duration: config.duration,
-                repeat: -1,
-                ease: "none",
-                callbackScope: config.xItem,
-                onUpdate() {
-                    this.xItems.forEach((xItem) => {
-                        if (xItem.xParent?.isInitialized) {
-                            xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
-                        }
-                    });
+                vars: {
+                    rotation: config.rotation,
+                    duration: config.duration,
+                    repeat: -1,
+                    ease: "none",
+                    callbackScope: config.xItem,
+                    onUpdate() {
+                        this.xItems.forEach((xItem) => {
+                            if (xItem.xParent?.isInitialized) {
+                                xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
+                            }
+                        });
+                    }
                 }
             }
         ];
@@ -44,11 +50,13 @@ const XAnimVars = {
         return [
             {
                 type: XGSAP.Type.TO,
-                color: "transparent",
-                outlineWidth: 0,
-                autoAlpha: 0,
-                duration: config.duration,
-                ease: config.ease
+                vars: {
+                    color: "transparent",
+                    outlineWidth: 0,
+                    autoAlpha: 0,
+                    duration: config.duration,
+                    ease: config.ease
+                }
             }
         ];
     },
@@ -61,34 +69,42 @@ const XAnimVars = {
         return [
             {
                 type: XGSAP.Type.TIMELINE,
-                stagger: config.stagger
+                vars: {
+                    stagger: config.stagger
+                }
             },
             {
                 type: XGSAP.Type.TO,
                 timeStamp: ">",
-                color: "black",
-                outlineWidth: 0,
-                outlineOffset: 0,
-                autoAlpha: 0.5,
-                duration: typeof config.duration === "number" ? config.duration * (1 / 5) : config.duration,
-                ease: "power2.out"
+                vars: {
+                    color: "black",
+                    outlineWidth: 0,
+                    outlineOffset: 0,
+                    autoAlpha: 0.5,
+                    duration: typeof config.duration === "number" ? config.duration * (1 / 5) : config.duration,
+                    ease: "power2.out"
+                }
             },
             {
                 type: XGSAP.Type.TO,
                 timeStamp: ">",
-                scale: 1.5,
-                duration: typeof config.duration === "number" ? config.duration * (1 / 5) : config.duration,
-                ease: "back.inOut",
-                repeat: 1,
-                yoyo: true,
-                yoyoEase: true
+                vars: {
+                    scale: 1.5,
+                    duration: typeof config.duration === "number" ? config.duration * (1 / 5) : config.duration,
+                    ease: "back.inOut",
+                    repeat: 1,
+                    yoyo: true,
+                    yoyoEase: true
+                }
             },
             {
                 type: XGSAP.Type.TO,
                 timeStamp: ">",
-                autoAlpha: 1,
-                duration: typeof config.duration === "number" ? config.duration * (1 / 5) : config.duration,
-                ease: config.ease
+                vars: {
+                    autoAlpha: 1,
+                    duration: typeof config.duration === "number" ? config.duration * (1 / 5) : config.duration,
+                    ease: config.ease
+                }
             }
         ];
     }

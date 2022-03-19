@@ -1,17 +1,13 @@
-/*DEVCODE*/
-/*!DEVCODE*/
-// #region ████████ IMPORTS ████████ ~
+// #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
-// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
-C, 
-// #endregion ▮▮▮▮[Constants]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, 
+C, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
 XItem, XGroup, XPool, XDie, XTermType, XOrbitType, XRoll
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "./bundler.js";
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 const XDebugger = (type, message, ...content) => {
     if (C.isDebugging) {
         const styleLine = Object.entries({
@@ -35,34 +31,35 @@ const XDebugger = (type, message, ...content) => {
 };
 const STYLES = {
     title: {
-        "background": "linear-gradient(to right,#ff8a00,#da1b60)",
+        "background": "linear-gradient(to right,#da1b60,#ff8a00)",
         "color": "#100e17",
-        "width": "1000px",
         "font-family": "Candal",
         "font-size": "18px",
-        "padding": "0 600px 0 10px"
+        "padding": "0 30px 0 10px",
+        "margin-left": "-20px"
     },
     display: {
         "background": "#EDB620",
         "color": "black",
         "font-family": "AlverataInformalW01-Regular",
         "font-size": "16px",
-        // "margin-left": "-100px",
-        "padding": "0 400px 0 10px",
+        "padding": "0 10px 0 10px",
         "font-weight": "bold"
     },
     base: {
         "background": "#000000",
         "color": "#EDB620",
         "font-family": "Pragmata Pro",
-        "padding": "0 300px 0 32px"
+        "padding": "0 20px 0 20px"
     },
     info: {
         "background": "transparent",
         "color": "white",
-        "font-weight": "bold",
-        "font-family": "Pragmata Pro",
-        "padding": "0 300px 0 50px"
+        "font-size": "11px",
+        "font-weight": "normal",
+        "font-family": "Fira Code",
+        "padding": "0 30px 0 30px"
+        // "margin-left": "250px"
     },
     error: {
         "color": "#FF0000",
@@ -314,7 +311,6 @@ const TESTS = {
     createRoll: async (dice) => {
         const rollPool = new XRoll(XItem.XROOT, {
             id: "ROLL",
-            // keepID: true,
             onRender: {
                 set: {
                     x: 500,

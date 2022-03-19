@@ -27,18 +27,22 @@ export {default as preloadTemplates} from "./templates.js";
 export {default as XElem} from "../xclasses/xelem.js";
 export {default as XItem} from "../xclasses/xitem.js";
 export {default as XGroup, XPool, XRoll, XOrbitType} from "../xclasses/xgroup.js";
-export {default as XDie, XTermType} from "../xclasses/xterm.js";
+export {default as XDie, XMod, XTermType} from "../xclasses/xterm.js";
 export {XGhost, XMutator, XInfo} from "../xclasses/xmod.js";
 export {default as XPad} from "../xclasses/xpad.js";
-export {default as XAnimVars} from "./animations.js";
+// export {default as XAnimVars, XGSAP, isTimeline} from "./animations.js";
 // #endregion ▄▄▄▄▄ XItems ▄▄▄▄▄
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄
 
 // #region ████████ TYPES: TypeScript Type Definitions ████████
 export type {int, float, posInt, posFloat, HTMLCode, List, Index, ConstructorOf, KnownKeys, Concrete} from "./utilities.js";
+export type {Position, XAnim, XElemOptions, DOMRenderer, GSAPController} from "../xclasses/xelem.js";
 export type {XItemOptions} from "../xclasses/xitem.js";
-export type {Position, XElemOptions, DOMRenderer, GSAPController} from "../xclasses/xelem.js";
 export type {XGroupOptions, XPoolOptions, XOrbitSpecs, XRollOptions} from "../xclasses/xgroup.js";
 export type {XTerm, XTermOptions, XDieOptions} from "../xclasses/xterm.js";
 export type {XModOptions} from "../xclasses/xmod.js";
 // #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
+
+// #region ████████ ENUMS: TypeScript Enums ████████
+export {Dir} from "./utilities.js";
+// #endregion ▄▄▄▄▄ ENUMS ▄▄▄▄▄
