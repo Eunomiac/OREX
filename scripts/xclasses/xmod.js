@@ -4,14 +4,15 @@ import {
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 U, XItem } from "../helpers/bundler.js";
 class XMod extends XItem {
-    constructor(xParent, xOptions) {
-        super(xParent, xOptions);
-        this.type = xOptions.type;
-    }
+    type;
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             classes: ["x-mod"]
         });
+    }
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
+        this.type = xOptions.type;
     }
     ApplyEffect(xRoll) {
         return xRoll;

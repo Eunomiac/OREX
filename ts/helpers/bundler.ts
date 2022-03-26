@@ -39,7 +39,7 @@ export type {int, float, posInt, posFloat, HTMLCode, List, Index, ConstructorOf,
 export type {Position, XAnim, XElemOptions, DOMRenderer, GSAPController} from "../xclasses/xelem.js";
 export type {XItemOptions} from "../xclasses/xitem.js";
 export type {XGroupOptions, XPoolOptions, XOrbitSpecs, XRollOptions} from "../xclasses/xgroup.js";
-export type {XTerm, XTermOptions, XDieOptions} from "../xclasses/xterm.js";
+export type {XTerm, XTermOptions, XDieValue, XDieFace, XDieOptions} from "../xclasses/xterm.js";
 export type {XModOptions} from "../xclasses/xmod.js";
 // #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
 

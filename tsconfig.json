@@ -26,10 +26,21 @@
 		],
 		"rootDir": ".",
 		"strictNullChecks": true,
-		"target": "es2021",
+		"target": "ES2022",
 		"traceResolution": false,
 		"typeRoots": ["./node_modules/@types", "./node_modules/@league-of-foundry-developers", "./ts/@types"]
 	},
-	"exclude": ["/ts/@types/**", "dist/**", "scripts/**", "gulpfile.js", "node_modules/**", ".eslintrc.js", ".gitignore", ".htmlhintrc", ".npmignore", ".prettierrc.js", "stylelint.config.js"],
+	"exclude": [
+		"/ts/@types/**",
+		"dist/**",
+		"scripts/**",
+		"gulpfile.js",
+		"node_modules/**",
+		".eslintrc.js",
+		".gitignore",
+		".htmlhintrc",
+		".npmignore",
+		".prettierrc.js",
+		"stylelint.config.js"],
 	"references": []
 }

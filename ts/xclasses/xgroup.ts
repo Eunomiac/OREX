@@ -4,15 +4,16 @@ import {
 	C, U, DB,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-	XItem, XDie, XTerm,
-	XTermType, XMod,
+	XItem, XTerm,
+	XTermType,
+	XDie,
+	XMod,
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Enums]▮▮▮▮▮▮▮
 	Dir
 	// #endregion ▮▮▮▮[Enums]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XItemOptions} from "../helpers/bundler.js";
-import {stringify} from "querystring";
+import type {XItemOptions, XDieValue} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 /*DEVCODE*/
 // #region ▮▮▮▮▮▮▮ [SCHEMA] Breakdown of Classes & Subclasses ▮▮▮▮▮▮▮ ~
@@ -298,9 +299,9 @@ export class XRoll extends XPool {
 	protected static override REGISTRY: Map<string, XRoll> = new Map();
 	#hasRolled = false;
 	get hasRolled() { return this.#hasRolled }
-	get diceRolls(): number[] {
+	get diceRolls(): XDieValue[] {
 		if (this.hasRolled) {
-			return this.getXKids(XDie, true).map((xDie) => (xDie).value || 0);
+			return this.getXKids(XDie, true).map((xDie) => (xDie).value);
 		}
 		return [];
 	}
@@ -313,24 +314,50 @@ export class XRoll extends XPool {
 	}
 
 	// Rolls all XDie in the XRoll.
-	rollDice(isForcingReroll = false) {
+	rollDice(isForcingReroll = false, isAnimating = true) {
 		if (isForcingReroll || !this.#hasRolled) {
 			this.#hasRolled = true;
 			const xDice = this.getXKids(XDie, true);
-			gsap.timeline(({stagger: 0.1}))
-				.to(this.diceVals$, {
-					color: "transparent",
-					autoAlpha: 0,
-					duration: 0.15,
-					ease: "power2.out"
-				})
-				.call(() => xDice.forEach((xDie) => xDie.roll()))
-				.to(this.diceVals$, {
-					color: "black",
-					autoAlpha: 1
-				});
+			if (isAnimating) {
+				gsap.timeline(({stagger: 0.1}))
+					.to(this.diceVals$, {
+						color: "transparent",
+						autoAlpha: 0,
+						duration: 0.15,
+						ease: "power2.out"
+					})
+					.call(() => xDice.forEach((xDie) => xDie.roll()))
+					.to(this.diceVals$, {
+						color: "black",
+						autoAlpha: 1
+					});
+			} else {
+				xDice.forEach((xDie) => xDie.roll());
+			}
 		}
 	}
+
+	// #region ████████ Roll Results: Parsing & Analyzing Roll Results ████████ ~
+	getValsInOrbit(orbital: XOrbitType): XDieValue[] {
+		return this.orbitals.get(orbital)?.xTerms.map((xTerm) => xTerm.value ?? 0) ?? [];
+	}
+	get mainVals(): XDieValue[] { return this.getValsInOrbit(XOrbitType.Main) }
+	get sets() {
+		const dieVals = this.mainVals.sort();
+		const setDice = dieVals.filter((val) => dieVals.filter((v) => v === val).length > 1);
+		const setGroups: XDieValue[][] = [];
+		while (setDice.length) {
+			const dieVal = setDice.pop() as XDieValue;
+			const groupIndex = setGroups.findIndex(([groupVal]) => groupVal === dieVal);
+			if (groupIndex >= 0) {
+				setGroups[groupIndex].push(dieVal);
+			} else {
+				setGroups.push([dieVal]);
+			}
+		}
+		return setGroups;
+	}
+	// #endregion ▄▄▄▄▄ Roll Results ▄▄▄▄▄
 
 }
 // #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄

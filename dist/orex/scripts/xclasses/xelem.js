@@ -1,16 +1,4 @@
 
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
-var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-};
-var _XElem_isRenderReady;
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { 
 // ====== GreenSock Animation ======
@@ -22,18 +10,12 @@ XItem
  } from "../helpers/bundler.js";
 // 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 export default class XElem {
-    constructor(renderApp, xOptions) {
-        _XElem_isRenderReady.set(this, false);
-
-        // ████████ GSAP: GSAP Animation Method Wrappers ████████
-        this.tweens = {};
-        this.renderApp = renderApp;
-        this.id = this.renderApp.id;
-        this.onRender = xOptions.onRender ?? {};
-    }
-    get isRenderReady() { return __classPrivateFieldGet(this, _XElem_isRenderReady, "f"); }
+    // ▮▮▮▮▮▮▮ [Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮
+    renderPromise;
+    #isRenderReady = false;
+    get isRenderReady() { return this.#isRenderReady; }
     async confirmRender(isRendering = true) {
-        __classPrivateFieldSet(this, _XElem_isRenderReady, this.isRenderReady || isRendering, "f");
+        this.#isRenderReady = this.isRenderReady || isRendering;
         if (this.isRendered) {
             return Promise.resolve(true);
         }
@@ -70,8 +52,17 @@ export default class XElem {
             throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await confirmRender?`);
         }
     }
+    onRender;
+    // ████████ CONSTRUCTOR & Essential Fields ████████
+    id;
+    renderApp;
     get elem() { this.validateRender(); return this.renderApp.element[0]; }
     get elem$() { return $(this.elem); }
+    constructor(renderApp, xOptions) {
+        this.renderApp = renderApp;
+        this.id = this.renderApp.id;
+        this.onRender = xOptions.onRender ?? {};
+    }
     // ████████ Parenting: Adopting & Managing Child XItems ████████
     get parentApp() { return this.renderApp.xParent; }
     adopt(child, isRetainingPosition = true) {
@@ -139,6 +130,9 @@ export default class XElem {
             scale: ofItem.global.scale / this.global.scale
         };
     }
+
+    // ████████ GSAP: GSAP Animation Method Wrappers ████████
+    tweens = {};
     /*~ Figure out a way to have to / from / fromTo methods on all XItems that:
             - will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
             - if timescale is small enough, just uses.set() ~*/
@@ -204,4 +198,3 @@ export default class XElem {
         return this.renderApp;
     }
 }
-_XElem_isRenderReady = new WeakMap();

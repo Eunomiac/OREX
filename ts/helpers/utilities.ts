@@ -766,7 +766,7 @@ const replace = (obj: Index<unknown>, checkTest: checkTestRef, repVal: unknown) 
 };
 // Given an object and a predicate function, returns array of two objects:
 //   one with entries that pass, one with entries that fail.
-const partition = (obj: Index<unknown>, predicate: testFunc<valFunc> = () => true): [Index<unknown>, Index<unknown>] => [
+const partition = <Type>(obj: Type[], predicate: testFunc<valFunc> = () => true): [Type[], Type[]] => [
 	objFilter(obj, predicate),
 	objFilter(obj, (v: unknown, k: string | number | undefined) => !predicate(v, k))
 ];

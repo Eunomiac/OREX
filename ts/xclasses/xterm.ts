@@ -20,12 +20,13 @@ import type {XItemOptions} from "../helpers/bundler.js";
 
 export interface XTermOptions extends XItemOptions {
 	type: XTermType,
-	value?: number,
 	size?: number,
 }
 
 export interface XTerm {
-	type: XTermType
+	type: XTermType,
+	// THIS SHIT IS WRONG AND BAD: NEED TO ACCOUNT FOR OTHER TYPES OF VALUES
+	value?: XDieValue,
 	ApplyEffect?: (xRoll: XRoll) => XRoll
 }
 
@@ -37,8 +38,12 @@ export const enum XTermType {
 	Ignore
 }
 
+export type XDieFace = " " | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "X";
+export type XDieValue = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
 export interface XDieOptions extends XTermOptions {
 	type: XTermType.BasicDie | XTermType.ExpertDie | XTermType.MasterDie | XTermType.GobbleDie,
+	value?: XDieValue,
 	color?: string,
 	numColor?: string,
 	strokeColor?: string,
@@ -61,23 +66,23 @@ export default class XDie extends XItem implements XTerm {
 			}
 		});
 	}
-	private _value = 0;
+	private _value: XDieValue = 0;
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
-	get value() { return (this._value = this._value ?? 0) }
-	set value(val: number) {
-		if (val >= 0 && val <= 10) {
+	get value(): XDieValue { return this._value }
+	set value(val: XDieValue) {
+		if (val && val > 0 && val <= 10) {
 			this._value = val;
 			if (this.isInitialized) {
 				this.value$.html(this.face);
 			}
 		}
 	}
-	get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "<span style=\"color: red;\">X</span>"][this._value]}
+	get face(): XDieFace { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this._value] as XDieFace }
 
 	get isRolled() { return this.value > 0 }
 
-	roll() { this.value = U.randInt(1, 10) }
+	roll() { this.value = U.randInt(1, 10) as XDieValue }
 
 	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XDieOptions) {
 		const dieSize = xOptions.size ?? 40;
@@ -129,11 +134,11 @@ export class XMod extends XItem implements XTerm {
 			}
 		});
 	}
-	private _value = 0;
+	private _value: XDieValue = 0;
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
 	get value() { return (this._value = this._value ?? 0) }
-	set value(val: number) {
+	set value(val: XDieValue) {
 		this._value = val;
 		if (this.isInitialized) {
 			this.value$.html(`${val}`);
@@ -159,7 +164,7 @@ export class XMod extends XItem implements XTerm {
 		};
 		xOptions.type = xOptions.type ?? XTermType.BasicDie;
 		super(xParent, xOptions);
-		this.value = xOptions.value ?? 0;
+		// this.value = xOptions.value ?? 0;
 		this.type = xOptions.type;
 	}
 

@@ -24,6 +24,35 @@ export var XTermType;
     XTermType[XTermType["Ignore"] = 12] = "Ignore";
 })(XTermType || (XTermType = {}));
 export default class XDie extends XItem {
+    static REGISTRY = new Map();
+    type;
+    static get defaultOptions() {
+        return U.objMerge(super.defaultOptions, {
+            classes: ["x-die"],
+            template: U.getTemplatePath("xdie"),
+            onRender: {
+                set: {
+                    fontSize: "calc(1.2 * var(--die-size))",
+                    fontFamily: "Oswald",
+                    textAlign: "center"
+                }
+            }
+        });
+    }
+    _value = 0;
+    get value$() { return $(`#${this.id} .die-val`); }
+    get value() { return this._value; }
+    set value(val) {
+        if (val && val > 0 && val <= 10) {
+            this._value = val;
+            if (this.isInitialized) {
+                this.value$.html(this.face);
+            }
+        }
+    }
+    get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this._value]; }
+    get isRolled() { return this.value > 0; }
+    roll() { this.value = U.randInt(1, 10); }
     constructor(xParent, xOptions) {
         const dieSize = xOptions.size ?? 40;
         xOptions.onRender ??= {};
@@ -38,36 +67,9 @@ export default class XDie extends XItem {
         };
         xOptions.type = xOptions.type ?? XTermType.BasicDie;
         super(xParent, xOptions);
-        this._value = 0;
         this.value = xOptions.value ?? 0;
         this.type = xOptions.type;
     }
-    static get defaultOptions() {
-        return U.objMerge(super.defaultOptions, {
-            classes: ["x-die"],
-            template: U.getTemplatePath("xdie"),
-            onRender: {
-                set: {
-                    fontSize: "calc(1.2 * var(--die-size))",
-                    fontFamily: "Oswald",
-                    textAlign: "center"
-                }
-            }
-        });
-    }
-    get value$() { return $(`#${this.id} .die-val`); }
-    get value() { return (this._value = this._value ?? 0); }
-    set value(val) {
-        if (val >= 0 && val <= 10) {
-            this._value = val;
-            if (this.isInitialized) {
-                this.value$.html(this.face);
-            }
-        }
-    }
-    get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "<span style=\"color: red;\">X</span>"][this._value]; }
-    get isRolled() { return this.value > 0; }
-    roll() { this.value = U.randInt(1, 10); }
     getData() {
         const context = super.getData();
         const faceNum = this.value === 10 ? 0 : (this.value || " ");
@@ -77,23 +79,9 @@ export default class XDie extends XItem {
         return context;
     }
 }
-XDie.REGISTRY = new Map();
 export class XMod extends XItem {
-    constructor(xParent, xOptions) {
-        const dieSize = xOptions.size ?? 40;
-        xOptions.onRender ??= {};
-        xOptions.onRender.set = {
-            ...{
-                "--die-size": `${dieSize}px`
-            },
-            ...xOptions.onRender.set ?? {}
-        };
-        xOptions.type = xOptions.type ?? XTermType.BasicDie;
-        super(xParent, xOptions);
-        this._value = 0;
-        this.value = xOptions.value ?? 0;
-        this.type = xOptions.type;
-    }
+    static REGISTRY = new Map();
+    type;
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             classes: ["x-mod"],
@@ -107,6 +95,7 @@ export class XMod extends XItem {
             }
         });
     }
+    _value = 0;
     get value$() { return $(`#${this.id} .die-val`); }
     get value() { return (this._value = this._value ?? 0); }
     set value(val) {
@@ -119,6 +108,20 @@ export class XMod extends XItem {
         return super.xParent;
     }
     set xParent(xItem) { super.xParent = xItem; }
+    constructor(xParent, xOptions) {
+        const dieSize = xOptions.size ?? 40;
+        xOptions.onRender ??= {};
+        xOptions.onRender.set = {
+            ...{
+                "--die-size": `${dieSize}px`
+            },
+            ...xOptions.onRender.set ?? {}
+        };
+        xOptions.type = xOptions.type ?? XTermType.BasicDie;
+        super(xParent, xOptions);
+        // this.value = xOptions.value ?? 0;
+        this.type = xOptions.type;
+    }
     getData() {
         const context = super.getData();
         const faceNum = this.value === 10 ? 0 : (this.value || " ");
@@ -128,4 +131,3 @@ export class XMod extends XItem {
         return context;
     }
 }
-XMod.REGISTRY = new Map();

@@ -1,16 +1,4 @@
 
-var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-};
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
-var _a, _XItem_XROOT, _XItem_isInitialized, _XItem_xParent, _XItem_xKids;
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { 
 // ====== GreenSock Animation ======
@@ -18,29 +6,6 @@ gsap,
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 U, DB, XElem } from "../helpers/bundler.js";
 export default class XItem extends Application {
-    constructor(xParent, { classes = [], ...xOptions }) {
-        if (xParent) {
-            xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^X?ROOT-?/, "X-"));
-        }
-        super(xOptions);
-        _XItem_isInitialized.set(this, false);
-        _XItem_xParent.set(this, void 0);
-        _XItem_xKids.set(this, new Set());
-        this._tickers = new Set();
-        // this.constructor().Register(this);
-        this.options.classes.push(...classes);
-        this.xOptions = Object.assign(xOptions, this.options);
-        if (xParent === null) {
-            __classPrivateFieldSet(this, _XItem_xParent, null, "f");
-        }
-        else {
-            __classPrivateFieldSet(this, _XItem_xParent, xParent ?? XItem.XROOT, "f");
-        }
-        this.xElem = new XElem(this, {
-            onRender: this.xOptions.onRender
-        });
-        this.constructor.Register(this);
-    }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
@@ -60,12 +25,13 @@ export default class XItem extends Application {
             }
         });
     }
-    static get XROOT() { return __classPrivateFieldGet(XItem, _a, "f", _XItem_XROOT); }
+    static #XROOT;
+    static get XROOT() { return XItem.#XROOT; }
     static async InitializeXROOT() {
         if (XItem.XROOT) {
             XItem.XROOT.kill();
         }
-        __classPrivateFieldSet(XItem, _a, new XItem(null, {
+        XItem.#XROOT = new XItem(null, {
             id: "XROOT",
             onRender: {
                 set: {
@@ -73,9 +39,10 @@ export default class XItem extends Application {
                     yPercent: 0
                 }
             }
-        }), "f", _XItem_XROOT);
-        return __classPrivateFieldGet(XItem, _a, "f", _XItem_XROOT).initialize();
+        });
+        return XItem.#XROOT.initialize();
     }
+    static REGISTRY = new Map();
     static Register(xItem) {
         xItem.constructor.REGISTRY.set(xItem.id, xItem);
     }
@@ -85,11 +52,16 @@ export default class XItem extends Application {
     static GetAll() {
         return Array.from(this.REGISTRY.values());
     }
+    #isInitialized = false;
+    #xParent;
+    #xKids = new Set();
+    xOptions;
+    xElem;
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
-    get xParent() { return __classPrivateFieldGet(this, _XItem_xParent, "f"); }
-    set xParent(xParent) { __classPrivateFieldSet(this, _XItem_xParent, xParent ?? XItem.XROOT, "f"); }
-    get xKids() { return __classPrivateFieldGet(this, _XItem_xKids, "f"); }
+    get xParent() { return this.#xParent; }
+    set xParent(xParent) { this.#xParent = xParent ?? XItem.XROOT; }
+    get xKids() { return this.#xKids; }
     get hasChildren() { return this.xKids.size > 0; }
     registerXKid(xKid) { xKid.xParent = this; this.xKids.add(xKid); }
     unregisterXKid(xKid) { this.xKids.delete(xKid); }
@@ -102,18 +74,37 @@ export default class XItem extends Application {
         }
         return xKids;
     }
+    constructor(xParent, { classes = [], ...xOptions }) {
+        if (xParent) {
+            xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^X?ROOT-?/, "X-"));
+        }
+        super(xOptions);
+        // this.constructor().Register(this);
+        this.options.classes.push(...classes);
+        this.xOptions = Object.assign(xOptions, this.options);
+        if (xParent === null) {
+            this.#xParent = null;
+        }
+        else {
+            this.#xParent = xParent ?? XItem.XROOT;
+        }
+        this.xElem = new XElem(this, {
+            onRender: this.xOptions.onRender
+        });
+        this.constructor.Register(this);
+    }
     async initialize() {
         if (this.isInitialized) {
             return Promise.resolve(true);
         }
         if (await this.xElem.confirmRender(true)) {
             return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize()))
-                .then(() => { __classPrivateFieldSet(this, _XItem_isInitialized, true, "f"); return Promise.resolve(true); }, () => Promise.resolve(false));
+                .then(() => { this.#isInitialized = true; return Promise.resolve(true); }, () => Promise.resolve(false));
         }
         return Promise.resolve(false);
     }
     get isRendered() { return this.rendered; }
-    get isInitialized() { return __classPrivateFieldGet(this, _XItem_isInitialized, "f"); }
+    get isInitialized() { return this.#isInitialized; }
     get x() { return this.xElem.x; }
     get y() { return this.xElem.y; }
     get pos() { return this.xElem.pos; }
@@ -126,6 +117,7 @@ export default class XItem extends Application {
     get radius() { return this.xElem.radius; }
     get confirmRender() { return this.xElem.confirmRender.bind(this.xElem); }
     get adopt() { return this.xElem.adopt.bind(this.xElem); }
+    _tickers = new Set();
     addTicker(func) {
         this._tickers.add(func);
         gsap.ticker.add(func);
@@ -179,6 +171,3 @@ export default class XItem extends Application {
         }
     }
 }
-_a = XItem, _XItem_isInitialized = new WeakMap(), _XItem_xParent = new WeakMap(), _XItem_xKids = new WeakMap();
-_XItem_XROOT = { value: void 0 };
-XItem.REGISTRY = new Map();
