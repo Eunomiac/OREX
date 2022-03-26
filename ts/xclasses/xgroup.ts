@@ -103,6 +103,8 @@ class XArm extends XItem {
 		}
 		return Promise.resolve(false);
 	}
+
+	get orbitWeight() { return this.xItem.size }
 }
 // #endregion ░░░░[XArm]░░░░
 
@@ -127,7 +129,7 @@ export class XOrbit extends XGroup {
 	#rotationAngle: "+=360" | "-=360";
 	#rotationDuration: number;
 
-	protected get arms$() { return $(`#${this.id} .x-arm`) }
+	protected get arms$() { return $(`#${this.id} > .x-arm`) }
 	protected get arms() { return Array.from(this.xKids) as XArm[] }
 	override get xItems(): XItem[] { return this.arms.map((xArm) => xArm.xItem) }
 	get xTerms(): Array<XItem & XTerm> { return this.xItems.filter((xItem) => xItem instanceof XDie || xItem instanceof XMod) as Array<XItem & XTerm> }
@@ -141,6 +143,17 @@ export class XOrbit extends XGroup {
 		}
 	}
 	get orbitRadius() { return this.radiusRatio * 0.5 * this.xParent.width }
+	get totalArmWeight() { return this.arms.map((arm) => arm.orbitWeight).reduce((tot, val) => tot + val, 0) }
+	get armAngles() {
+		const anglePerWeight = 360 / this.totalArmWeight;
+		const armAngles: number[] = [];
+		let usedWeight = 0;
+		this.arms.forEach((arm) => {
+			usedWeight += arm.orbitWeight;
+			armAngles.push((usedWeight - (0.5 * arm.orbitWeight)) * anglePerWeight);
+		});
+		return armAngles;
+	}
 
 	constructor(name: XOrbitType, parentGroup: XGroup, radiusRatio?: number, rotationScaling?: number) {
 		radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
@@ -175,8 +188,8 @@ export class XOrbit extends XGroup {
 				ease: "none",
 				callbackScope: this,
 				onUpdate() {
-					this.xItems.forEach((xItem: XItem) => {
-						if (xItem.xParent?.isInitialized) {
+					this.xTerms.forEach((xItem: XItem) => {
+						if (xItem.isInitialized && xItem.xParent?.isInitialized) {
 							xItem.set({rotation: -1 * xItem.xParent.global.rotation});
 						}
 					});
@@ -192,7 +205,7 @@ export class XOrbit extends XGroup {
 		}
 		this.updateArmsThrottle = setTimeout(() => {
 			DB.log("Update Arms RUNNING!");
-			const angleStep = 360 / this.arms.length;
+			const self = this;
 			gsap.timeline()
 				.to(this.arms$, {
 					width: widthOverride ?? this.orbitRadius,
@@ -201,10 +214,15 @@ export class XOrbit extends XGroup {
 					stagger: {
 						amount: 1,
 						from: "end"
-					}
+					}/* ,
+					onUpdate() {
+						this.targets.forEach((target: HTMLElement) => {
+							gsap.set($(`#${target.id} > .x-item`), {x: gsap.getProperty(target, "width")});
+						});
+					} */
 				}, "<")
 				.to(this.arms$, {
-					rotation(i) { return angleStep * i },
+					rotation(i) { return self.armAngles[i] },
 					ease: "power2.out",
 					duration
 				}, "<");
@@ -287,8 +305,8 @@ export class XPool extends XGroup {
 
 	async addXItems(xItemsByOrbit: Partial<Record<XOrbitType, XItem[]>>) {
 		const self = this;
-		return Promise.allSettled(Object.entries(xItemsByOrbit).map(([orbitName, xItems]) =>
-			xItems.map((xItem) => self.addXItem(xItem, orbitName as XOrbitType))));
+		return Promise.allSettled(Object.entries(xItemsByOrbit).map(async ([orbitName, xItems]) =>
+			await Promise.allSettled(xItems.map(async (xItem) => await self.addXItem(xItem, orbitName as XOrbitType)))));
 	}
 }
 // #endregion ▄▄▄▄▄ XPool ▄▄▄▄▄

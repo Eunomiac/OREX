@@ -78,9 +78,15 @@ Hooks.once("ready", async () => {
         DB.groupEnd();
         DB.groupEnd();
         DB.log("... Readying Complete.");
-        DB.display("Initializing Test XRoll... ");
-        const ROLL = await TESTS.createRoll([3, 4, 5, 2]);
-        Object.assign(globalThis, { ROLL });
+        DB.groupTitle("Initializing Test XRoll... ");
+        const nestedRolls = await Promise.all([
+            [[8], { height: 150, width: 150, dieColor: "purple", poolColor: "gold" }],
+            [[3], { height: 100, width: 100, dieColor: "blue", poolColor: "orange" }],
+            [[3], { height: 75, width: 75, dieColor: "magenta", poolColor: "lime" }]
+        ].map(([dice, params]) => TESTS.createRoll(dice, params)));
+        const ROLL = await TESTS.createRoll([7], { x: 500, y: 500 }, nestedRolls);
+        Object.assign(globalThis, { ROLL, nestedRolls });
+        DB.groupEnd();
     }, 1000);
     /*!DEVCODE*/
 });

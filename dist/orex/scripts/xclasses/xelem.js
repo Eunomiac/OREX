@@ -88,17 +88,13 @@ export default class XElem {
         const self = this;
         return {
             get pos() {
-                if (self.parentApp) {
-                    self.parentApp.xElem.validateRender();
-                    return MotionPathPlugin.convertCoordinates(self.parentApp.elem, XItem.XROOT.elem, self.pos);
-                }
-                return self.pos;
+                return MotionPathPlugin.convertCoordinates(self.elem, XItem.XROOT.elem, { x: 0.5 * self.width, y: 0.5 * self.height });
             },
             get x() { return this.pos.x; },
             get y() { return this.pos.y; },
             get rotation() {
                 let totalRotation = self.rotation, { parentApp } = self;
-                while (parentApp) {
+                while (parentApp?.isInitialized) {
                     parentApp.xElem.validateRender();
                     totalRotation += parentApp.rotation;
                     parentApp = parentApp.xParent;
@@ -107,7 +103,7 @@ export default class XElem {
             },
             get scale() {
                 let totalScale = self.scale, { parentApp } = self;
-                while (parentApp) {
+                while (parentApp?.isInitialized) {
                     parentApp.xElem.validateRender();
                     totalScale *= parentApp.scale;
                     parentApp = parentApp.xParent;
@@ -120,7 +116,7 @@ export default class XElem {
     get width() { return U.pInt(this.isRendered ? U.get(this.elem, "width", "px") : this.onRender.set?.width); }
     get size() { return (this.height + this.width) / 2; }
     get radius() { return (this.height === this.width ? this.height : false); }
-    // ░░░░░░░ Converting from Global to Element's Local Space ░░░░░░░
+    // ░░░░░░░ Converting from Global Space to Element's Local Space ░░░░░░░
     getLocalPosData(ofItem, globalPoint) {
         this.validateRender();
         ofItem.xElem.validateRender();
@@ -129,6 +125,15 @@ export default class XElem {
             rotation: ofItem.global.rotation - this.global.rotation,
             scale: ofItem.global.scale / this.global.scale
         };
+    }
+    // ░░░░░░░ Relative Positions ░░░░░░░
+    getDistanceTo(posRef, globalPoint) {
+        const { x: tGlobalX, y: tGlobalY } = posRef instanceof XItem ? posRef.global : posRef;
+        return U.getDistance({ x: tGlobalX, y: tGlobalY }, globalPoint ?? this.global);
+    }
+    getGlobalAngleTo(posRef, globalPoint) {
+        const { x: tGlobalX, y: tGlobalY } = posRef instanceof XItem ? posRef.global : posRef;
+        return U.getAngle({ x: tGlobalX, y: tGlobalY }, globalPoint ?? this.global);
     }
 
     // ████████ GSAP: GSAP Animation Method Wrappers ████████

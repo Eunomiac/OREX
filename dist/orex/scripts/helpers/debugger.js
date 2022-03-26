@@ -290,7 +290,7 @@ const TESTS = {
                                 }), XOrbitType.Main);
                             }
                             catch (error) {
-                                DB.error(`Error rendering xDie '${id}'`);
+                                DB.error(`Error rendering xDie '${id}'`, error);
                             }
                         }
                     }
@@ -302,22 +302,18 @@ const TESTS = {
         globalThis.POOLS = POOLS;
         return Promise.allSettled(POOLS);
     },
-    createRoll: async (dice) => {
+    createRoll: async (dice, setParams = {}, nestedXGroups = []) => {
+        setParams = { x: 0, y: 0, height: 400, width: 400, dieColor: "white", poolColor: "cyan", ...setParams };
+        const { dieColor, poolColor, ...set } = setParams;
+        set["--bg-color"] = poolColor;
         const rollPool = new XRoll(XItem.XROOT, {
             id: "ROLL",
-            onRender: {
-                set: {
-                    x: 500,
-                    y: 500,
-                    height: 400,
-                    width: 400
-                }
-            }
+            onRender: { set }
         });
         await rollPool.initialize();
-        const dieColors = ["white", "cyan", "gold", "lime"];
-        const diceToAdd = dice.flatMap((qty) => {
-            const color = dieColors.shift();
+        // const dieColors = ["white", "cyan", "gold", "lime"];
+        let diceToAdd = dice.flatMap((qty) => {
+            const color = dieColor; // dieColors.shift();
             return [...new Array(qty)].map(() => new XDie(XItem.XROOT, {
                 id: "xDie",
                 type: XTermType.BasicDie,
@@ -326,8 +322,26 @@ const TESTS = {
             }));
         });
         await Promise.allSettled(diceToAdd.map((xDie) => xDie.initialize()));
-        rollPool.addXItems({ [XOrbitType.Main]: diceToAdd });
+        nestedXGroups.forEach((xGroup) => {
+            const index = Math.floor(Math.random() * diceToAdd.length);
+            diceToAdd = [
+                ...diceToAdd.slice(0, index),
+                xGroup,
+                ...diceToAdd.slice(index)
+            ];
+        });
+        await rollPool.addXItems({ [XOrbitType.Main]: diceToAdd });
         return rollPool;
+    },
+    angleClicks: (focus) => {
+        document.addEventListener("click", (event) => {
+            DB.display("Click Event Triggered");
+            DB.log("Objects", { event, focus });
+            DB.log(`Event Position: {x: ${event.pageX}, y: ${event.pageY}}`);
+            DB.log(`Focus Position: {x: ${focus.global.x}, y: ${focus.global.y}}`);
+            DB.log(`Distance: ${focus.getDistanceTo({ x: event.pageX, y: event.pageY })}`);
+            DB.log(`Angle: ${focus.getGlobalAngleTo({ x: event.pageX, y: event.pageY })}`);
+        });
     }
 };
 export { DB as default, TESTS };

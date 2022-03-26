@@ -60,6 +60,7 @@ class XArm extends XItem {
         }
         return Promise.resolve(false);
     }
+    get orbitWeight() { return this.xItem.size; }
 }
 export var XOrbitType;
 (function (XOrbitType) {
@@ -77,7 +78,7 @@ export class XOrbit extends XGroup {
     #rotationScaling;
     #rotationAngle;
     #rotationDuration;
-    get arms$() { return $(`#${this.id} .x-arm`); }
+    get arms$() { return $(`#${this.id} > .x-arm`); }
     get arms() { return Array.from(this.xKids); }
     get xItems() { return this.arms.map((xArm) => xArm.xItem); }
     get xTerms() { return this.xItems.filter((xItem) => xItem instanceof XDie || xItem instanceof XMod); }
@@ -90,6 +91,17 @@ export class XOrbit extends XGroup {
         }
     }
     get orbitRadius() { return this.radiusRatio * 0.5 * this.xParent.width; }
+    get totalArmWeight() { return this.arms.map((arm) => arm.orbitWeight).reduce((tot, val) => tot + val, 0); }
+    get armAngles() {
+        const anglePerWeight = 360 / this.totalArmWeight;
+        const armAngles = [];
+        let usedWeight = 0;
+        this.arms.forEach((arm) => {
+            usedWeight += arm.orbitWeight;
+            armAngles.push((usedWeight - (0.5 * arm.orbitWeight)) * anglePerWeight);
+        });
+        return armAngles;
+    }
     constructor(name, parentGroup, radiusRatio, rotationScaling) {
         radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
         rotationScaling ??= C.xGroupOrbitalDefaults[name].rotationScaling;
@@ -122,8 +134,8 @@ export class XOrbit extends XGroup {
                 ease: "none",
                 callbackScope: this,
                 onUpdate() {
-                    this.xItems.forEach((xItem) => {
-                        if (xItem.xParent?.isInitialized) {
+                    this.xTerms.forEach((xItem) => {
+                        if (xItem.isInitialized && xItem.xParent?.isInitialized) {
                             xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
                         }
                     });
@@ -138,7 +150,7 @@ export class XOrbit extends XGroup {
         }
         this.updateArmsThrottle = setTimeout(() => {
             DB.log("Update Arms RUNNING!");
-            const angleStep = 360 / this.arms.length;
+            const self = this;
             gsap.timeline()
                 .to(this.arms$, {
                 width: widthOverride ?? this.orbitRadius,
@@ -147,10 +159,15 @@ export class XOrbit extends XGroup {
                 stagger: {
                     amount: 1,
                     from: "end"
-                }
+                } /* ,
+                onUpdate() {
+                    this.targets.forEach((target: HTMLElement) => {
+                        gsap.set($(`#${target.id} > .x-item`), {x: gsap.getProperty(target, "width")});
+                    });
+                } */
             }, "<")
                 .to(this.arms$, {
-                rotation(i) { return angleStep * i; },
+                rotation(i) { return self.armAngles[i]; },
                 ease: "power2.out",
                 duration
             }, "<");
@@ -217,7 +234,7 @@ export class XPool extends XGroup {
     }
     async addXItems(xItemsByOrbit) {
         const self = this;
-        return Promise.allSettled(Object.entries(xItemsByOrbit).map(([orbitName, xItems]) => xItems.map((xItem) => self.addXItem(xItem, orbitName))));
+        return Promise.allSettled(Object.entries(xItemsByOrbit).map(async ([orbitName, xItems]) => await Promise.allSettled(xItems.map(async (xItem) => await self.addXItem(xItem, orbitName)))));
     }
 }
 export class XRoll extends XPool {

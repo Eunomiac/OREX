@@ -10,7 +10,7 @@ import {
 	XTermType, XOrbitType, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./bundler.js";
-import type {XOrbitSpecs, XTermOptions} from "./bundler.js";
+import type {Index, XOrbitSpecs, XTermOptions, XDieValue} from "./bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 const XDebugger = (type: keyof typeof STYLES, message: string, ...content: unknown[]) => {
@@ -75,7 +75,7 @@ const STYLES = {
 };
 
 const DB = {
-	log: (message: string, ...content: unknown[]) => XDebugger("base", message, ...(content.length ? content : ["NOGROUP"])),
+	log: (message: string, ...content:unknown[]) => XDebugger("base", message, ...(content.length ? content : ["NOGROUP"])),
 	title: (message: string) => XDebugger("title", message, "NOGROUP"),
 	display: (message: string, ...content: unknown[]) => XDebugger("display", message, ...(content.length ? content : ["NOGROUP"])),
 	info: (message: string, ...content: unknown[]) => XDebugger("info", message, ...(content.length ? content : ["NOGROUP"])),
@@ -278,7 +278,7 @@ const TESTS = {
 					const xDie = new XDie(XItem.XROOT as XGroup, {
 						id: "xDie",
 						type: XTermType.BasicDie,
-						value: U.randInt(0, 9),
+						value: U.randInt(0, 9) as XDieValue,
 						color: typeof color === "string" ? color : undefined
 					});
 					if (!(await xPool.addXItem(xDie, name))) {
@@ -303,11 +303,11 @@ const TESTS = {
 								await nestedPool.addXItem(new XDie(XItem.XROOT as XGroup, {
 									id,
 									type: XTermType.BasicDie,
-									value: U.randInt(0, 9),
+									value: U.randInt(0, 9) as XDieValue,
 									color: typeof nestedColor === "string" ? nestedColor : undefined
 								}), XOrbitType.Main);
 							} catch (error) {
-								DB.error(`Error rendering xDie '${id}'`);
+								DB.error(`Error rendering xDie '${id}'`, error);
 							}
 						}
 					}
@@ -319,21 +319,18 @@ const TESTS = {
 		globalThis.POOLS = POOLS;
 		return Promise.allSettled(POOLS);
 	},
-	createRoll: async (dice: number[]) => {
+	createRoll: async (dice: number[], setParams: Record<string,any> = {}, nestedXGroups: XGroup[] = []) => {
+		setParams = {x: 0, y: 0, height: 400, width: 400, dieColor: "white", poolColor: "cyan", ...setParams};
+		const {dieColor, poolColor, ...set} = setParams;
+		set["--bg-color"] = poolColor;
 		const rollPool = new XRoll(XItem.XROOT, {
 			id: "ROLL",
-			onRender: {
-				set: {
-					x: 500,
-					y: 500,
-					height: 400,
-					width: 400
-				}
-			}});
+			onRender: {set}
+		});
 		await rollPool.initialize();
-		const dieColors = ["white", "cyan", "gold", "lime"];
-		const diceToAdd = dice.flatMap((qty) => {
-			const color = dieColors.shift();
+		// const dieColors = ["white", "cyan", "gold", "lime"];
+		let diceToAdd: Array<XDie|XGroup> = dice.flatMap((qty) => {
+			const color = dieColor; // dieColors.shift();
 			return [...new Array(qty)].map(() => new XDie(XItem.XROOT, {
 				id: "xDie",
 				type: XTermType.BasicDie,
@@ -342,8 +339,26 @@ const TESTS = {
 			}));
 		});
 		await Promise.allSettled(diceToAdd.map((xDie) => xDie.initialize()));
-		rollPool.addXItems({[XOrbitType.Main]: diceToAdd});
+		nestedXGroups.forEach((xGroup) => {
+			const index = Math.floor(Math.random() * diceToAdd.length);
+			diceToAdd = [
+				...diceToAdd.slice(0, index),
+				xGroup,
+				...diceToAdd.slice(index)
+			];
+		});
+		await rollPool.addXItems({[XOrbitType.Main]: diceToAdd});
 		return rollPool;
+	},
+	angleClicks: (focus: XItem) => {
+		document.addEventListener("click", (event) => {
+			DB.display("Click Event Triggered");
+			DB.log("Objects", {event, focus});
+			DB.log(`Event Position: {x: ${event.pageX}, y: ${event.pageY}}`);
+			DB.log(`Focus Position: {x: ${focus.global.x}, y: ${focus.global.y}}`);
+			DB.log(`Distance: ${focus.getDistanceTo({x: event.pageX, y: event.pageY})}`);
+			DB.log(`Angle: ${focus.getGlobalAngleTo({x: event.pageX, y: event.pageY})}`);
+		});
 	}
 };
 

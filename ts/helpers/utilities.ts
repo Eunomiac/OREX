@@ -628,17 +628,22 @@ const randNum = (min: number, max: number, snap = 0): number => gsap.utils.rando
 const randInt = (min: number, max: number) => randNum(min, max, 1);
 const coinFlip = () => randNum(0, 1, 1) === 1;
 const cycleNum = (num: number, [min = 0, max = Infinity] = []): number => gsap.utils.wrap(min, max, num);
-const cycleAngle = (angle: number) => cycleNum(angle, [-180, 180]);
+const cycleAngle = (angle: number, range: [number, number] = [0, 360]) => cycleNum(angle, range);
 const roundNum = (num: number, sigDigits: posInt = 0) => (sigDigits === 0 ? pInt(num) : pFloat(num, sigDigits));
 const sum = (...nums: Array<number | number[]>) => nums.flat().reduce((num, tot) => tot + num, 0);
 const average = (...nums: Array<number | number[]>) => sum(...nums) / nums.flat().length;
 // #region ░░░░░░░[Positioning]░░░░ Relationships On 2D Cartesian Plane ░░░░░░░ ~
 const getDistance = ({x: x1, y: y1}: Point, {x: x2, y: y2}: Point) => (((x1 - x2) ** 2) + ((y1 - y2) ** 2)) ** 0.5;
-const getAngle = ({x: x1, y: y1}: Point, {x: x2, y: y2}: Point, {x: xO = 0, y: yO = 0}: Point = {x: 0, y: 0}) => {
+const getAngle = (
+	{x: x1, y: y1}: Point,
+	{x: x2, y: y2}: Point,
+	{x: xO, y: yO}: Point = {x: 0, y: 0},
+	range: [number, number] = [0, 360]
+) => {
 	x1 -= xO; y1 -= yO; x2 -= xO; y2 -= yO;
-	return cycleAngle(radToDeg(Math.atan2(y2 - y1, x2 - x1)));
+	return cycleAngle(radToDeg(Math.atan2(y2 - y1, x2 - x1)), range);
 };
-const getAngleDelta = (angleStart: number, angleEnd: number) => cycleAngle(angleEnd - angleStart);
+const getAngleDelta = (angleStart: number, angleEnd: number, range: [number, number] = [0, 360]) => cycleAngle(angleEnd - angleStart, range);
 // #endregion ░░░░[Positioning]░░░░
 // #endregion ▄▄▄▄▄ NUMBERS ▄▄▄▄▄
 

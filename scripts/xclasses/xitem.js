@@ -4,7 +4,14 @@ import {
 gsap, 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, DB, XElem } from "../helpers/bundler.js";
+U, DB, XElem, XGroup
+// #endregion ▮▮▮▮[Utility]▮▮▮▮
+ } from "../helpers/bundler.js";
+const LISTENERS = [
+    ["mousemove", (event) => {
+            XItem.LogMouseMove(event.pageX, event.pageY);
+        }]
+];
 export default class XItem extends Application {
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
@@ -44,13 +51,33 @@ export default class XItem extends Application {
     }
     static REGISTRY = new Map();
     static Register(xItem) {
-        xItem.constructor.REGISTRY.set(xItem.id, xItem);
+        this.REGISTRY.set(xItem.id, xItem);
     }
     static Unregister(xItem) {
-        xItem.constructor.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
+        this.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
     }
     static GetAll() {
         return Array.from(this.REGISTRY.values());
+    }
+    static GetFromElement(elem) {
+        if (this.REGISTRY.has(elem.id)) {
+            return this.REGISTRY.get(elem.id);
+        }
+        return false;
+    }
+    static #lastMouseUpdate = Date.now();
+    static #mousePos = { x: 0, y: 0 };
+    static LogMouseMove(x, y) {
+        if (Date.now() - this.#lastMouseUpdate > 1000) {
+            this.#lastMouseUpdate = Date.now();
+            this.#mousePos = { x, y };
+        }
+        this.GetAll()
+            .filter((xItem) => xItem instanceof XGroup && xItem.xParent === XItem.XROOT)
+            .forEach((xGroup) => {
+            // https://greensock.com/forums/topic/17899-what-is-the-cleanest-way-to-tween-a-var-depending-on-the-cursor-position/
+            // https://greensock.com/forums/topic/18717-update-tween-based-on-mouse-position/
+        });
     }
     #isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
     #xParent; //~ null only in the single case of the top XItem, XItem.XROOT
@@ -115,6 +142,8 @@ export default class XItem extends Application {
     get width() { return this.xElem.width; }
     get size() { return this.xElem.size; }
     get radius() { return this.xElem.radius; }
+    get getDistanceTo() { return this.xElem.getDistanceTo.bind(this.xElem); }
+    get getGlobalAngleTo() { return this.xElem.getGlobalAngleTo.bind(this.xElem); }
     get confirmRender() { return this.xElem.confirmRender.bind(this.xElem); }
     get adopt() { return this.xElem.adopt.bind(this.xElem); }
     _tickers = new Set();

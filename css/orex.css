@@ -9,14 +9,12 @@
   width: calc(100% - var(--sidebar-width));
   top: 0;
   left: 0;
-  pointer-events: none;
   position: absolute;
   /* .x-elem */
   /* .x-group */
   /* .x-die */ }
   #XROOT .x-elem {
     position: absolute;
-    pointer-events: none;
     -webkit-transform-origin: 50% 50%;
     -ms-transform-origin: 50% 50%;
     transform-origin: 50% 50%; }
@@ -76,3 +74,12 @@
       font-family: Oswald;
       text-align: center;
       z-index: 2; }
+
+.x-arm {
+  outline: 1px solid red; }
+
+.x-arm .x-arm {
+  outline: 1px solid darkgreen; }
+
+.x-arm .x-arm .x-arm {
+  outline: 1px solid magenta; }

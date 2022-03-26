@@ -15,6 +15,12 @@ export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElem
 	keepID?: boolean;
 }
 
+const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = [
+	["mousemove", (event) => {
+		XItem.LogMouseMove(event.pageX, event.pageY);
+	}]
+];
+
 export default class XItem extends Application implements Partial<DOMRenderer>, Partial<GSAPController> {
 
 	static override get defaultOptions(): ApplicationOptions {
@@ -56,13 +62,33 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 
 	protected static REGISTRY: Map<string,XItem> = new Map();
 	public static Register(xItem: XItem) {
-		(xItem.constructor as typeof XItem).REGISTRY.set(xItem.id, xItem);
+		this.REGISTRY.set(xItem.id, xItem);
 	}
-	static Unregister(xItem: string | XItem) {
-		(xItem.constructor as typeof XItem).REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
+	static Unregister(xItem: string | XItem | XElem<XItem> | HTMLElement) {
+		this.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
 	}
 	static GetAll() {
 		return Array.from(this.REGISTRY.values());
+	}
+	static GetFromElement(elem: HTMLElement): XItem | false {
+		if (this.REGISTRY.has(elem.id)) {
+			return this.REGISTRY.get(elem.id) as XItem;
+		}
+		return false;
+	}
+	static #lastMouseUpdate: number = Date.now();
+	static #mousePos: {x: number, y: number} = {x: 0, y: 0};
+	public static LogMouseMove(x: number, y: number) {
+		if (Date.now() - this.#lastMouseUpdate > 1000) {
+			this.#lastMouseUpdate = Date.now();
+			this.#mousePos = {x, y};
+		}
+		this.GetAll()
+			.filter((xItem) => xItem instanceof XGroup && xItem.xParent === XItem.XROOT)
+			.forEach((xGroup) => {
+				// https://greensock.com/forums/topic/17899-what-is-the-cleanest-way-to-tween-a-var-depending-on-the-cursor-position/
+				// https://greensock.com/forums/topic/18717-update-tween-based-on-mouse-position/
+			});
 	}
 
 	#isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
@@ -131,6 +157,9 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	get width() { return this.xElem.width }
 	get size() { return this.xElem.size }
 	get radius() { return this.xElem.radius }
+
+	get getDistanceTo() { return this.xElem.getDistanceTo.bind(this.xElem) }
+	get getGlobalAngleTo() { return this.xElem.getGlobalAngleTo.bind(this.xElem) }
 
 	get confirmRender() { return this.xElem.confirmRender.bind(this.xElem) }
 	get adopt() { return this.xElem.adopt.bind(this.xElem) }
