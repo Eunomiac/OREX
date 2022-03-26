@@ -42,6 +42,10 @@
     border-radius: 100%;
     background: -o-radial-gradient(var(--bg-color), transparent 75%);
     background: radial-gradient(var(--bg-color), transparent 75%); }
+  #XROOT .x-arm > * {
+    top: unset;
+    left: unset;
+    right: calc(-1 * var(--held-item-width)); }
   #XROOT .x-die {
     height: var(--die-size);
     width: var(--die-size); }
@@ -79,7 +83,7 @@
   outline: 1px solid red; }
 
 .x-arm .x-arm {
-  outline: 1px solid darkgreen; }
+  outline-color: darkgreen; }
 
 .x-arm .x-arm .x-arm {
-  outline: 1px solid magenta; }
+  outline-color: magenta; }

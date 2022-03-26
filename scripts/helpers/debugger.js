@@ -82,6 +82,7 @@ const DB = {
     groupError: (label) => XDebugger("error", label),
     groupEnd: () => console.groupEnd()
 };
+const ClickPhases = ["PositionXDie", "ParentXArm", "StretchXArm", "ResumeRotation"];
 const TESTS = {
     testCoords: () => {
         const TranslateBox = new XPool(XItem.XROOT, {
@@ -339,15 +340,60 @@ const TESTS = {
         await rollPool.addXItems({ [XOrbitType.Main]: diceToAdd });
         return rollPool;
     },
-    angleClicks: (focus) => {
-        document.addEventListener("click", (event) => {
+    angleClicks: (focus, isXArmTest) => {
+        document.addEventListener("click", async (event) => {
             DB.display("Click Event Triggered");
-            DB.log("Objects", { event, focus });
             DB.log(`Event Position: {x: ${event.pageX}, y: ${event.pageY}}`);
             DB.log(`Focus Position: {x: ${focus.global.x}, y: ${focus.global.y}}`);
             DB.log(`Distance: ${focus.getDistanceTo({ x: event.pageX, y: event.pageY })}`);
             DB.log(`Angle: ${focus.getGlobalAngleTo({ x: event.pageX, y: event.pageY })}`);
+            if (isXArmTest) {
+                const [xArm, xDie] = isXArmTest;
+                const clickPhase = ClickPhases.shift();
+                ClickPhases.push(clickPhase);
+                switch (clickPhase) {
+                    case "PositionXDie": {
+                        focus.pauseRotating();
+                        XItem.XROOT.adopt(xDie);
+                        xDie.set({ x: event.pageX, y: event.pageY });
+                        break;
+                    }
+                    case "ParentXArm": {
+                        xArm.adopt(xDie, true),
+                            xArm.set({ outlineColor: "gold" });
+                        break;
+                    }
+                    case "StretchXArm": {
+                        xArm.stretchToXItem();
+                        xDie.set({ x: 0, y: 0, rotation: -1 * xArm.global.rotation });
+                        break;
+                    }
+                    case "ResumeRotation": {
+                        focus.playRotating();
+                        break;
+                    }
+                    // no default
+                }
+                DB.log("Objects", { event, focus, xDie: globalThis.xDie, xArm: globalThis.xArm });
+            }
+            else {
+                DB.log("Objects", { event, focus });
+            }
         });
+    },
+    xArmTest: async (parentRoll) => {
+        const [targetDie] = parentRoll.orbitals.get(XOrbitType.Main)?.xTerms ?? [];
+        if (targetDie?.isInitialized && targetDie.xParent) {
+            const xArm = targetDie.xParent;
+            XItem.XROOT.adopt(targetDie, true);
+            targetDie.set({ "x": 100, "y": 100, "--die-color-bg": "magenta" });
+            Object.assign(globalThis, {
+                xDie: targetDie,
+                xArm
+            });
+            globalThis.angleClicks(parentRoll, [xArm, targetDie]);
+            DB.log("XArm Test Ready", { parentRoll, xDie: targetDie, xArm });
+        }
     }
 };
 export { DB as default, TESTS };

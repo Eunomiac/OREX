@@ -79,7 +79,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 		await this.renderPromise;
 		if (this.parentApp) {
 			if (!(await this.parentApp.confirmRender())) {
-				console.warn("Attempt to render child of unrendered parent.");
+				console.warn(`Attempt to render child [ ${this.id} ] of unrendered parent [ ${this.parentApp.id} ].`);
 				return Promise.resolve(false);
 			}
 			this.parentApp?.adopt(this.renderApp, false);
@@ -101,7 +101,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 	get isRendered() { return this.renderApp.rendered }
 	protected validateRender() {
 		if (!this.isRendered) {
-			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} '${this.id}': Did you forget to await confirmRender?`);
+			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} [ ${this.id} ]: Did you forget to await confirmRender?`);
 		}
 	}
 

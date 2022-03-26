@@ -33,6 +33,6 @@ $isDebugging: true;
 
 @if $isDebugging {
 	.x-arm { outline: 1px solid red }
-	.x-arm .x-arm { outline: 1px solid darkgreen }
-	.x-arm .x-arm .x-arm { outline: 1px solid magenta }
+	.x-arm .x-arm { outline-color: darkgreen }
+	.x-arm .x-arm .x-arm { outline-color: magenta }
 }

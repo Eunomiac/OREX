@@ -1,5 +1,11 @@
 .x-pool {
 	--bg-color: cyan;
 	border-radius: 100%;
-	background: radial-gradient(var(--bg-color), transparent 75%); 
+	background: radial-gradient(var(--bg-color), transparent 75%);
+}
+
+.x-arm > * {
+	top: unset;
+	left: unset;
+	right: calc(-1 * var(--held-item-width));
 }

@@ -88,20 +88,34 @@ class XArm extends XItem {
 			id: "arm"
 		});
 		this.xItem = xItem;
-		this.adopt(xItem, false);
+		this.adopt(this.xItem, false);
 	}
 
 	override async initialize(): Promise<boolean> {
 		if (await super.initialize()) {
-			this.xItem.set({
-				left: "unset",
-				top: "unset",
-				right: -1 * this.xItem.width
+			// this.stretchToXItem();
+			this.set({
+				"--held-item-width": `${this.xItem.width}px`
 			});
+			// this.xItem.set({
+			// 	left: "unset",
+			// 	top: "unset",
+			// 	right: -1 * this.xItem.width
+			// });
 			this.adopt(this.xItem, false);
 			return this.xItem.confirmRender();
 		}
-		return Promise.resolve(false);
+		return Promise.reject();
+	}
+
+	async stretchToXItem() {
+		if (this.xParent && await this.xItem.initialize()) {
+			return this.set({
+				width: U.getDistance(this.xItem.global.pos, this.xParent.global.pos),
+				rotation: U.getAngleDelta(this.xParent.global.rotation,U.getAngle(this.xItem.global.pos, this.xParent.global.pos))
+			});
+		}
+		return Promise.reject();
 	}
 
 	get orbitWeight() { return this.xItem.size }
@@ -198,6 +212,16 @@ export class XOrbit extends XGroup {
 		}
 	}
 	protected updateArmsThrottle?: NodeJS.Timeout;
+	public pauseRotating() {
+		if (this.isRendered) {
+			this.xElem.tweens.rotationTween?.pause();
+		}
+	}
+	public playRotating() {
+		if (this.isRendered) {
+			this.xElem.tweens.rotationTween?.play();
+		}
+	}
 
 	protected updateArms(duration = 3, widthOverride?: number) {
 		if (this.updateArmsThrottle) {
@@ -308,6 +332,9 @@ export class XPool extends XGroup {
 		return Promise.allSettled(Object.entries(xItemsByOrbit).map(async ([orbitName, xItems]) =>
 			await Promise.allSettled(xItems.map(async (xItem) => await self.addXItem(xItem, orbitName as XOrbitType)))));
 	}
+
+	public pauseRotating() { this.xOrbits.forEach((xOrbit) => xOrbit.pauseRotating()) }
+	public playRotating() { this.xOrbits.forEach((xOrbit) => xOrbit.playRotating()) }
 }
 // #endregion ▄▄▄▄▄ XPool ▄▄▄▄▄
 

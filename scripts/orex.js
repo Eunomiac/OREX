@@ -87,6 +87,7 @@ Hooks.once("ready", async () => {
         const ROLL = await TESTS.createRoll([7], { x: 500, y: 500 }, nestedRolls);
         Object.assign(globalThis, { ROLL, nestedRolls });
         DB.groupEnd();
+        setTimeout(() => TESTS.xArmTest(ROLL), 500);
     }, 1000);
     /*!DEVCODE*/
 });
