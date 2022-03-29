@@ -81,6 +81,7 @@ export default class XItem extends Application {
     #isInitialized = false;
     #xParent;
     #xKids = new Set();
+    isFreezingRotate = false; // ~set to 'true' to always maintain 0 rotation (e.g. for xTerms)
     xOptions;
     xElem;
     get elem() { return this.xElem.elem; }

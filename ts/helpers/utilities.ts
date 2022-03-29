@@ -648,7 +648,7 @@ const getAngleDelta = (angleStart: number, angleEnd: number, range: [number, num
 // #endregion ▄▄▄▄▄ NUMBERS ▄▄▄▄▄
 
 // #region ████████ ARRAYS: Array Manipulation ████████ ~
-const randElem = (array: unknown[]): unknown => gsap.utils.random(array);
+const randElem = <Type>(array: Type[]): Type => gsap.utils.random(array);
 const randIndex = (array: unknown[]): posInt => randInt(0, array.length - 1);
 const makeCycler = (array: unknown[], index = 0): Generator => {
 	// Given an array and a starting index, returns a generator function that can be used

@@ -38,18 +38,19 @@ export default class XDie extends XItem {
             }
         });
     }
-    _value = 0;
+    isFreezingRotate = true;
     get value$() { return $(`#${this.id} .die-val`); }
-    get value() { return this._value; }
+    #value = 0;
+    get value() { return this.#value; }
     set value(val) {
         if (val && val > 0 && val <= 10) {
-            this._value = val;
+            this.#value = val;
             if (this.isInitialized) {
                 this.value$.html(this.face);
             }
         }
     }
-    get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this._value]; }
+    get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value]; }
     get isRolled() { return this.value > 0; }
     roll() { this.value = U.randInt(1, 10); }
     constructor(xParent, xOptions) {
@@ -94,6 +95,7 @@ export class XMod extends XItem {
             }
         });
     }
+    isFreezingRotate = true;
     _value = 0;
     get value$() { return $(`#${this.id} .die-val`); }
     get value() { return (this._value = this._value ?? 0); }

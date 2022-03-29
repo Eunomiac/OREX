@@ -82,6 +82,7 @@ export default class XItem extends Application {
     #isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
     #xParent; //~ null only in the single case of the top XItem, XItem.XROOT
     #xKids = new Set();
+    isFreezingRotate = false; // ~set to 'true' to always maintain 0 rotation (e.g. for xTerms)
     xOptions;
     xElem;
     get elem() { return this.xElem.elem; }

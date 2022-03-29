@@ -8,6 +8,7 @@ preloadTemplates, U,
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
 XElem, XItem, XGroup, XPool, XRoll, XDie, 
  } from "./helpers/bundler.js";
+import { XArm, XOrbit } from "./xclasses/xgroup.js";
 // ====== GreenSock Animation ======
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
 

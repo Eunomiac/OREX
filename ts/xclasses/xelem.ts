@@ -133,10 +133,21 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 		child.xParent?.unregisterXKid(child);
 		this.renderApp.registerXKid(child);
 		if (this.isRendered && child.isRendered) {
-			if (isRetainingPosition) {
-				child.set(this.getLocalPosData(child));
+			if (isRetainingPosition || child.isFreezingRotate) {
+				child.set({
+					...isRetainingPosition ? this.getLocalPosData(child) : {},
+					...child.isFreezingRotate ? {rotation: -1 * this.global.rotation} : {}
+				});
 			}
 			child.elem$.appendTo(this.elem);
+		} else if (this.isRendered) {
+			child.xElem.onRender.funcs ??= [];
+			child.xElem.onRender.funcs.unshift(() => {
+				this.adopt(child, isRetainingPosition);
+			});
+		} else {
+			this.onRender.funcs ??= [];
+			this.onRender.funcs.push(() => this.adopt(child, isRetainingPosition));
 		}
 	}
 	// #endregion ▄▄▄▄▄ Parenting ▄▄▄▄▄
@@ -148,6 +159,12 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 	get pos(): Point { return {x: this.x, y: this.y} }
 	get rotation() { return U.pFloat(this.isRendered ? U.get(this.elem, "rotation") : this.onRender.set?.rotation, 2) }
 	get scale() { return U.pFloat(this.isRendered ? U.get(this.elem, "scale") : this.onRender.set?.scale, 2) || 1 }
+	get origin() {
+		return {
+			x: -1 * (gsap.getProperty(this.elem, "xPercent") as number / 100) * this.width,
+			y: -1 * (gsap.getProperty(this.elem, "yPercent") as number / 100) * this.height
+		};
+	}
 	// #endregion ░░░░[Local Space]░░░░
 	// #region ░░░░░░░ Global (XROOT) Space ░░░░░░░ ~
 	get global() {
@@ -158,7 +175,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 				return MotionPathPlugin.convertCoordinates(
 					self.elem,
 					XItem.XROOT.elem,
-					{x: 0.5 * self.width, y: 0.5 * self.height}
+					self.origin
 				);
 			},
 			get x() { return this.pos.x },

@@ -19,10 +19,13 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 	/*DEVCODE*/
 	// #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
-	DB, TESTS
+	DB, TESTS, XTermType, XOrbitType
 	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
 	/*!DEVCODE*/
 } from "./helpers/bundler.js";
+import {
+	XArm, XOrbit
+} from "./xclasses/xgroup.js";
 // #region ====== GreenSock Animation ====== ~
 
 // #endregion _______ GreenSock Animation _______
@@ -90,16 +93,117 @@ Hooks.once("ready", async () => {
 		DB.groupEnd();
 		DB.groupEnd();
 		DB.log("... Readying Complete.");
-		DB.groupTitle("Initializing Test XRoll... ");
-		const nestedRolls = await Promise.all((<Array<Parameters<typeof TESTS.createRoll>>>[
-			[[8], {height: 150, width: 150, dieColor: "purple", poolColor: "gold"}],
-			[[3], {height: 100, width: 100, dieColor: "blue", poolColor: "orange"}],
-			[[3], {height: 75, width: 75, dieColor: "magenta", poolColor: "lime"}]
-		]).map(([dice, params]) => TESTS.createRoll(dice, params)));
-		const ROLL = await TESTS.createRoll([7], {x: 500, y: 500}, nestedRolls);
-		Object.assign(globalThis, {ROLL, nestedRolls});
+		DB.groupTitle("Position Test Setup");
+		type TestObjs = {
+			Die: XDie,
+			FloatDie: XDie,
+			Arm: XArm,
+			Orbit: XOrbit,
+			MainRoll: XRoll
+		};
+		DB.groupLog("Instantiating Roll");
+		const MainRoll = new XRoll(XItem.XROOT, {
+			id: "Roll",
+			onRender: {
+				set: {x: 500, y: 500, height: 500, width: 500, outline: "5px solid blue"}
+			}
+		});
 		DB.groupEnd();
-		setTimeout(() => TESTS.xArmTest(ROLL), 500);
+		DB.groupLog("Instantiating Dice");
+		const Die = new XDie(MainRoll, {
+			id: "Roll-Die",
+			type: XTermType.BasicDie
+		});
+		const FloatDie = new XDie(XItem.XROOT, {
+			id: "Float-Die",
+			type: XTermType.BasicDie,
+			color: "red",
+			onRender: {
+				set: {x: 1200, y: 200}
+			}
+		});
+		const RandomDice = [
+			{x: 200, y: 200, color: "blue"},
+			{x: 400, y: 900, color: "gold"},
+			{x: 800, y: 200, color: "green"},
+			{x: 800, y: 900, color: "cyan"},
+			{x: 50, y: 500, color: "magenta"}
+		].map((dieParams, i) => new XDie(XItem.XROOT, {
+			id: `RandomDie-${i}`,
+			type: XTermType.BasicDie,
+			color: dieParams.color,
+			onRender: {
+				set: {x: dieParams.x, y: dieParams.y}
+			}
+		}));
+		DB.groupEnd();
+		DB.groupLog("Initializing FloatDie");
+		await Promise.all([FloatDie, ...RandomDice].map((die) => die.initialize()));
+		DB.groupEnd();
+		DB.groupLog("Adding Die");
+		await MainRoll.addXItem(Die, XOrbitType.Main);
+		DB.groupEnd();
+		DB.groupDisplay("Initializing Roll");
+		await MainRoll.initialize();
+		const Orbit = MainRoll.orbitals.get(XOrbitType.Main) as XOrbit;
+		// await Orbit.initialize();
+		DB.groupEnd();
+		DB.groupDisplay("Fetching Arm");
+		const Arm = Orbit.getXKids(XArm)[0] as XArm;
+		DB.log("XArm", Arm);
+		DB.groupEnd();
+		const T: TestObjs = {
+			Die,
+			FloatDie,
+			Arm,
+			Orbit,
+			MainRoll
+		};
+		const getPosData = () => {
+			const posData: Record<string, any> = {};
+			["MainRoll", "Orbit", "Arm", "Die", "FloatDie"].forEach((xName) => {
+				// @ts-expect-error Debugging.
+				const xItem = T[xName] as XItem;
+				const xParent = xItem.xParent as XItem;
+				const parent = MotionPathPlugin.convertCoordinates(
+					xItem.elem,
+					xParent.elem,
+					xItem.xElem.origin
+				);
+				const global = MotionPathPlugin.convertCoordinates(
+					xItem.elem,
+					XItem.XROOT.elem,
+					xItem.xElem.origin
+				);
+				posData[xName] = {
+					local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
+					origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
+					parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
+					global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
+				};
+			});
+			console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
+		};
+		Object.assign(globalThis, T, {XArm, XOrbit, getPosData, RandomDice});
+		DB.log("Setup Complete.");
+		DB.groupDisplay("Starting Timeouts...");
+		setTimeout(async () => {
+			DB.groupEnd();
+			DB.groupEnd();
+			DB.log("Initial Position Data");
+			getPosData();
+			return;
+			DB.groupTitle("Initializing Test XRoll... ");
+			const nestedRolls = await Promise.all((<Array<Parameters<typeof TESTS.createRoll>>>[
+				[[8], {height: 150, width: 150, dieColor: "purple", poolColor: "gold"}],
+				[[3], {height: 100, width: 100, dieColor: "blue", poolColor: "orange"}],
+				[[3], {height: 75, width: 75, dieColor: "magenta", poolColor: "lime"}]
+			]).map(([dice, params]) => TESTS.createRoll(dice, params)));
+			const ROLL = await TESTS.createRoll([7], {x: 1250, y: 500}, nestedRolls);
+			Object.assign(globalThis, {ROLL, nestedRolls});
+			DB.groupEnd();
+			setTimeout(() => TESTS.xArmTest(ROLL), 500);
+		}, U.randInt(1000, 5000));
 	}, 1000);
 /*!DEVCODE*/
 });

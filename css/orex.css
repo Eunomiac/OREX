@@ -78,12 +78,3 @@
       font-family: Oswald;
       text-align: center;
       z-index: 2; }
-
-.x-arm {
-  outline: 1px solid red; }
-
-.x-arm .x-arm {
-  outline-color: darkgreen; }
-
-.x-arm .x-arm .x-arm {
-  outline-color: magenta; }

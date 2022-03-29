@@ -27,7 +27,8 @@ export interface XTerm {
 	type: XTermType,
 	// THIS SHIT IS WRONG AND BAD: NEED TO ACCOUNT FOR OTHER TYPES OF VALUES
 	value?: XDieValue,
-	ApplyEffect?: (xRoll: XRoll) => XRoll
+	ApplyEffect?: (xRoll: XRoll) => XRoll,
+	readonly isFreezingRotate: true
 }
 
 export const enum XTermType {
@@ -66,19 +67,21 @@ export default class XDie extends XItem implements XTerm {
 			}
 		});
 	}
-	private _value: XDieValue = 0;
+
+	override readonly isFreezingRotate = true;
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
-	get value(): XDieValue { return this._value }
+	#value: XDieValue = 0;
+	get value() { return this.#value }
 	set value(val: XDieValue) {
 		if (val && val > 0 && val <= 10) {
-			this._value = val;
+			this.#value = val;
 			if (this.isInitialized) {
 				this.value$.html(this.face);
 			}
 		}
 	}
-	get face(): XDieFace { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this._value] as XDieFace }
+	get face(): XDieFace { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value] as XDieFace }
 
 	get isRolled() { return this.value > 0 }
 
@@ -134,6 +137,8 @@ export class XMod extends XItem implements XTerm {
 			}
 		});
 	}
+	override readonly isFreezingRotate = true;
+
 	private _value: XDieValue = 0;
 	protected get value$() { return $(`#${this.id} .die-val`) }
 

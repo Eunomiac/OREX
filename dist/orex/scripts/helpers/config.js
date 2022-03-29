@@ -12,5 +12,17 @@ export default {
         }
     },
     isDebugging: true,
-    minFuzzyMatchScore: 0.8 // Determines strictness of FuzzyMatcher
+    minFuzzyMatchScore: 0.8,
+    colors: {
+        red: "",
+        cyan: "",
+        yellow: "",
+        gold: "",
+        orange: "",
+        green: "",
+        lime: "",
+        magenta: "",
+        blue: "",
+        purple: ""
+    }
 };

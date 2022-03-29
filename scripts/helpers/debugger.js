@@ -8,11 +8,13 @@ XItem, XGroup, XPool, XDie, XTermType, XOrbitType, XRoll
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "./bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
-const XDebugger = (type, message, ...content) => {
+// #region ████████ XLogger: Formatted Logging to Console ████████ ~
+const XLogger = (type, stylesOverride, message, ...content) => {
     if (C.isDebugging) {
         const styleLine = Object.entries({
             ...STYLES.base,
-            ...STYLES[type] ?? {}
+            ...STYLES[type] ?? {},
+            ...stylesOverride
         }).map(([prop, val]) => `${prop}: ${val};`).join(" ");
         if (content.length) {
             if (content[0] === "NOGROUP") {
@@ -70,104 +72,182 @@ const STYLES = {
     groupEnd: {}
 };
 const DB = {
-    log: (message, ...content) => XDebugger("base", message, ...(content.length ? content : ["NOGROUP"])),
-    title: (message) => XDebugger("title", message, "NOGROUP"),
-    display: (message, ...content) => XDebugger("display", message, ...(content.length ? content : ["NOGROUP"])),
-    info: (message, ...content) => XDebugger("info", message, ...(content.length ? content : ["NOGROUP"])),
-    error: (message, ...content) => XDebugger("error", message, ...(content.length ? content : ["NOGROUP"])),
-    groupLog: (label) => XDebugger("base", label),
-    groupTitle: (label) => XDebugger("title", label),
-    groupDisplay: (label) => XDebugger("display", label),
-    groupInfo: (label) => XDebugger("info", label),
-    groupError: (label) => XDebugger("error", label),
+    log: (message, ...content) => XLogger("base", {}, message, ...(content.length ? content : ["NOGROUP"])),
+    title: (message) => XLogger("title", {}, message, "NOGROUP"),
+    display: (message, ...content) => XLogger("display", {}, message, ...(content.length ? content : ["NOGROUP"])),
+    info: (message, ...content) => XLogger("info", {}, message, ...(content.length ? content : ["NOGROUP"])),
+    error: (message, ...content) => XLogger("error", {}, message, ...(content.length ? content : ["NOGROUP"])),
+    groupLog: (label) => XLogger("base", {}, label),
+    groupTitle: (label) => XLogger("title", {}, label),
+    groupDisplay: (label) => XLogger("display", {}, label),
+    groupInfo: (label) => XLogger("info", {}, label),
+    groupError: (label) => XLogger("error", {}, label),
     groupEnd: () => console.groupEnd()
+    // XArm
 };
+// #endregion ▄▄▄▄▄ XLogger ▄▄▄▄▄
+// #region ████████ XPing: Rendering Position Pings to DOM ████████
+class XPing {
+    static REGISTRY = new Map();
+    static Register(xPing) {
+        if (this.REGISTRY.has(xPing.label)) {
+            this.REGISTRY.get(xPing.label)?.xItem.kill();
+        }
+        this.REGISTRY.set(xPing.label, xPing);
+    }
+    static Unregister(xPing) {
+        this.REGISTRY.delete(xPing.label);
+        xPing.xItem.kill();
+    }
+    static KillAll() {
+        this.REGISTRY.forEach((xPing) => xPing.xItem.kill());
+        this.REGISTRY.clear();
+    }
+    static get newPingID() { return `xPing-${this.REGISTRY.size + 1}`; }
+    xItem;
+    label;
+    color;
+    point;
+    context;
+    constructor(point, label, context = XItem.XROOT, color = "random") {
+        this.color = color === "random" ? U.randElem(Object.keys(C.colors)) : color;
+        this.xItem = new XItem(context, {
+            id: XPing.newPingID,
+            classes: ["x-ping"],
+            onRender: {
+                set: {
+                    height: 100,
+                    width: 100,
+                    x: point.x,
+                    y: point.y,
+                    background: `radial-gradient(red 5%, ${this.color} 10%, transparent 60%, yellow 62%, transparent 64%)`,
+                    textAlign: "center",
+                    lineHeight: "50px",
+                    fontSize: "24px",
+                    fontFamily: "Oswald",
+                    color: "white",
+                    textShadow: "0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black"
+                },
+                from: {
+                    opacity: 0,
+                    scale: 0.5
+                },
+                to: {
+                    opacity: 1,
+                    scale: 1,
+                    ease: "elastic.out(5)",
+                    duration: 0.5
+                }
+            }
+        });
+        this.label = label;
+        this.point = point;
+        this.context = context;
+        this.initialize();
+    }
+    async initialize() {
+        await this.xItem.initialize();
+        this.xItem.elem$.html(this.label);
+        XPing.Register(this);
+        XLogger("base", { background: this.color }, `▶${U.uCase(this.label)} at {x: ${U.roundNum(this.point.x, 1)}, y: ${U.roundNum(this.point.y, 1)}}`, this);
+    }
+}
+Object.assign(DB, {
+    PING: (point, label, context, color) => new XPing(point, label, context, color),
+    ClearPings: () => XPing.KillAll()
+});
+// #endregion ▄▄▄▄▄ XPing ▄▄▄▄▄
 const ClickPhases = ["PositionXDie", "ParentXArm", "StretchXArm", "ResumeRotation"];
+const BuildTestContext = async () => {
+    const TranslateBox = new XPool(XItem.XROOT, {
+        id: "translate-box",
+        classes: ["translate-box"],
+        onRender: {
+            set: {
+                xPercent: 0,
+                yPercent: 0
+            },
+            to: {
+                x: "+=500",
+                duration: 5,
+                ease: "power3.inOut",
+                repeat: -1,
+                yoyo: true
+            }
+        }
+    });
+    const ScaleBox = new XGroup(TranslateBox, {
+        id: "scale-box-1",
+        classes: ["scale-box"],
+        onRender: {
+            set: {
+                xPercent: 0,
+                yPercent: 0
+            },
+            to: {
+                scale: 2,
+                duration: 15,
+                ease: "sine.inOut",
+                repeat: -1,
+                yoyo: true
+            }
+        }
+    });
+    const ExtraScaleBox = new XGroup(ScaleBox, {
+        id: "scale-box-2",
+        classes: ["extra-scale-box"],
+        onRender: {
+            set: {
+                xPercent: 0,
+                yPercent: 0
+            },
+            to: {
+                scale: 3,
+                duration: 5,
+                ease: "sine.inOut",
+                repeat: -1,
+                yoyo: true
+            }
+        }
+    });
+    const RotateBox = new XGroup(ExtraScaleBox, {
+        id: "rotate-box-1",
+        classes: ["rotate-box"],
+        onRender: {
+            set: {
+                xPercent: 0,
+                yPercent: 0
+            },
+            to: {
+                rotation: "+=360",
+                duration: 2,
+                ease: "none",
+                repeat: -1
+            }
+        }
+    });
+    const CounterRotateBox = new XGroup(RotateBox, {
+        id: "rotate-box-2",
+        classes: ["rotate-box"],
+        onRender: {
+            set: {
+                xPercent: 0,
+                yPercent: 0
+            },
+            to: {
+                rotation: "-=360",
+                duration: 2,
+                ease: "power4.inOut",
+                repeat: -1
+            }
+        }
+    });
+    await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
+    return { TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox };
+};
 const TESTS = {
-    testCoords: () => {
-        const TranslateBox = new XPool(XItem.XROOT, {
-            id: "translate-box",
-            classes: ["translate-box"],
-            onRender: {
-                set: {
-                    xPercent: 0,
-                    yPercent: 0
-                },
-                to: {
-                    x: "+=500",
-                    duration: 5,
-                    ease: "power3.inOut",
-                    repeat: -1,
-                    yoyo: true
-                }
-            }
-        });
-        const ScaleBox = new XGroup(TranslateBox, {
-            id: "scale-box-1",
-            classes: ["scale-box"],
-            onRender: {
-                set: {
-                    xPercent: 0,
-                    yPercent: 0
-                },
-                to: {
-                    scale: 2,
-                    duration: 15,
-                    ease: "sine.inOut",
-                    repeat: -1,
-                    yoyo: true
-                }
-            }
-        });
-        const ExtraScaleBox = new XGroup(ScaleBox, {
-            id: "scale-box-2",
-            classes: ["extra-scale-box"],
-            onRender: {
-                set: {
-                    xPercent: 0,
-                    yPercent: 0
-                },
-                to: {
-                    scale: 3,
-                    duration: 5,
-                    ease: "sine.inOut",
-                    repeat: -1,
-                    yoyo: true
-                }
-            }
-        });
-        const RotateBox = new XGroup(ExtraScaleBox, {
-            id: "rotate-box-1",
-            classes: ["rotate-box"],
-            onRender: {
-                set: {
-                    xPercent: 0,
-                    yPercent: 0
-                },
-                to: {
-                    rotation: "+=360",
-                    duration: 2,
-                    ease: "none",
-                    repeat: -1
-                }
-            }
-        });
-        const CounterRotateBox = new XGroup(RotateBox, {
-            id: "rotate-box-2",
-            classes: ["rotate-box"],
-            onRender: {
-                set: {
-                    xPercent: 0,
-                    yPercent: 0
-                },
-                to: {
-                    rotation: "-=360",
-                    duration: 2,
-                    ease: "power4.inOut",
-                    repeat: -1
-                }
-            }
-        });
+    testCoords: async () => {
+        const { TranslateBox, ScaleBox, RotateBox, CounterRotateBox } = await BuildTestContext();
         const TestDie = new XDie(CounterRotateBox, { id: "test-die", type: XTermType.BasicDie, value: 3, color: "lime", size: 50 });
         const dieMarkers = [
             { x: 0.5, y: 0, background: "yellow" },
@@ -340,9 +420,23 @@ const TESTS = {
         await rollPool.addXItems({ [XOrbitType.Main]: diceToAdd });
         return rollPool;
     },
-    angleClicks: (focus, isXArmTest) => {
+    angleClicks: async (focus, isXArmTest) => {
+        const pointMarker = new XItem(XItem.XROOT, {
+            id: "pointMarker",
+            onRender: {
+                set: {
+                    height: 0,
+                    width: 0,
+                    x: 0,
+                    y: 0
+                }
+            }
+        });
+        await pointMarker.initialize();
         document.addEventListener("click", async (event) => {
             DB.display("Click Event Triggered");
+            DB.PING({ x: event.pageX, y: event.pageY }, "EVENT");
+            pointMarker.set({ x: event.pageX, y: event.pageY });
             DB.log(`Event Position: {x: ${event.pageX}, y: ${event.pageY}}`);
             DB.log(`Focus Position: {x: ${focus.global.x}, y: ${focus.global.y}}`);
             DB.log(`Distance: ${focus.getDistanceTo({ x: event.pageX, y: event.pageY })}`);
@@ -351,21 +445,27 @@ const TESTS = {
                 const [xArm, xDie] = isXArmTest;
                 const clickPhase = ClickPhases.shift();
                 ClickPhases.push(clickPhase);
+                const { x, y } = xArm.xElem.getLocalPosData(pointMarker);
+                DB.display(`Click pos from xArm: {x: ${U.roundNum(x, 1)}, y: ${U.roundNum(y, 1)}}`);
                 switch (clickPhase) {
                     case "PositionXDie": {
                         focus.pauseRotating();
                         XItem.XROOT.adopt(xDie);
-                        xDie.set({ x: event.pageX, y: event.pageY });
+                        xDie.set({ x: event.pageX, y: event.pageY, rotation: 0 });
                         break;
                     }
                     case "ParentXArm": {
+                        const { x, y } = MotionPathPlugin.convertCoordinates(xDie.elem, xArm.elem, { x: 0, y: 0 });
+                        DB.PING({ x, y }, "xDie", xArm);
                         xArm.adopt(xDie, true),
                             xArm.set({ outlineColor: "gold" });
                         break;
                     }
                     case "StretchXArm": {
-                        xArm.stretchToXItem();
-                        xDie.set({ x: 0, y: 0, rotation: -1 * xArm.global.rotation });
+                        await xArm.stretchToXItem();
+                        await xDie.set({ x: 0, y: 0, rotation: -1 * xArm.global.rotation });
+                        const { x, y } = MotionPathPlugin.convertCoordinates(xDie.elem, xArm.elem, { x: 0, y: 0 });
+                        DB.PING({ x, y }, "xDie", xArm);
                         break;
                     }
                     case "ResumeRotation": {
@@ -374,7 +474,7 @@ const TESTS = {
                     }
                     // no default
                 }
-                DB.log("Objects", { event, focus, xDie: globalThis.xDie, xArm: globalThis.xArm });
+                DB.log("Objects", { event, focus, xDie, xArm });
             }
             else {
                 DB.log("Objects", { event, focus });
@@ -382,7 +482,7 @@ const TESTS = {
         });
     },
     xArmTest: async (parentRoll) => {
-        const [targetDie] = parentRoll.orbitals.get(XOrbitType.Main)?.xTerms ?? [];
+        const [targetDie] = (parentRoll.orbitals.get(XOrbitType.Main)?.xTerms ?? []);
         if (targetDie?.isInitialized && targetDie.xParent) {
             const xArm = targetDie.xParent;
             XItem.XROOT.adopt(targetDie, true);
@@ -391,7 +491,7 @@ const TESTS = {
                 xDie: targetDie,
                 xArm
             });
-            globalThis.angleClicks(parentRoll, [xArm, targetDie]);
+            TESTS.angleClicks(parentRoll, [xArm, targetDie]);
             DB.log("XArm Test Ready", { parentRoll, xDie: targetDie, xArm });
         }
     }

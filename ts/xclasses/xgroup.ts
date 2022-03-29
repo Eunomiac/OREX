@@ -60,7 +60,7 @@ export default class XGroup extends XItem {
 // #endregion ▄▄▄▄▄ XGroup ▄▄▄▄▄
 
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
-class XArm extends XItem {
+export class XArm extends XItem {
 	protected static override REGISTRY: Map<string, XArm> = new Map();
 	static override get defaultOptions() {
 		return U.objMerge(
@@ -88,32 +88,43 @@ class XArm extends XItem {
 			id: "arm"
 		});
 		this.xItem = xItem;
-		this.adopt(this.xItem, false);
+	}
+
+	async uniteWithHeldItem(): Promise<boolean> {
+		if (await this.xItem.initialize()) {
+			await this.stretchToXItem();
+			this.adopt(this.xItem, false);
+			this.xItem.set({x: 0, y: 0});
+			return Promise.resolve(true);
+		}
+		return Promise.reject(false);
 	}
 
 	override async initialize(): Promise<boolean> {
-		if (await super.initialize()) {
-			// this.stretchToXItem();
+		if (await super.initialize() && await this.xItem.initialize()) {
 			this.set({
 				"--held-item-width": `${this.xItem.width}px`
 			});
-			// this.xItem.set({
-			// 	left: "unset",
-			// 	top: "unset",
-			// 	right: -1 * this.xItem.width
-			// });
-			this.adopt(this.xItem, false);
-			return this.xItem.confirmRender();
+			this.xParent?.adopt(this, false);
+			return this.uniteWithHeldItem();
 		}
 		return Promise.reject();
 	}
 
 	async stretchToXItem() {
 		if (this.xParent && await this.xItem.initialize()) {
-			return this.set({
-				width: U.getDistance(this.xItem.global.pos, this.xParent.global.pos),
-				rotation: U.getAngleDelta(this.xParent.global.rotation,U.getAngle(this.xItem.global.pos, this.xParent.global.pos))
-			});
+			// Relative x/y distance from Arm origin to xItem
+			const {x: xDist, y: yDist} = MotionPathPlugin.getRelativePosition(this.xParent.elem, this.xItem.elem, [0.5, 0.5], [0.5, 0.5]);
+			// Total Distance
+			const distToFloat = U.getDistance({x: 0, y: 0}, {x: xDist, y: yDist});
+			// Angle from Arm origin to target die
+			const angleToFloat = U.getAngle({x: 0, y: 0}, {x: xDist, y: yDist});
+			// Get global Arm rotation
+			const curAngle = this.global.rotation;
+			// Get rotation delta
+			const angleDelta = U.getAngleDelta(curAngle, angleToFloat);
+			// Adjust local arm rotation angle and width to match
+			return this.set({width: distToFloat, rotation: this.rotation + angleDelta});
 		}
 		return Promise.reject();
 	}
@@ -203,7 +214,7 @@ export class XOrbit extends XGroup {
 				callbackScope: this,
 				onUpdate() {
 					this.xTerms.forEach((xItem: XItem) => {
-						if (xItem.isInitialized && xItem.xParent?.isInitialized) {
+						if (xItem.isFreezingRotate && xItem.isInitialized && xItem.xParent?.isInitialized) {
 							xItem.set({rotation: -1 * xItem.xParent.global.rotation});
 						}
 					});

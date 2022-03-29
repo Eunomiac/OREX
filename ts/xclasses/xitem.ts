@@ -94,6 +94,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	#isInitialized = false; //~ xItem is rendered, parented, and onRender queues emptied
 	#xParent: XItem | null; //~ null only in the single case of the top XItem, XItem.XROOT
 	#xKids: Set<XItem> = new Set();
+	readonly isFreezingRotate: boolean = false; // ~set to 'true' to always maintain 0 rotation (e.g. for xTerms)
 	readonly xOptions: XItemOptions;
 	readonly xElem: XElem<typeof this>;
 
