@@ -13,7 +13,7 @@ export { default as gsap, Draggable as Dragger, InertiaPlugin, MotionPathPlugin,
 export { default as preloadTemplates } from "./templates.js";
 // ████████ XItems ████████
 export { default as XElem } from "../xclasses/xelem.js";
-export { default as XItem } from "../xclasses/xitem.js";
+export { default as XItem, XROOT } from "../xclasses/xitem.js";
 export { default as XGroup, XPool, XRoll, XOrbitType } from "../xclasses/xgroup.js";
 export { default as XDie, XMod, XTermType } from "../xclasses/xterm.js";
 export { XGhost, XMutator, XInfo } from "../xclasses/xmod.js";

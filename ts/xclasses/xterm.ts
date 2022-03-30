@@ -12,7 +12,7 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XItem, XGroup, XPool, XRoll
+	XROOT, XItem, XGroup, XPool, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XItemOptions} from "../helpers/bundler.js";
@@ -25,6 +25,7 @@ export interface XTermOptions extends XItemOptions {
 
 export interface XTerm {
 	type: XTermType,
+	xParent: XItem | XROOT,
 	// THIS SHIT IS WRONG AND BAD: NEED TO ACCOUNT FOR OTHER TYPES OF VALUES
 	value?: XDieValue,
 	ApplyEffect?: (xRoll: XRoll) => XRoll,
@@ -87,7 +88,7 @@ export default class XDie extends XItem implements XTerm {
 
 	roll() { this.value = U.randInt(1, 10) as XDieValue }
 
-	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XDieOptions) {
+	constructor(xOptions: XDieOptions, xParent: XGroup | XROOT = XItem.XROOT) {
 		const dieSize = xOptions.size ?? 40;
 		xOptions.onRender ??= {};
 		xOptions.onRender.set = {
@@ -100,7 +101,7 @@ export default class XDie extends XItem implements XTerm {
 			...xOptions.onRender.set ?? {}
 		};
 		xOptions.type = xOptions.type ?? XTermType.BasicDie;
-		super(xParent, xOptions);
+		super(xOptions, xParent);
 		this.value = xOptions.value ?? 0;
 		this.type = xOptions.type;
 	}
@@ -150,15 +151,7 @@ export class XMod extends XItem implements XTerm {
 		}
 	}
 
-	override get xParent() {
-
-
-		return <XItem>super.xParent;
-	}
-	override set xParent(xItem: XItem) { super.xParent = xItem }
-
-
-	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XModOptions) {
+	constructor(xOptions: XModOptions, xParent: XItem | XROOT = XItem.XROOT) {
 		const dieSize = xOptions.size ?? 40;
 		xOptions.onRender ??= {};
 		xOptions.onRender.set = {
@@ -168,7 +161,7 @@ export class XMod extends XItem implements XTerm {
 			...xOptions.onRender.set ?? {}
 		};
 		xOptions.type = xOptions.type ?? XTermType.BasicDie;
-		super(xParent, xOptions);
+		super(xOptions, xParent);
 		// this.value = xOptions.value ?? 0;
 		this.type = xOptions.type;
 	}

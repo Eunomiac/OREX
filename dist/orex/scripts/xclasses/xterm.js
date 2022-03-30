@@ -2,9 +2,7 @@
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { 
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U, 
-// ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XItem } from "../helpers/bundler.js";
+U, XItem } from "../helpers/bundler.js";
 export var XTermType;
 (function (XTermType) {
     // Can we extend XDieType here, somehow?
@@ -53,7 +51,7 @@ export default class XDie extends XItem {
     get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value]; }
     get isRolled() { return this.value > 0; }
     roll() { this.value = U.randInt(1, 10); }
-    constructor(xParent, xOptions) {
+    constructor(xOptions, xParent = XItem.XROOT) {
         const dieSize = xOptions.size ?? 40;
         xOptions.onRender ??= {};
         xOptions.onRender.set = {
@@ -66,7 +64,7 @@ export default class XDie extends XItem {
             ...xOptions.onRender.set ?? {}
         };
         xOptions.type = xOptions.type ?? XTermType.BasicDie;
-        super(xParent, xOptions);
+        super(xOptions, xParent);
         this.value = xOptions.value ?? 0;
         this.type = xOptions.type;
     }
@@ -105,11 +103,7 @@ export class XMod extends XItem {
             this.value$.html(`${val}`);
         }
     }
-    get xParent() {
-        return super.xParent;
-    }
-    set xParent(xItem) { super.xParent = xItem; }
-    constructor(xParent, xOptions) {
+    constructor(xOptions, xParent = XItem.XROOT) {
         const dieSize = xOptions.size ?? 40;
         xOptions.onRender ??= {};
         xOptions.onRender.set = {
@@ -119,7 +113,7 @@ export class XMod extends XItem {
             ...xOptions.onRender.set ?? {}
         };
         xOptions.type = xOptions.type ?? XTermType.BasicDie;
-        super(xParent, xOptions);
+        super(xOptions, xParent);
         // this.value = xOptions.value ?? 0;
         this.type = xOptions.type;
     }

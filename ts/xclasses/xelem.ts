@@ -12,78 +12,95 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮ XItems ▮▮▮▮▮▮▮
-	XItem
+	XROOT, XItem
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {KnownKeys} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 // #region ████████ Type Definitions: TypeScript Interfaces Related to DOM Elements ████████ ~
-export interface Position extends Exclude<Point, PIXI.Point> {
+
+export type Point = gsap.Point2D;
+export type XAnim = gsap.core.Tween | gsap.core.Timeline;
+export interface Position extends Point {
+	height: number;
+	width: number;
 	rotation: number;
 	scale: number;
+	origin: Point;
 }
-export type XAnim = gsap.core.Tween | gsap.core.Timeline;
-export interface XElemOptions {
-	onRender?: {
-		set?: gsap.TweenVars,
-		to?: gsap.TweenVars,
-		from?: gsap.TweenVars,
-		funcs?: Array<(xItem?: XItem) => void>;
-	}
-}
-export interface DOMRenderer extends Position {
+export interface Renderable extends Position {
 	id: string;
-	renderApp: XItem;
+	renderApp: Application;
+	xParent?: XItem | XROOT;
+
 	elem: HTMLElement;
 	elem$: JQuery<HTMLElement>;
-	confirmRender: () => Promise<boolean>;
+
+	xRender: () => Promise<boolean>;
 	isRendered: boolean;
-	isRenderReady: boolean;
+	xInitialize: () => Promise<boolean>;
+	isInitialized: boolean;
 
-	x: number,
-	y: number,
-	pos: Point,
-	rotation: number,
-	scale: number,
-	height: number,
-	width: number,
-	size: number,
-	radius: number | false,
-	global: Position,
+	pos: Point;
+	size: number;
+	radius: number;
 
-	adopt: (xItem: XItem, isRetainingPosition?: boolean) => void,
+	global: Position;
+
+	onRender: {
+		set?: gsap.TweenVars,
+		funcs?: Array<<X extends typeof XItem>(xItem: InstanceType<X>) => void>
+	};
+
+	set: (vars: gsap.TweenVars) => XItem;
 }
-export interface GSAPController {
+export interface Tweenable extends Renderable {
 	tweens: Record<string, XAnim>;
+	xParent: XItem | XROOT;
+	isFreezingRotate: boolean;
 
-	set: (vars: gsap.TweenVars) => XItem,
-	to: (vars: gsap.TweenVars) => XItem,
-	from: (vars: gsap.TweenVars) => XItem,
-	fromTo: (fromVars: gsap.TweenVars, toVars: gsap.TweenVars) => XItem
+	onRender: Renderable["onRender"] & {
+		to?: gsap.TweenVars,
+		from?: gsap.TweenVars
+	}
+
+	to: (vars: gsap.TweenVars) => XItem;
+	from: (vars: gsap.TweenVars) => XItem;
+	fromTo: (fromVars: gsap.TweenVars, toVars: gsap.TweenVars) => XItem;
+
+	tweenTimeScale(tweenID: string, timeScale?: number, duration?: number): gsap.core.Tween;
+}
+export interface XParent {
+	xKids: Set<XItem>;
+	hasChildren: boolean;
+
+	registerXKid(xKid: XItem): void;
+	unregisterXKid(xKid: XItem): void;
+
+	getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll?: boolean): X[];
+
+	adopt: (item: XItem, isRetainingPosition: boolean) => void;
+	disown: (item: XItem) => void;
+}
+export interface XElemOptions {
+	onRender?: Tweenable["onRender"]
 }
 // #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
 
 // #region 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
-export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSAPController {
+export default class XElem<RenderApp extends XItem> implements Tweenable {
 
 	// #region ▮▮▮▮▮▮▮ [Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮ ~
-	private renderPromise?: Promise<boolean>;
-	#isRenderReady = false;
-	get isRenderReady(): boolean { return this.#isRenderReady }
-	async confirmRender(isRendering = true): Promise<boolean> {
-		this.#isRenderReady = this.isRenderReady || isRendering;
+	get isRendered() { return this.renderApp.rendered }
+
+	#renderPromise?: Promise<boolean>;
+	onRender: Tweenable["onRender"];
+	async xRender(): Promise<boolean> {
 		if (this.isRendered) { return Promise.resolve(true) }
-		if (!this.isRenderReady) { return Promise.resolve(false) }
-		this.renderPromise = this.renderApp.renderApplication();
-		await this.renderPromise;
-		if (this.parentApp) {
-			if (!(await this.parentApp.confirmRender())) {
-				console.warn(`Attempt to render child [ ${this.id} ] of unrendered parent [ ${this.parentApp.id} ].`);
-				return Promise.resolve(false);
-			}
-			this.parentApp?.adopt(this.renderApp, false);
-		}
+		if (this.#renderPromise) { return this.#renderPromise }
+		this.#renderPromise = (this.renderApp as XItem).renderApplication();
+		await this.#renderPromise;
 		if (this.onRender.set) {
 			this.set(this.onRender.set);
 		}
@@ -95,31 +112,26 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 			this.from(this.onRender.from);
 		}
 		this.onRender.funcs?.forEach((func) => func(this.renderApp));
-		return this.renderPromise;
+		return this.#renderPromise;
 	}
-
-	get isRendered() { return this.renderApp.rendered }
 	protected validateRender() {
 		if (!this.isRendered) {
-			throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} [ ${this.id} ]: Did you forget to await confirmRender?`);
+			throw Error(`Can't retrieve element of unrendered ${
+				this.constructor.name ?? "XItem"
+			} [ ${this.id} ]: Did you forget to await confirmRender?`);
 		}
 	}
-
-	readonly onRender: {
-		set?: gsap.TweenVars,
-		to?: gsap.TweenVars,
-		from?: gsap.TweenVars,
-		funcs?: Array<<X extends typeof XItem>(xItem: InstanceType<X>) => void>
-	};
+	get isInitialized() { return this.renderApp.isInitialized }
+	get xInitialize() { return this.renderApp.xInitialize.bind(this.renderApp) }
 	// #endregion ▮▮▮▮[Render Control]▮▮▮▮
 
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
 	readonly id: string;
-	readonly renderApp: RenderItem;
+	readonly renderApp: RenderApp;
 	get elem() { this.validateRender(); return this.renderApp.element[0] }
 	get elem$() { return $(this.elem) }
 
-	constructor(renderApp: RenderItem, xOptions: XElemOptions) {
+	constructor(renderApp: RenderApp, xOptions: XElemOptions) {
 		this.renderApp = renderApp;
 		this.id = this.renderApp.id;
 		this.onRender = xOptions.onRender ?? {};
@@ -127,10 +139,10 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 	// #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
 
 	// #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
-	get parentApp(): XItem | null { return this.renderApp.xParent }
+	get xParent(): XItem | XROOT { return this.renderApp.xParent }
 
 	adopt(child: XItem, isRetainingPosition = true): void {
-		child.xParent?.unregisterXKid(child);
+		child.xParent?.disown(child);
 		this.renderApp.registerXKid(child);
 		if (this.isRendered && child.isRendered) {
 			if (isRetainingPosition || child.isFreezingRotate) {
@@ -150,6 +162,18 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 			this.onRender.funcs.push(() => this.adopt(child, isRetainingPosition));
 		}
 	}
+	disown(child: XItem): void {
+		this.renderApp.unregisterXKid(child);
+	}
+
+	tweenTimeScale(tweenID: keyof typeof this.tweens, timeScale = 1, duration = 1) {
+		const tween = this.tweens[tweenID];
+		return gsap.to(tween, {
+			timeScale,
+			duration,
+			ease: "sine.inOut"
+		});
+	}
 	// #endregion ▄▄▄▄▄ Parenting ▄▄▄▄▄
 
 	// #region ████████ Positioning: Positioning DOM Element in Local and Global (XROOT) Space ████████ ~
@@ -168,23 +192,26 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 	// #endregion ░░░░[Local Space]░░░░
 	// #region ░░░░░░░ Global (XROOT) Space ░░░░░░░ ~
 	get global() {
-		this.validateRender();
 		const self = this;
 		return {
 			get pos() {
-				return MotionPathPlugin.convertCoordinates(
-					self.elem,
-					XItem.XROOT.elem,
-					self.origin
-				);
+				if (self.isRendered) {
+					return MotionPathPlugin.convertCoordinates(
+						self.elem,
+						XItem.XROOT.elem,
+						self.origin
+					);
+				}
+				return self.pos;
 			},
 			get x() { return this.pos.x },
 			get y() { return this.pos.y },
+			get height() { return self.height * this.scale },
+			get width() { return self.width * this.scale },
 			get rotation() {
 				let totalRotation = self.rotation,
-								{parentApp} = self;
-				while (parentApp?.isInitialized) {
-					parentApp.xElem.validateRender();
+								{xParent: parentApp} = self;
+				while (parentApp instanceof XItem) {
 					totalRotation += parentApp.rotation;
 					parentApp = parentApp.xParent;
 				}
@@ -192,34 +219,37 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 			},
 			get scale() {
 				let totalScale = self.scale,
-								{parentApp} = self;
-				while (parentApp?.isInitialized) {
-					parentApp.xElem.validateRender();
+								{xParent: parentApp} = self;
+				while (parentApp instanceof XItem) {
 					totalScale *= parentApp.scale;
 					parentApp = parentApp.xParent;
 				}
 				return totalScale;
-			}
+			},
+			get origin() { return self.origin }
 		};
 	}
 
 	get height() { return U.pInt(this.isRendered ? U.get(this.elem, "height", "px") : this.onRender.set?.height) }
 	get width() { return U.pInt(this.isRendered ? U.get(this.elem, "width", "px") : this.onRender.set?.width) }
 	get size() { return (this.height + this.width) / 2 }
-	get radius(): number | false { return (this.height === this.width ? this.height : false) }
+	get radius() { return this.size }
 	// #endregion ░░░░[Global (XROOT) Space]░░░░
 	// #region ░░░░░░░ Converting from Global Space to Element's Local Space ░░░░░░░ ~
 	getLocalPosData(ofItem: XItem, globalPoint?: Point): Position {
-		this.validateRender();
-		ofItem.xElem.validateRender();
 		return {
-			...MotionPathPlugin.convertCoordinates(
-				XItem.XROOT.elem,
-				this.elem,
-				globalPoint ?? ofItem.global.pos
-			),
+			...this.isRendered && ofItem.isRendered
+				? MotionPathPlugin.convertCoordinates(
+					XItem.XROOT.elem,
+					this.elem,
+					globalPoint ?? ofItem.global.pos
+				)
+				: ofItem.pos,
 			rotation: ofItem.global.rotation - this.global.rotation,
-			scale: ofItem.global.scale / this.global.scale
+			scale: ofItem.global.scale / this.global.scale,
+			height: ofItem.height,
+			width: ofItem.width,
+			origin: ofItem.xElem.origin
 		};
 	}
 	// #endregion ░░░░[Global to Local]░░░░
@@ -237,11 +267,12 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 
 	// #region ████████ GSAP: GSAP Animation Method Wrappers ████████ ~
 	tweens: Record<string, XAnim> = {};
+	get isFreezingRotate() { return this.renderApp.isFreezingRotate }
 	/*~ Figure out a way to have to / from / fromTo methods on all XItems that:
 			- will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
 			- if timescale is small enough, just uses.set() ~*/
 
-	set(vars: gsap.TweenVars): RenderItem {
+	set(vars: gsap.TweenVars): RenderApp {
 		if (this.isRendered) {
 			gsap.set(this.elem, vars);
 		} else {
@@ -252,7 +283,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 		}
 		return this.renderApp;
 	}
-	to(vars: gsap.TweenVars): RenderItem {
+	to(vars: gsap.TweenVars): RenderApp {
 		if (this.isRendered) {
 			const tween = gsap.to(this.elem, vars);
 			if (vars.id) {
@@ -266,7 +297,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 		}
 		return this.renderApp;
 	}
-	from(vars: gsap.TweenVars): RenderItem {
+	from(vars: gsap.TweenVars): RenderApp {
 		if (this.isRendered) {
 			const tween = gsap.from(this.elem, vars);
 			if (vars.id) {
@@ -280,7 +311,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 		}
 		return this.renderApp;
 	}
-	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): RenderItem {
+	fromTo(fromVars: gsap.TweenVars, toVars: gsap.TweenVars): RenderApp {
 		if (this.isRendered) {
 			const tween = gsap.fromTo(this.elem, fromVars, toVars);
 			if (toVars.id) {

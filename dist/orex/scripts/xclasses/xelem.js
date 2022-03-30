@@ -4,33 +4,23 @@ import {
 // ====== GreenSock Animation ======
 gsap, MotionPathPlugin, 
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U, 
-// ▮▮▮▮▮▮▮ XItems ▮▮▮▮▮▮▮
-XItem
+U, XItem
  } from "../helpers/bundler.js";
 // 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 export default class XElem {
     // ▮▮▮▮▮▮▮ [Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮
-    renderPromise;
-    #isRenderReady = false;
-    get isRenderReady() { return this.#isRenderReady; }
-    async confirmRender(isRendering = true) {
-        this.#isRenderReady = this.isRenderReady || isRendering;
+    get isRendered() { return this.renderApp.rendered; }
+    #renderPromise;
+    onRender;
+    async xRender() {
         if (this.isRendered) {
             return Promise.resolve(true);
         }
-        if (!this.isRenderReady) {
-            return Promise.resolve(false);
+        if (this.#renderPromise) {
+            return this.#renderPromise;
         }
-        this.renderPromise = this.renderApp.renderApplication();
-        await this.renderPromise;
-        if (this.parentApp) {
-            if (!(await this.parentApp.confirmRender())) {
-                console.warn(`Attempt to render child [ ${this.id} ] of unrendered parent [ ${this.parentApp.id} ].`);
-                return Promise.resolve(false);
-            }
-            this.parentApp?.adopt(this.renderApp, false);
-        }
+        this.#renderPromise = this.renderApp.renderApplication();
+        await this.#renderPromise;
         if (this.onRender.set) {
             this.set(this.onRender.set);
         }
@@ -44,15 +34,15 @@ export default class XElem {
             this.from(this.onRender.from);
         }
         this.onRender.funcs?.forEach((func) => func(this.renderApp));
-        return this.renderPromise;
+        return this.#renderPromise;
     }
-    get isRendered() { return this.renderApp.rendered; }
     validateRender() {
         if (!this.isRendered) {
             throw Error(`Can't retrieve element of unrendered ${this.constructor.name ?? "XItem"} [ ${this.id} ]: Did you forget to await confirmRender?`);
         }
     }
-    onRender;
+    get isInitialized() { return this.renderApp.isInitialized; }
+    get xInitialize() { return this.renderApp.xInitialize.bind(this.renderApp); }
     // ████████ CONSTRUCTOR & Essential Fields ████████
     id;
     renderApp;
@@ -64,9 +54,9 @@ export default class XElem {
         this.onRender = xOptions.onRender ?? {};
     }
     // ████████ Parenting: Adopting & Managing Child XItems ████████
-    get parentApp() { return this.renderApp.xParent; }
+    get xParent() { return this.renderApp.xParent; }
     adopt(child, isRetainingPosition = true) {
-        child.xParent?.unregisterXKid(child);
+        child.xParent?.disown(child);
         this.renderApp.registerXKid(child);
         if (this.isRendered && child.isRendered) {
             if (isRetainingPosition || child.isFreezingRotate) {
@@ -88,6 +78,17 @@ export default class XElem {
             this.onRender.funcs.push(() => this.adopt(child, isRetainingPosition));
         }
     }
+    disown(child) {
+        this.renderApp.unregisterXKid(child);
+    }
+    tweenTimeScale(tweenID, timeScale = 1, duration = 1) {
+        const tween = this.tweens[tweenID];
+        return gsap.to(tween, {
+            timeScale,
+            duration,
+            ease: "sine.inOut"
+        });
+    }
     // ████████ Positioning: Positioning DOM Element in Local and Global (XROOT) Space ████████
     // ░░░░░░░ Local Space ░░░░░░░
     get x() { return U.pInt(this.isRendered ? U.get(this.elem, "x", "px") : this.onRender.set?.x); }
@@ -103,46 +104,52 @@ export default class XElem {
     }
     // ░░░░░░░ Global (XROOT) Space ░░░░░░░
     get global() {
-        this.validateRender();
         const self = this;
         return {
             get pos() {
-                return MotionPathPlugin.convertCoordinates(self.elem, XItem.XROOT.elem, self.origin);
+                if (self.isRendered) {
+                    return MotionPathPlugin.convertCoordinates(self.elem, XItem.XROOT.elem, self.origin);
+                }
+                return self.pos;
             },
             get x() { return this.pos.x; },
             get y() { return this.pos.y; },
+            get height() { return self.height * this.scale; },
+            get width() { return self.width * this.scale; },
             get rotation() {
-                let totalRotation = self.rotation, { parentApp } = self;
-                while (parentApp?.isInitialized) {
-                    parentApp.xElem.validateRender();
+                let totalRotation = self.rotation, { xParent: parentApp } = self;
+                while (parentApp instanceof XItem) {
                     totalRotation += parentApp.rotation;
                     parentApp = parentApp.xParent;
                 }
                 return totalRotation;
             },
             get scale() {
-                let totalScale = self.scale, { parentApp } = self;
-                while (parentApp?.isInitialized) {
-                    parentApp.xElem.validateRender();
+                let totalScale = self.scale, { xParent: parentApp } = self;
+                while (parentApp instanceof XItem) {
                     totalScale *= parentApp.scale;
                     parentApp = parentApp.xParent;
                 }
                 return totalScale;
-            }
+            },
+            get origin() { return self.origin; }
         };
     }
     get height() { return U.pInt(this.isRendered ? U.get(this.elem, "height", "px") : this.onRender.set?.height); }
     get width() { return U.pInt(this.isRendered ? U.get(this.elem, "width", "px") : this.onRender.set?.width); }
     get size() { return (this.height + this.width) / 2; }
-    get radius() { return (this.height === this.width ? this.height : false); }
+    get radius() { return this.size; }
     // ░░░░░░░ Converting from Global Space to Element's Local Space ░░░░░░░
     getLocalPosData(ofItem, globalPoint) {
-        this.validateRender();
-        ofItem.xElem.validateRender();
         return {
-            ...MotionPathPlugin.convertCoordinates(XItem.XROOT.elem, this.elem, globalPoint ?? ofItem.global.pos),
+            ...this.isRendered && ofItem.isRendered
+                ? MotionPathPlugin.convertCoordinates(XItem.XROOT.elem, this.elem, globalPoint ?? ofItem.global.pos)
+                : ofItem.pos,
             rotation: ofItem.global.rotation - this.global.rotation,
-            scale: ofItem.global.scale / this.global.scale
+            scale: ofItem.global.scale / this.global.scale,
+            height: ofItem.height,
+            width: ofItem.width,
+            origin: ofItem.xElem.origin
         };
     }
     // ░░░░░░░ Relative Positions ░░░░░░░
@@ -157,6 +164,7 @@ export default class XElem {
 
     // ████████ GSAP: GSAP Animation Method Wrappers ████████
     tweens = {};
+    get isFreezingRotate() { return this.renderApp.isFreezingRotate; }
     /*~ Figure out a way to have to / from / fromTo methods on all XItems that:
             - will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
             - if timescale is small enough, just uses.set() ~*/
