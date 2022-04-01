@@ -7,7 +7,7 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animati
 preloadTemplates, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XElem, XItem, XGroup, XPool, XRoll, XDie, 
+XROOT, XElem, XItem, XGroup, XPool, XRoll, XDie, 
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
 /*DEVCODE*/
@@ -26,30 +26,31 @@ Hooks.once("init", async () => {
     DB.groupEnd();
     DB.log("DEV-MODE BOOTED");
     DB.groupEnd();
-    DB.log("... Booting Complete.");
+    DB.display("... Booting Complete.");
     DB.groupTitle("INITIALIZING");
     DB.display("INITIALIZING ORE-X");
-    DB.groupInfo("Preloading Templates...");
+    DB.groupLog("Preloading Templates...");
     preloadTemplates();
     DB.groupEnd();
-    // DB.groupInfo("Rendering XROOT to DOM");
-    // XItem.InitializeXROOT();
-    // DB.groupEnd();
+    DB.groupLog("Rendering XROOT to DOM");
+    XROOT.INITIALIZE();
+    DB.groupEnd();
     DB.log("ORE-X INITIALIZED");
-    DB.groupDisplay("Finishing Initialization ...");
+    DB.groupDisplay("INITIALIZING MODULES & CANVAS");
 });
 // #endregion ▄▄▄▄▄ ON INIT ▄▄▄▄▄
 Hooks.once("ready", async () => {
     DB.groupEnd();
+    DB.log("MODULES & CANVAS INITIALIZED");
     DB.groupEnd();
-    DB.log("... Initialization Complete.");
+    DB.display("... Initialization Complete.");
     /*DEVCODE*/
     DB.groupTitle("READYING");
     DB.display("READYING ORE-X");
-    DB.groupInfo("Preparing Debug Controls...");
+    DB.groupLog("Preparing Debug Controls...");
     const DBCONTROLS = {
         U,
-        XElem, XItem,
+        XROOT, XElem, XItem,
         XGroup, XPool, XRoll,
         XDie,
         gsap,
@@ -66,23 +67,25 @@ Hooks.once("ready", async () => {
         killAll: XItem.XROOT.kill()
     };
     DB.groupEnd();
-    DB.groupInfo("Declaring Debug Console Globals... ");
+    DB.groupLog("Declaring Debug Console Globals... ");
     Object.entries({ ...DBCONTROLS, ...TESTS }).forEach(([key, val]) => { Object.assign(globalThis, { [key]: val }); });
     DB.groupEnd();
-    DB.log("ORE-X READY");
-    DB.groupDisplay("Finishing Readying...");
-    setTimeout(async () => {
+    DB.log("ORE-X READIED");
+    DB.groupDisplay("READYING MODULES & CANVAS");
+    U.sleep(1000).then(async () => {
         DB.groupEnd();
+        DB.log("MODULES & CANVAS READIED");
         DB.groupEnd();
-        DB.log("... Readying Complete.");
-        DB.groupDisplay("Starting Timeouts...");
-        setTimeout(async () => {
+        DB.display("... Readying Complete.");
+        DB.groupEnd();
+        DB.groupLog("Awaiting Test Case Timeouts...");
+        U.sleep(U.randInt(1000, 5000)).then(async () => {
+            /* RUN TESTS HERE */
             DB.groupEnd();
-            DB.groupEnd();
-            const XB = {};
-            DB.groupEnd();
-            setTimeout(() => TESTS.xArmTest(false), 500);
-        }, U.randInt(1000, 5000));
-    }, 1000);
+            DB.display("... Timeouts Complete.");
+            DB.title("START-UP COMPLETE.");
+            DB.display("... System on Standby.");
+        });
+    });
     /*!DEVCODE*/
 });

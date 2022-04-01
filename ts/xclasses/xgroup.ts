@@ -113,17 +113,17 @@ export class XArm extends XItem implements XParent {
 		this.xItem = xItem;
 	}
 
-	async uniteWithHeldItem(): Promise<boolean> {
+	async uniteWithHeldItem(): Promise<this> {
 		if (await this.xItem.xInitialize()) {
 			await this.stretchToXItem();
 			this.adopt(this.xItem, false);
 			this.xItem.set({x: 0, y: 0});
-			return Promise.resolve(true);
+			return Promise.resolve(this);
 		}
-		return Promise.reject(false);
+		return Promise.reject();
 	}
 
-	override async xInitialize(): Promise<boolean> {
+	override async xInitialize(): Promise<this> {
 		if (await super.xInitialize() && await this.xItem.xInitialize()) {
 			this.set({
 				"--held-item-width": `${this.xItem.width}px`
@@ -217,7 +217,7 @@ export class XOrbit extends XGroup {
 				},
 				funcs: [
 					(self) => {
-						(self as this).startRotating();
+						(self as XOrbit).startRotating();
 					}
 				]
 			}
@@ -250,12 +250,12 @@ export class XOrbit extends XGroup {
 	protected updateArmsThrottle?: NodeJS.Timeout;
 	public pauseRotating() {
 		if (this.isRendered) {
-			this.xElem.tweens.rotationTween?.pause();
+			this.xElem.xTweens.rotationTween?.pause();
 		}
 	}
 	public playRotating() {
 		if (this.isRendered) {
-			this.xElem.tweens.rotationTween?.play();
+			this.xElem.xTweens.rotationTween?.play();
 		}
 	}
 

@@ -649,8 +649,8 @@ const getAngleDelta = (angleStart: number, angleEnd: number, range: [number, num
 
 // #region ████████ ARRAYS: Array Manipulation ████████ ~
 const randElem = <Type>(array: Type[]): Type => gsap.utils.random(array);
-const randIndex = (array: unknown[]): posInt => randInt(0, array.length - 1);
-const makeCycler = (array: unknown[], index = 0): Generator => {
+const randIndex = <T>(array: T[]): posInt => randInt(0, array.length - 1);
+const makeCycler = <T>(array: T[], index: posInt = 0): Generator<T> => {
 	// Given an array and a starting index, returns a generator function that can be used
 	// to iterate over the array indefinitely, or wrap out-of-bounds index values
 	const wrapper = gsap.utils.wrap(array);
@@ -662,21 +662,49 @@ const makeCycler = (array: unknown[], index = 0): Generator => {
 		}
 	}());
 };
-const getLast = (array: unknown[]) => (array.length ? array[array.length - 1] : undefined);
-const unique = <Type>(array: Type[]): Type[] => {
-	const returnArray: Type[] = [];
+function getFirst<T>(array: T[], n?: 1): T
+function getFirst<T>(array: T[], n: posInt = 1): T | T[] {
+	if (n === 1) {
+		return array[0];
+	}
+	return array.filter((_, index) => index < n);
+}
+
+function getLast<T>(array: T[], n?: 1): T
+function getLast<T>(array: T[], n = 1): T | T[] {
+	if (n === 1) {
+		return array[Math.max(0, array.length - 1)];
+	}
+	return array.filter((_, index) => array.length - index <= n);
+}
+const unique = <T>(array: T[]): T[] => {
+	const returnArray: T[] = [];
 	array.forEach((item) => { if (!returnArray.includes(item)) { returnArray.push(item) } });
 	return returnArray;
 };
-const removeFirst = (array: unknown[], element: unknown) => array.splice(array.findIndex((v) => v === element));
-const pullElement = (array: unknown[], checkFunc = (_v: unknown = true, _i = 0, _a: unknown[] = []) => { checkFunc(_v, _i, _a) }) => {
-	const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
-	return index !== -1 && array.splice(index, 1).pop();
+const removeFirst = <T>(array: T[], element: T) => array.splice(array.findIndex((v) => v === element));
+const pullElement = <T>(array: T[], checkFunc = (v?: T, i?: posInt, a?: T[]) => { checkFunc(v, i, a) }): T | false => {
+	const index = array.findIndex(checkFunc);
+	return (index !== -1 && array.splice(index, 1)?.pop()) ?? false;
 };
-const pullIndex = (array: unknown[], index: posInt) => pullElement(array, (v, i) => i === index);
+const pullIndex = <T>(array: T[], index: posInt): T | false => pullElement(array, (_, i) => i === index);
+const pluck = <T>(array: T[], key: keyof T) => array.map(element => element[key]);
 
+export function groupBy<T extends Record<keyof T, ValueOf<T>>>(array: T[], key: keyof T): Record<ValueOf<T>, T[]> {
+	return array.reduce((group: Record<ValueOf<T>, T[]>, element: T) => {
+		const keyValue = element[key];
+		return {
+			...group,
+			[keyValue]: [
+				...keyValue in group
+					? group[keyValue]
+					: [] as T[],
+				element
+			]
+		};
+	}, {} as Record<ValueOf<T>, T[]>);
+}
 /*~ #region TO PROCESS: ARRAY FUNCTIONS: Last, Flip, Insert, Change, Remove
-export const Last = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : undefined);
 export const Flip = (arr) => Clone(arr).reverse();
 export const Insert = (arr, val, index) => { // MUTATOR
 	arr[ pInt(index)] = val;
@@ -881,7 +909,7 @@ const objFlatten = (obj: Index<unknown>) => {
 };
 // #endregion ▄▄▄▄▄ OBJECTS ▄▄▄▄▄
 
-// #region ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████ ~
+// #region ████████ FUNCTIONS: Function Wrapping, Async Flow Control, Function Generation ████████ ~
 const getDynamicFunc = (funcName: string, func: (...args: unknown[]) => unknown, context: object) => {
 	if (typeof func === "function") {
 		const dFunc = {[funcName](...args: unknown[]) { return func(...args) }}[funcName];
@@ -889,7 +917,47 @@ const getDynamicFunc = (funcName: string, func: (...args: unknown[]) => unknown,
 	}
 	return false;
 };
+const memoize = (cb: (...args: unknown[]) => unknown): typeof cb => {
+	const cache = new Map();
+	return (...args) => {
+		const key = JSON.stringify(args);
+		if (cache.has(key)) {
+			return cache.get(key);
+		}
+		const result = cb(...args);
+		cache.set(key, result);
+		return result;
+	};
+};
 // #endregion ▄▄▄▄▄ FUNCTIONS ▄▄▄▄▄
+
+// #region ████████ ASYNC: Asynchronous Flow Control ████████ ~
+// const promise = <RType>(asyncFunc: () => Promise<RType>): Promise<RType> => {
+// 	return new Promise((resolve, reject) => {
+// 		try {
+// 			const returnVal = asyncFunc().then(() => resolve());
+// 			resolve(returnVal);
+
+// 		} catch (err) {
+// 			reject(err);
+// 		}
+// 	});
+// }
+
+const promise: Promise<true> = new Promise((resolve, reject) => {
+	try {
+		console.log(resolve);
+		resolve(true);
+
+	} catch (err) {
+		reject(false);
+	}
+	reject(false);
+});
+
+
+const sleep = (duration: number) => new Promise(resolve => setTimeout(resolve, duration));
+// #endregion ▄▄▄▄▄ ASYNC ▄▄▄▄▄
 
 // #region ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████ ~
 // #region ░░░░░░░[GreenSock]░░░░ Wrappers for GreenSock Functions ░░░░░░░ ~
@@ -908,6 +976,59 @@ function get(target: gsap.TweenTarget, property: string, unit?: string): string 
 }
 const set = (targets: gsap.TweenTarget, vars: gsap.TweenVars): gsap.core.Tween => gsap.set(targets, vars);
 // #endregion ░░░░[GreenSock]░░░░
+
+// Add a dynamic event listener to the global scope, which will fire even for new elements added later to the DOM.
+function addGlobalListener(
+	type: keyof DocumentEventMap,
+	selector: string,
+	callback: (event: Event) => void,
+	options: Partial<AddEventListenerOptions>,
+	parent: Document | Element = document
+) {
+	parent.addEventListener(
+		type,
+		(event) => {
+			if (event.target instanceof Element && event.target.matches(selector)) {
+				callback(event);
+			}
+		},
+		options
+	);
+}
+function qSel(selector: string, parent: Document | Element = document) {
+	return parent.querySelector(selector);
+}
+function qSelAll(selector: string, parent: Document | Element = document) {
+	return Array.from(parent.querySelectorAll(selector));
+}
+function createElement(tag: keyof HTMLElementTagNameMap, options: Record<string,string|string[]|Record<string,string>> = {}) {
+	const element = document.createElement(tag);
+	Object.entries(options).forEach(([key, value]) => {
+		if (isList(value)) {
+			if (key === "dataset") {
+				Object.entries(value).forEach(([dataKey, dataValue]) => {
+					element.dataset[dataKey] = dataValue;
+				});
+				return;
+			}
+		} else {
+			value = [...[value].flat()];
+			if (key === "class") {
+				element.classList.add(...value);
+				return;
+			}
+			if (key === "text") {
+				element.textContent = value.join(" ");
+				return;
+			}
+		}
+		value = typeof value === "string" ? value : JSON.stringify(value);
+		element.setAttribute(key, value);
+	});
+	return element;
+}
+
+
 const getRawCirclePath = (r: number, {x: xO, y: yO}: Point = {x: 0, y: 0}): Array<Array<number | string>> => {
 	[r, xO, yO] = [r, xO, yO].map((val) => roundNum(val, 2));
 	const [b1, b2] = [0.4475 * r, (1 - 0.4475) * r];
@@ -985,12 +1106,15 @@ export default {
 	objMap, objFilter, objForEach, objCompact,
 	objClone, objMerge, objExpand, objFlatten,
 
-	// ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
+	// ████████ FUNCTIONS: Function Wrapping, Async Flow Control, Function Generation ████████
 	getDynamicFunc,
+	sleep,
 
 	// ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████
 	// ░░░░░░░ GreenSock ░░░░░░░
 	gsap, get, set,
+
+	qSel, qSelAll, addGlobalListener, createElement,
 
 	getRawCirclePath, drawCirclePath,
 	formatAsClass,

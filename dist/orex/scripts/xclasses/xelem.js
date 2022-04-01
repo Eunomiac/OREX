@@ -9,32 +9,32 @@ U, XItem
 // 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 export default class XElem {
     // ▮▮▮▮▮▮▮ [Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮
-    get isRendered() { return this.renderApp.rendered; }
+    #isRendered = false;
+    get isRendered() { return this.renderApp.rendered && this.#isRendered; }
     #renderPromise;
     onRender;
     async xRender() {
         if (this.isRendered) {
-            return Promise.resolve(true);
+            this.#renderPromise ??= Promise.resolve(this.renderApp);
         }
-        if (this.#renderPromise) {
-            return this.#renderPromise;
-        }
-        this.#renderPromise = this.renderApp.renderApplication();
-        await this.#renderPromise;
-        if (this.onRender.set) {
-            this.set(this.onRender.set);
-        }
-        if (this.onRender.to && this.onRender.from) {
-            this.fromTo(this.onRender.from, this.onRender.to);
-        }
-        else if (this.onRender.to) {
-            this.to(this.onRender.to);
-        }
-        else if (this.onRender.from) {
-            this.from(this.onRender.from);
-        }
-        this.onRender.funcs?.forEach((func) => func(this.renderApp));
-        return this.#renderPromise;
+        return (this.#renderPromise ??= this.renderApp.renderApplication()
+            .then(async () => {
+            if (this.onRender.set) {
+                this.set(this.onRender.set);
+            }
+            this.#isRendered = true;
+            if (this.onRender.to && this.onRender.from) {
+                this.fromTo(this.onRender.from, this.onRender.to);
+            }
+            else if (this.onRender.to) {
+                this.to(this.onRender.to);
+            }
+            else if (this.onRender.from) {
+                this.from(this.onRender.from);
+            }
+            await Promise.all((this.onRender.funcs ?? []).map((func) => func(this.renderApp)));
+            return this.renderApp;
+        }));
     }
     validateRender() {
         if (!this.isRendered) {
@@ -56,13 +56,15 @@ export default class XElem {
     // ████████ Parenting: Adopting & Managing Child XItems ████████
     get xParent() { return this.renderApp.xParent; }
     adopt(child, isRetainingPosition = true) {
+        const localPosData = isRetainingPosition ? this.getLocalPosData(child) : {};
+        const childRotation = child.global.rotation;
         child.xParent?.disown(child);
         this.renderApp.registerXKid(child);
         if (this.isRendered && child.isRendered) {
             if (isRetainingPosition || child.isFreezingRotate) {
                 child.set({
-                    ...isRetainingPosition ? this.getLocalPosData(child) : {},
-                    ...child.isFreezingRotate ? { rotation: -1 * this.global.rotation } : {}
+                    ...isRetainingPosition ? localPosData : {},
+                    ...child.isFreezingRotate ? { rotation: childRotation - this.global.rotation } : {}
                 });
             }
             child.elem$.appendTo(this.elem);
@@ -82,7 +84,7 @@ export default class XElem {
         this.renderApp.unregisterXKid(child);
     }
     tweenTimeScale(tweenID, timeScale = 1, duration = 1) {
-        const tween = this.tweens[tweenID];
+        const tween = this.xTweens[tweenID];
         return gsap.to(tween, {
             timeScale,
             duration,
@@ -93,6 +95,8 @@ export default class XElem {
     // ░░░░░░░ Local Space ░░░░░░░
     get x() { return U.pInt(this.isRendered ? U.get(this.elem, "x", "px") : this.onRender.set?.x); }
     get y() { return U.pInt(this.isRendered ? U.get(this.elem, "y", "px") : this.onRender.set?.y); }
+    get xPercent() { return this.isRendered ? U.get(this.elem, "xPercent") : this.onRender.set?.xPercent ?? -50; }
+    get yPercent() { return this.isRendered ? U.get(this.elem, "yPercent") : this.onRender.set?.yPercent ?? -50; }
     get pos() { return { x: this.x, y: this.y }; }
     get rotation() { return U.pFloat(this.isRendered ? U.get(this.elem, "rotation") : this.onRender.set?.rotation, 2); }
     get scale() { return U.pFloat(this.isRendered ? U.get(this.elem, "scale") : this.onRender.set?.scale, 2) || 1; }
@@ -163,7 +167,7 @@ export default class XElem {
     }
 
     // ████████ GSAP: GSAP Animation Method Wrappers ████████
-    tweens = {};
+    xTweens = {};
     get isFreezingRotate() { return this.renderApp.isFreezingRotate; }
     /*~ Figure out a way to have to / from / fromTo methods on all XItems that:
             - will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
@@ -184,7 +188,7 @@ export default class XElem {
         if (this.isRendered) {
             const tween = gsap.to(this.elem, vars);
             if (vars.id) {
-                this.tweens[vars.id] = tween;
+                this.xTweens[vars.id] = tween;
             }
         }
         else {
@@ -199,7 +203,7 @@ export default class XElem {
         if (this.isRendered) {
             const tween = gsap.from(this.elem, vars);
             if (vars.id) {
-                this.tweens[vars.id] = tween;
+                this.xTweens[vars.id] = tween;
             }
         }
         else {
@@ -214,7 +218,7 @@ export default class XElem {
         if (this.isRendered) {
             const tween = gsap.fromTo(this.elem, fromVars, toVars);
             if (toVars.id) {
-                this.tweens[toVars.id] = tween;
+                this.xTweens[toVars.id] = tween;
             }
         }
         else {

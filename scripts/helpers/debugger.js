@@ -1,7 +1,10 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-C, U, XItem, XGroup, XPool, XDie, XTermType, XOrbitType, XRoll
+C, U, 
+// #endregion ▮▮▮▮[Utility]▮▮▮▮
+// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
+XROOT, XItem, XGroup, XPool, XDie, XTermType, XOrbitType, XRoll
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "./bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
@@ -428,7 +431,7 @@ const TESTS = {
     xArmTest: async (isPreinitializing = false) => {
         DB.groupTitle("Initializing XArm Catch Test");
         DB.groupLog("Resetting XROOT");
-        XItem.XROOT.kill();
+        XROOT.RESET();
         DB.groupEnd();
         DB.groupLog("Creating ROLL ...");
         const ROLL = new XRoll({
@@ -443,7 +446,9 @@ const TESTS = {
                 }
             }
         });
-        // if (isPreinitializing) { await ROLL.initialize() }
+        if (isPreinitializing) {
+            await ROLL.xInitialize();
+        }
         DB.groupEnd();
         DB.groupDisplay("Creating ROLL's DICE ...");
         ROLL.addXItems({ [XOrbitType.Main]: new Array(6)

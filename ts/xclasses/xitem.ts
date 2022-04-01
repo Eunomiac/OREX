@@ -8,7 +8,7 @@ import {
 	XElem, XGroup
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XElemOptions, Tweenable, Renderable, XParent, ConstructorOf} from"../helpers/bundler.js";
+import type {OnRenderFrozen, OnRender, XElemOptions, Tweenable, Renderable, XParent, ConstructorOf} from"../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 export interface XItemOptions extends Partial<ApplicationOptions>, XElemOptions {
 	id: string;
@@ -21,8 +21,7 @@ const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = 
 	}]
 ];
 
-
-export class XROOT extends Application implements Omit<Renderable, "onRender"|"set">, XParent {
+export class XROOT extends Application implements Renderable, XParent {
 	static override get defaultOptions(): ApplicationOptions {
 		return {
 			...super.defaultOptions,
@@ -30,14 +29,28 @@ export class XROOT extends Application implements Omit<Renderable, "onRender"|"s
 			template: U.getTemplatePath("xitem")
 		};
 	}
-	static RESET() { XItem.XROOT?.kill() }
+	static #XROOT?: XROOT;
+	static async INITIALIZE() {
+		if (this.#XROOT) { return this.#XROOT.xInitialize() }
+		this.#XROOT = new XROOT();
+		return this.#XROOT.xInitialize();
+	}
+	static RESET() { this.ROOT.kill() }
+	static get ROOT() {
+		if (!this.#XROOT) {
+			const err: {stack?: string} = {};
+			Error.captureStackTrace(err);
+			console.error(err.stack);
+			throw new Error(`Can't reference XROOT.ROOT before XROOT.INITIALIZE()\n\n${JSON.stringify(err.stack, null, 2)}`);
+		}
+		return this.#XROOT;
+	}
 
+	override get id() { return "XROOT" }
 	renderApp: Application = this;
-
 	get elem() { return this.element[0] }
 	get elem$() { return $(this.elem) }
 
-	override get id() { return "XROOT" }
 	x = 0;
 	y = 0;
 	rotation = 0;
@@ -57,7 +70,7 @@ export class XROOT extends Application implements Omit<Renderable, "onRender"|"s
 
 	#xKids: Set<XItem> = new Set();
 	get xKids() { return this.#xKids }
-	get hasChildren() { return this.xKids.size > 0 }
+	get hasKids() { return this.xKids.size > 0 }
 	getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
 		const xKids: X[] = Array.from(this.xKids.values())
 			.flat()
@@ -73,55 +86,78 @@ export class XROOT extends Application implements Omit<Renderable, "onRender"|"s
 
 	constructor() {
 		super({id: "XROOT"});
-		this.renderApplication();
 	}
 
+	#renderPromise?: Promise<this>;
 	get isRendered() { return this.rendered }
-	#renderPromise?: Promise<boolean>;
-	async xRender(): Promise<boolean> {
-		return new Promise((resolve, reject) => {
-			if (this.isRendered) {
-				resolve(true);
-			} else {
-				this._render(true)
-					.then(() => resolve(true))
-					.catch(() => reject(false));
-			}
-		});
-	}
 	get isInitialized() { return this.rendered }
-	async xInitialize(): Promise<boolean> {
-		return Promise.resolve(this.isRendered);
+	onRender: Required<OnRenderFrozen> = {
+		set:  {
+			xPercent: -50,
+			yPercent: -50,
+			x(_, elem) { return 0.5 * U.get(elem, "width", "px") },
+			y(_, elem) { return 0.5 * U.get(elem, "height", "px") }
+		},
+		funcs: [
+			() => this.getXKids(XItem).forEach((xItem) => this.adopt(xItem))
+		]
+	};
+	async xRender() {
+		await this.renderApplication();
+		$(this.elem).attr("id", "XROOT");
+		U.set(this.elem, this.onRender.set);
+		await Promise.all(this.onRender.funcs.map((renderFunc) => renderFunc()));
+		return this;
 	}
-	async renderApplication() {
-		if (this.#renderPromise) { return this.#renderPromise }
-		this.#renderPromise = this.xRender();
-		await this.#renderPromise;
-		U.set(this.elem, {
-			xPercent: 50,
-			yPercent: 50
-		});
-		this.elem$.attr("id", "XROOT");
-		return this.#renderPromise;
+	xInitialize = this.xRender;
+
+	async renderApplication(): Promise<this> {
+		if (this.rendered) {
+			this.#renderPromise ??= Promise.resolve(this);
+		}
+		return (this.#renderPromise ??= this._render(true).then(() => this));
 	}
 
-	adopt(xItem: XItem) {
-		xItem.xParent.disown(xItem);
-		xItem.xParent = this;
-		xItem.elem$.appendTo(this.elem$);
-		xItem.set({
-			...xItem.global.pos,
-			rotation: xItem.global.rotation,
-			scale: xItem.global.scale
-		});
-		this.registerXKid(xItem);
+	adopt(child: XItem) {
+		const {x, y} = child.global.pos;
+		const childRotation = child.global.rotation;
+		child.xParent?.disown(child);
+		this.registerXKid(child);
+		if (this.isRendered && child.isRendered) {
+			child.set({
+				x,
+				y,
+				rotation: child.isFreezingRotate ? 0 : (childRotation - this.global.rotation)
+			});
+			child.elem$.appendTo(this.elem);
+		} else if (this.isRendered) {
+			child.xElem.onRender.funcs ??= [];
+			child.xElem.onRender.funcs.unshift(() => {
+				this.adopt(child);
+			});
+		} else {
+			this.onRender.funcs.push(() => this.adopt(child));
+		}
 	}
+
+	// adopt(xItem: XItem) {
+	// 	xItem.xParent.disown(xItem);
+	// 	xItem.xParent = this;
+	// 	if (this.isRendered && xItem.isRendered) {
+	// 		xItem.elem$.appendTo(this.elem);
+	// 		xItem.set({
+	// 			...xItem.global.pos,
+	// 			rotation: xItem.global.rotation,
+	// 			scale: xItem.global.scale
+	// 		});
+	// 	this.registerXKid(xItem);
+	// }
 	disown(xItem: XItem) {
 		this.unregisterXKid(xItem);
 		return;
 	}
 	kill() {
-		if (this.hasChildren) {
+		if (this.hasKids) {
 			this.getXKids(XItem).forEach((xItem) => xItem.kill());
 		}
 	}
@@ -136,12 +172,12 @@ export default class XItem extends Application implements Tweenable {
 			xParent: XItem.XROOT,
 			onRender: {
 				set: {
-					x(i, elem) { return -0.5 * (gsap.getProperty(elem, "width") as number) },
-					y(i, elem) { return -0.5 * (gsap.getProperty(elem, "height") as number) },
-					rotation: 0,
-					scale: 1,
+					x(_, elem) { return -0.5 * U.get(elem, "width", "px") },
+					y(_, elem) { return -0.5 * U.get(elem, "height", "px") },
 					xPercent: -50,
 					yPercent: -50,
+					rotation: 0,
+					scale: 1,
 					transformOrigin: "50% 50%"
 				}
 			}
@@ -190,15 +226,25 @@ export default class XItem extends Application implements Tweenable {
 	readonly xElem: XElem<typeof this>;
 
 	renderApp: XItem = this;
-	onRender = {};
-	get tweens() { return this.xElem.tweens }
+	onRender: OnRender = {
+		set: {
+			x(_, elem) { return -0.5 * U.get(elem, "width", "px") },
+			y(_, elem) { return -0.5 * U.get(elem, "height", "px") },
+			xPercent: -50,
+			yPercent: -50,
+			rotation: 0,
+			scale: 1,
+			transformOrigin: "50% 50%"
+		}
+	};
+	get xTweens() { return this.xElem.xTweens }
 
 	get elem() { return this.xElem.elem }
 	get elem$() { return this.xElem.elem$ }
 
 	#xKids: Set<XItem> = new Set();
 	get xKids() { return this.#xKids }
-	get hasChildren() { return this.xKids.size > 0 }
+	get hasKids() { return this.xKids.size > 0 }
 	registerXKid(xKid: XItem) { this.xKids.add(xKid) }
 	unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
 	getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
@@ -222,34 +268,19 @@ export default class XItem extends Application implements Tweenable {
 			onRender: this.xOptions.onRender
 		});
 		(this.constructor as typeof XItem).Register(this);
+		xParent.adopt(this, false);
 	}
-	// constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
 
-	// 	super(xOptions);
-	// 	// this.constructor().Register(this);
-	// 	this.options.classes.push(...classes);
-	// 	this.xOptions = Object.assign(xOptions, this.options);
-	// 	if (xParent === null) {
-	// 		this.#xParent = null;
-	// 	} else {
-	// 		this.#xParent = xParent ?? XItem.XROOT;
-	// 	}
-	// 	this.xElem = new XElem(this, {
-	// 		onRender: this.xOptions.onRender
-	// 	});
-	// 	(this.constructor as typeof XItem).Register(this);
-	// }
-
-	async xInitialize(): Promise<boolean> {
-		if (this.isInitialized) { return Promise.resolve(true) }
+	async xInitialize(): Promise<typeof this> {
+		if (this.isInitialized) { return Promise.resolve(this) }
 		if (await this.xElem.xRender()) {
 			return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.xInitialize()))
 				.then(
-					() => { this.#isInitialized = true; return Promise.resolve(true) },
-					() => Promise.resolve(false)
+					() => { this.#isInitialized = true; return Promise.resolve(this) },
+					() => Promise.reject(this)
 				);
 		}
-		return Promise.resolve(false);
+		return Promise.reject(this);
 	}
 
 	get isRendered() { return this.rendered }
@@ -292,7 +323,7 @@ export default class XItem extends Application implements Tweenable {
 	get tweenTimeScale() { return this.xElem.tweenTimeScale.bind(this.xElem) }
 
 	kill() {
-		if (this.hasChildren) {
+		if (this.hasKids) {
 			this.getXKids(XItem).forEach((xItem) => xItem.kill());
 		}
 		this._tickers.forEach((func) => gsap.ticker.remove(func));
@@ -315,17 +346,17 @@ export default class XItem extends Application implements Tweenable {
 		return context;
 	}
 
-	async renderApplication(): Promise<boolean> {
+	async renderApplication(): Promise<this> {
 		try {
-			await this._render(true, {});
-			return Promise.resolve(true);
+			return this._render(true, {})
+				.then(() => Promise.resolve(this));
 		} catch (err) {
 			this._state = Application.RENDER_STATES.ERROR;
-			Hooks.onError("Application#render", <Error>err, {
-				msg: `An error occurred while rendering ${this.constructor.name} ${this.appId}`,
+			Hooks.onError("Application#render", err as Error, {
+				msg: `Error rendering ${this.constructor.name} id '#${this.id}'`,
 				log: "error"
 			});
-			return Promise.resolve(false);
+			return Promise.reject(err);
 		}
 	}
 }

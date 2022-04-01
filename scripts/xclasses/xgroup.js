@@ -66,9 +66,9 @@ export class XArm extends XItem {
             await this.stretchToXItem();
             this.adopt(this.xItem, false);
             this.xItem.set({ x: 0, y: 0 });
-            return Promise.resolve(true);
+            return Promise.resolve(this);
         }
-        return Promise.reject(false);
+        return Promise.reject();
     }
     async xInitialize() {
         if (await super.xInitialize() && await this.xItem.xInitialize()) {
@@ -185,12 +185,12 @@ export class XOrbit extends XGroup {
     updateArmsThrottle;
     pauseRotating() {
         if (this.isRendered) {
-            this.xElem.tweens.rotationTween?.pause();
+            this.xElem.xTweens.rotationTween?.pause();
         }
     }
     playRotating() {
         if (this.isRendered) {
-            this.xElem.tweens.rotationTween?.play();
+            this.xElem.xTweens.rotationTween?.play();
         }
     }
     addXArm(xArm) {

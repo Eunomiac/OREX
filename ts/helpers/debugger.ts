@@ -476,7 +476,7 @@ const TESTS = {
 		DB.groupTitle("Initializing XArm Catch Test");
 
 		DB.groupLog("Resetting XROOT");
-		XItem.XROOT.kill();
+		XROOT.RESET();
 		DB.groupEnd();
 
 		DB.groupLog("Creating ROLL ...");
@@ -492,7 +492,7 @@ const TESTS = {
 				}
 			}
 		});
-		// if (isPreinitializing) { await ROLL.initialize() }
+		if (isPreinitializing) { await ROLL.xInitialize() }
 		DB.groupEnd();
 
 		DB.groupDisplay("Creating ROLL's DICE ...");

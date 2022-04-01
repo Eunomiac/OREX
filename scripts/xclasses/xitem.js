@@ -20,11 +20,28 @@ export class XROOT extends Application {
             template: U.getTemplatePath("xitem")
         };
     }
-    static RESET() { XItem.XROOT?.kill(); }
+    static #XROOT;
+    static async INITIALIZE() {
+        if (this.#XROOT) {
+            return this.#XROOT.xInitialize();
+        }
+        this.#XROOT = new XROOT();
+        return this.#XROOT.xInitialize();
+    }
+    static RESET() { this.ROOT.kill(); }
+    static get ROOT() {
+        if (!this.#XROOT) {
+            const err = {};
+            Error.captureStackTrace(err);
+            console.error(err.stack);
+            throw new Error(`Can't reference XROOT.ROOT before XROOT.INITIALIZE()\n\n${JSON.stringify(err.stack, null, 2)}`);
+        }
+        return this.#XROOT;
+    }
+    get id() { return "XROOT"; }
     renderApp = this;
     get elem() { return this.element[0]; }
     get elem$() { return $(this.elem); }
-    get id() { return "XROOT"; }
     x = 0;
     y = 0;
     rotation = 0;
@@ -41,7 +58,7 @@ export class XROOT extends Application {
     get global() { return this; }
     #xKids = new Set();
     get xKids() { return this.#xKids; }
-    get hasChildren() { return this.xKids.size > 0; }
+    get hasKids() { return this.xKids.size > 0; }
     getXKids(classRef, isGettingAll = false) {
         const xKids = Array.from(this.xKids.values())
             .flat()
@@ -55,56 +72,76 @@ export class XROOT extends Application {
     unregisterXKid(xKid) { this.xKids.delete(xKid); }
     constructor() {
         super({ id: "XROOT" });
-        this.renderApplication();
     }
-    get isRendered() { return this.rendered; }
     #renderPromise;
-    async xRender() {
-        return new Promise((resolve, reject) => {
-            if (this.isRendered) {
-                resolve(true);
-            }
-            else {
-                this._render(true)
-                    .then(() => resolve(true))
-                    .catch(() => reject(false));
-            }
-        });
-    }
+    get isRendered() { return this.rendered; }
     get isInitialized() { return this.rendered; }
-    async xInitialize() {
-        return Promise.resolve(this.isRendered);
+    onRender = {
+        set: {
+            xPercent: -50,
+            yPercent: -50,
+            x(_, elem) { return 0.5 * U.get(elem, "width", "px"); },
+            y(_, elem) { return 0.5 * U.get(elem, "height", "px"); }
+        },
+        funcs: [
+            () => this.getXKids(XItem).forEach((xItem) => this.adopt(xItem))
+        ]
+    };
+    async xRender() {
+        await this.renderApplication();
+        $(this.elem).attr("id", "XROOT");
+        U.set(this.elem, this.onRender.set);
+        await Promise.all(this.onRender.funcs.map((renderFunc) => renderFunc()));
+        return this;
     }
+    xInitialize = this.xRender;
     async renderApplication() {
-        if (this.#renderPromise) {
-            return this.#renderPromise;
+        if (this.rendered) {
+            this.#renderPromise ??= Promise.resolve(this);
         }
-        this.#renderPromise = this.xRender();
-        await this.#renderPromise;
-        U.set(this.elem, {
-            xPercent: 50,
-            yPercent: 50
-        });
-        this.elem$.attr("id", "XROOT");
-        return this.#renderPromise;
+        return (this.#renderPromise ??= this._render(true).then(() => this));
     }
-    adopt(xItem) {
-        xItem.xParent.disown(xItem);
-        xItem.xParent = this;
-        xItem.elem$.appendTo(this.elem$);
-        xItem.set({
-            ...xItem.global.pos,
-            rotation: xItem.global.rotation,
-            scale: xItem.global.scale
-        });
-        this.registerXKid(xItem);
+    adopt(child) {
+        const { x, y } = child.global.pos;
+        const childRotation = child.global.rotation;
+        child.xParent?.disown(child);
+        this.registerXKid(child);
+        if (this.isRendered && child.isRendered) {
+            child.set({
+                x,
+                y,
+                rotation: child.isFreezingRotate ? 0 : (childRotation - this.global.rotation)
+            });
+            child.elem$.appendTo(this.elem);
+        }
+        else if (this.isRendered) {
+            child.xElem.onRender.funcs ??= [];
+            child.xElem.onRender.funcs.unshift(() => {
+                this.adopt(child);
+            });
+        }
+        else {
+            this.onRender.funcs.push(() => this.adopt(child));
+        }
     }
+    // adopt(xItem: XItem) {
+    // 	xItem.xParent.disown(xItem);
+    // 	xItem.xParent = this;
+    // 	if (this.isRendered && xItem.isRendered) {
+    // 		xItem.elem$.appendTo(this.elem);
+    // 		xItem.set({
+    // 			...xItem.global.pos,
+    // 			rotation: xItem.global.rotation,
+    // 			scale: xItem.global.scale
+    // 		});
+    // 	this.registerXKid(xItem);
+    // }
     disown(xItem) {
         this.unregisterXKid(xItem);
         return;
     }
     kill() {
-        if (this.hasChildren) {
+        if (this.hasKids) {
             this.getXKids(XItem).forEach((xItem) => xItem.kill());
         }
     }
@@ -120,12 +157,12 @@ export default class XItem extends Application {
             xParent: XItem.XROOT,
             onRender: {
                 set: {
-                    x(i, elem) { return -0.5 * gsap.getProperty(elem, "width"); },
-                    y(i, elem) { return -0.5 * gsap.getProperty(elem, "height"); },
-                    rotation: 0,
-                    scale: 1,
+                    x(_, elem) { return -0.5 * U.get(elem, "width", "px"); },
+                    y(_, elem) { return -0.5 * U.get(elem, "height", "px"); },
                     xPercent: -50,
                     yPercent: -50,
+                    rotation: 0,
+                    scale: 1,
                     transformOrigin: "50% 50%"
                 }
             }
@@ -169,13 +206,23 @@ export default class XItem extends Application {
     // readonly xOptions: XItemOptions;
     xElem;
     renderApp = this;
-    onRender = {};
-    get tweens() { return this.xElem.tweens; }
+    onRender = {
+        set: {
+            x(_, elem) { return -0.5 * U.get(elem, "width", "px"); },
+            y(_, elem) { return -0.5 * U.get(elem, "height", "px"); },
+            xPercent: -50,
+            yPercent: -50,
+            rotation: 0,
+            scale: 1,
+            transformOrigin: "50% 50%"
+        }
+    };
+    get xTweens() { return this.xElem.xTweens; }
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
     #xKids = new Set();
     get xKids() { return this.#xKids; }
-    get hasChildren() { return this.xKids.size > 0; }
+    get hasKids() { return this.xKids.size > 0; }
     registerXKid(xKid) { this.xKids.add(xKid); }
     unregisterXKid(xKid) { this.xKids.delete(xKid); }
     getXKids(classRef, isGettingAll = false) {
@@ -197,31 +244,17 @@ export default class XItem extends Application {
             onRender: this.xOptions.onRender
         });
         this.constructor.Register(this);
+        xParent.adopt(this, false);
     }
-    // constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
-    // 	super(xOptions);
-    // 	// this.constructor().Register(this);
-    // 	this.options.classes.push(...classes);
-    // 	this.xOptions = Object.assign(xOptions, this.options);
-    // 	if (xParent === null) {
-    // 		this.#xParent = null;
-    // 	} else {
-    // 		this.#xParent = xParent ?? XItem.XROOT;
-    // 	}
-    // 	this.xElem = new XElem(this, {
-    // 		onRender: this.xOptions.onRender
-    // 	});
-    // 	(this.constructor as typeof XItem).Register(this);
-    // }
     async xInitialize() {
         if (this.isInitialized) {
-            return Promise.resolve(true);
+            return Promise.resolve(this);
         }
         if (await this.xElem.xRender()) {
             return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.xInitialize()))
-                .then(() => { this.#isInitialized = true; return Promise.resolve(true); }, () => Promise.resolve(false));
+                .then(() => { this.#isInitialized = true; return Promise.resolve(this); }, () => Promise.reject(this));
         }
-        return Promise.resolve(false);
+        return Promise.reject(this);
     }
     get isRendered() { return this.rendered; }
     get isInitialized() { return this.#isInitialized; }
@@ -257,7 +290,7 @@ export default class XItem extends Application {
     get fromTo() { return this.xElem.fromTo.bind(this.xElem); }
     get tweenTimeScale() { return this.xElem.tweenTimeScale.bind(this.xElem); }
     kill() {
-        if (this.hasChildren) {
+        if (this.hasKids) {
             this.getXKids(XItem).forEach((xItem) => xItem.kill());
         }
         this._tickers.forEach((func) => gsap.ticker.remove(func));
@@ -280,16 +313,16 @@ export default class XItem extends Application {
     }
     async renderApplication() {
         try {
-            await this._render(true, {});
-            return Promise.resolve(true);
+            return this._render(true, {})
+                .then(() => Promise.resolve(this));
         }
         catch (err) {
             this._state = Application.RENDER_STATES.ERROR;
             Hooks.onError("Application#render", err, {
-                msg: `An error occurred while rendering ${this.constructor.name} ${this.appId}`,
+                msg: `Error rendering ${this.constructor.name} id '#${this.id}'`,
                 log: "error"
             });
-            return Promise.resolve(false);
+            return Promise.reject(err);
         }
     }
 }

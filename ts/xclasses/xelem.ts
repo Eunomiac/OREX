@@ -29,6 +29,15 @@ export interface Position extends Point {
 	scale: number;
 	origin: Point;
 }
+
+export interface OnRender {
+	set?: gsap.TweenVars,
+	to?: gsap.TweenVars,
+	from?: gsap.TweenVars,
+	funcs?: Array<(xItem?: XItem) => void>
+}
+
+export type OnRenderFrozen = Omit<OnRender, "to"|"from">
 export interface Renderable extends Position {
 	id: string;
 	renderApp: Application;
@@ -37,33 +46,28 @@ export interface Renderable extends Position {
 	elem: HTMLElement;
 	elem$: JQuery<HTMLElement>;
 
-	xRender: () => Promise<boolean>;
+	xRender: () => Promise<XItem|XROOT>;
 	isRendered: boolean;
-	xInitialize: () => Promise<boolean>;
+	xInitialize: () => Promise<XItem|XROOT>;
 	isInitialized: boolean;
+	onRender: Pick<OnRender, "set" | "funcs">
 
 	pos: Point;
 	size: number;
 	radius: number;
 
 	global: Position;
+}
 
-	onRender: {
-		set?: gsap.TweenVars,
-		funcs?: Array<<X extends typeof XItem>(xItem: InstanceType<X>) => void>
-	};
-
+export interface Changeable extends Renderable {
 	set: (vars: gsap.TweenVars) => XItem;
 }
-export interface Tweenable extends Renderable {
-	tweens: Record<string, XAnim>;
+export interface Tweenable extends Changeable {
+	xTweens: Record<string, XAnim>;
 	xParent: XItem | XROOT;
 	isFreezingRotate: boolean;
 
-	onRender: Renderable["onRender"] & {
-		to?: gsap.TweenVars,
-		from?: gsap.TweenVars
-	}
+	onRender: OnRender;
 
 	to: (vars: gsap.TweenVars) => XItem;
 	from: (vars: gsap.TweenVars) => XItem;
@@ -73,18 +77,18 @@ export interface Tweenable extends Renderable {
 }
 export interface XParent {
 	xKids: Set<XItem>;
-	hasChildren: boolean;
+	hasKids: boolean;
 
 	registerXKid(xKid: XItem): void;
 	unregisterXKid(xKid: XItem): void;
 
 	getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll?: boolean): X[];
 
-	adopt: (item: XItem, isRetainingPosition: boolean) => void;
+	adopt: (item: XItem, isRetainingPosition?: boolean) => void;
 	disown: (item: XItem) => void;
 }
 export interface XElemOptions {
-	onRender?: Tweenable["onRender"]
+	onRender?: OnRender;
 }
 // #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
 
@@ -92,27 +96,32 @@ export interface XElemOptions {
 export default class XElem<RenderApp extends XItem> implements Tweenable {
 
 	// #region ▮▮▮▮▮▮▮ [Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮ ~
-	get isRendered() { return this.renderApp.rendered }
+	#isRendered = false;
+	get isRendered() { return this.renderApp.rendered && this.#isRendered }
 
-	#renderPromise?: Promise<boolean>;
-	onRender: Tweenable["onRender"];
-	async xRender(): Promise<boolean> {
-		if (this.isRendered) { return Promise.resolve(true) }
-		if (this.#renderPromise) { return this.#renderPromise }
-		this.#renderPromise = (this.renderApp as XItem).renderApplication();
-		await this.#renderPromise;
-		if (this.onRender.set) {
-			this.set(this.onRender.set);
+	#renderPromise?: Promise<RenderApp>;
+	onRender: OnRender;
+	async xRender(): Promise<RenderApp> {
+		if (this.isRendered) {
+			this.#renderPromise ??= Promise.resolve(this.renderApp);
 		}
-		if (this.onRender.to && this.onRender.from) {
-			this.fromTo(this.onRender.from, this.onRender.to);
-		} else if (this.onRender.to) {
-			this.to(this.onRender.to);
-		} else if (this.onRender.from) {
-			this.from(this.onRender.from);
-		}
-		this.onRender.funcs?.forEach((func) => func(this.renderApp));
-		return this.#renderPromise;
+		return (this.#renderPromise ??= this.renderApp.renderApplication()
+			.then(async () => {
+				if (this.onRender.set) {
+					this.set(this.onRender.set);
+				}
+				this.#isRendered = true;
+				if (this.onRender.to && this.onRender.from) {
+					this.fromTo(this.onRender.from, this.onRender.to);
+				} else if (this.onRender.to) {
+					this.to(this.onRender.to);
+				} else if (this.onRender.from) {
+					this.from(this.onRender.from);
+				}
+
+				await Promise.all((this.onRender.funcs ?? []).map((func) => func(this.renderApp)));
+				return this.renderApp;
+			}));
 	}
 	protected validateRender() {
 		if (!this.isRendered) {
@@ -142,13 +151,15 @@ export default class XElem<RenderApp extends XItem> implements Tweenable {
 	get xParent(): XItem | XROOT { return this.renderApp.xParent }
 
 	adopt(child: XItem, isRetainingPosition = true): void {
+		const localPosData = isRetainingPosition ? this.getLocalPosData(child) : {};
+		const childRotation = child.global.rotation;
 		child.xParent?.disown(child);
 		this.renderApp.registerXKid(child);
 		if (this.isRendered && child.isRendered) {
 			if (isRetainingPosition || child.isFreezingRotate) {
 				child.set({
-					...isRetainingPosition ? this.getLocalPosData(child) : {},
-					...child.isFreezingRotate ? {rotation: -1 * this.global.rotation} : {}
+					...isRetainingPosition ? localPosData : {},
+					...child.isFreezingRotate ? {rotation: childRotation - this.global.rotation} : {}
 				});
 			}
 			child.elem$.appendTo(this.elem);
@@ -166,8 +177,8 @@ export default class XElem<RenderApp extends XItem> implements Tweenable {
 		this.renderApp.unregisterXKid(child);
 	}
 
-	tweenTimeScale(tweenID: keyof typeof this.tweens, timeScale = 1, duration = 1) {
-		const tween = this.tweens[tweenID];
+	tweenTimeScale(tweenID: keyof typeof this.xTweens, timeScale = 1, duration = 1) {
+		const tween = this.xTweens[tweenID];
 		return gsap.to(tween, {
 			timeScale,
 			duration,
@@ -180,6 +191,8 @@ export default class XElem<RenderApp extends XItem> implements Tweenable {
 	// #region ░░░░░░░ Local Space ░░░░░░░ ~
 	get x() { return U.pInt(this.isRendered ? U.get(this.elem, "x", "px") : this.onRender.set?.x) }
 	get y() { return U.pInt(this.isRendered ? U.get(this.elem, "y", "px") : this.onRender.set?.y) }
+	get xPercent() { return this.isRendered ? U.get(this.elem, "xPercent") : this.onRender.set?.xPercent ?? -50 }
+	get yPercent() { return this.isRendered ? U.get(this.elem, "yPercent") : this.onRender.set?.yPercent ?? -50 }
 	get pos(): Point { return {x: this.x, y: this.y} }
 	get rotation() { return U.pFloat(this.isRendered ? U.get(this.elem, "rotation") : this.onRender.set?.rotation, 2) }
 	get scale() { return U.pFloat(this.isRendered ? U.get(this.elem, "scale") : this.onRender.set?.scale, 2) || 1 }
@@ -266,7 +279,7 @@ export default class XElem<RenderApp extends XItem> implements Tweenable {
 	// #endregion ▄▄▄▄▄ Positioning ▄▄▄▄▄
 
 	// #region ████████ GSAP: GSAP Animation Method Wrappers ████████ ~
-	tweens: Record<string, XAnim> = {};
+	xTweens: Record<string, XAnim> = {};
 	get isFreezingRotate() { return this.renderApp.isFreezingRotate }
 	/*~ Figure out a way to have to / from / fromTo methods on all XItems that:
 			- will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
@@ -287,7 +300,7 @@ export default class XElem<RenderApp extends XItem> implements Tweenable {
 		if (this.isRendered) {
 			const tween = gsap.to(this.elem, vars);
 			if (vars.id) {
-				this.tweens[vars.id] = tween;
+				this.xTweens[vars.id] = tween;
 			}
 		} else {
 			this.onRender.to = {
@@ -301,7 +314,7 @@ export default class XElem<RenderApp extends XItem> implements Tweenable {
 		if (this.isRendered) {
 			const tween = gsap.from(this.elem, vars);
 			if (vars.id) {
-				this.tweens[vars.id] = tween;
+				this.xTweens[vars.id] = tween;
 			}
 		} else {
 			this.onRender.from = {
@@ -315,7 +328,7 @@ export default class XElem<RenderApp extends XItem> implements Tweenable {
 		if (this.isRendered) {
 			const tween = gsap.fromTo(this.elem, fromVars, toVars);
 			if (toVars.id) {
-				this.tweens[toVars.id] = tween;
+				this.xTweens[toVars.id] = tween;
 			}
 		} else {
 			this.onRender.to = {

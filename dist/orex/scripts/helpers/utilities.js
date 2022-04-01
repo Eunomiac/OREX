@@ -635,7 +635,18 @@ const makeCycler = (array, index = 0) => {
         }
     }());
 };
-const getLast = (array) => (array.length ? array[array.length - 1] : undefined);
+function getFirst(array, n = 1) {
+    if (n === 1) {
+        return array[0];
+    }
+    return array.filter((_, index) => index < n);
+}
+function getLast(array, n = 1) {
+    if (n === 1) {
+        return array[Math.max(0, array.length - 1)];
+    }
+    return array.filter((_, index) => array.length - index <= n);
+}
 const unique = (array) => {
     const returnArray = [];
     array.forEach((item) => { if (!returnArray.includes(item)) {
@@ -644,11 +655,26 @@ const unique = (array) => {
     return returnArray;
 };
 const removeFirst = (array, element) => array.splice(array.findIndex((v) => v === element));
-const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkFunc(_v, _i, _a); }) => {
-    const index = array.findIndex((v, i, a) => checkFunc(v, i, a));
-    return index !== -1 && array.splice(index, 1).pop();
+const pullElement = (array, checkFunc = (v, i, a) => { checkFunc(v, i, a); }) => {
+    const index = array.findIndex(checkFunc);
+    return (index !== -1 && array.splice(index, 1)?.pop()) ?? false;
 };
-const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
+const pullIndex = (array, index) => pullElement(array, (_, i) => i === index);
+const pluck = (array, key) => array.map(element => element[key]);
+export function groupBy(array, key) {
+    return array.reduce((group, element) => {
+        const keyValue = element[key];
+        return {
+            ...group,
+            [keyValue]: [
+                ...keyValue in group
+                    ? group[keyValue]
+                    : [],
+                element
+            ]
+        };
+    }, {});
+}
 const checkVal = ({ k, v }, checkTest) => {
     if (typeof checkTest === "function") {
         if (isDefined(v)) {
@@ -847,7 +873,7 @@ const objFlatten = (obj) => {
     }
     return flatObj;
 };
-// ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
+// ████████ FUNCTIONS: Function Wrapping, Async Flow Control, Function Generation ████████
 const getDynamicFunc = (funcName, func, context) => {
     if (typeof func === "function") {
         const dFunc = { [funcName](...args) { return func(...args); } }[funcName];
@@ -855,6 +881,40 @@ const getDynamicFunc = (funcName, func, context) => {
     }
     return false;
 };
+const memoize = (cb) => {
+    const cache = new Map();
+    return (...args) => {
+        const key = JSON.stringify(args);
+        if (cache.has(key)) {
+            return cache.get(key);
+        }
+        const result = cb(...args);
+        cache.set(key, result);
+        return result;
+    };
+};
+// ████████ ASYNC: Asynchronous Flow Control ████████
+// const promise = <RType>(asyncFunc: () => Promise<RType>): Promise<RType> => {
+// 	return new Promise((resolve, reject) => {
+// 		try {
+// 			const returnVal = asyncFunc().then(() => resolve());
+// 			resolve(returnVal);
+// 		} catch (err) {
+// 			reject(err);
+// 		}
+// 	});
+// }
+const promise = new Promise((resolve, reject) => {
+    try {
+        console.log(resolve);
+        resolve(true);
+    }
+    catch (err) {
+        reject(false);
+    }
+    reject(false);
+});
+const sleep = (duration) => new Promise(resolve => setTimeout(resolve, duration));
 function get(target, property, unit) {
     if (unit) {
         const propVal = regExtract(gsap.getProperty(target, property, unit), /[\d.]+/);
@@ -866,6 +926,47 @@ function get(target, property, unit) {
     return gsap.getProperty(target, property);
 }
 const set = (targets, vars) => gsap.set(targets, vars);
+// Add a dynamic event listener to the global scope, which will fire even for new elements added later to the DOM.
+function addGlobalListener(type, selector, callback, options, parent = document) {
+    parent.addEventListener(type, (event) => {
+        if (event.target instanceof Element && event.target.matches(selector)) {
+            callback(event);
+        }
+    }, options);
+}
+function qSel(selector, parent = document) {
+    return parent.querySelector(selector);
+}
+function qSelAll(selector, parent = document) {
+    return Array.from(parent.querySelectorAll(selector));
+}
+function createElement(tag, options = {}) {
+    const element = document.createElement(tag);
+    Object.entries(options).forEach(([key, value]) => {
+        if (isList(value)) {
+            if (key === "dataset") {
+                Object.entries(value).forEach(([dataKey, dataValue]) => {
+                    element.dataset[dataKey] = dataValue;
+                });
+                return;
+            }
+        }
+        else {
+            value = [...[value].flat()];
+            if (key === "class") {
+                element.classList.add(...value);
+                return;
+            }
+            if (key === "text") {
+                element.textContent = value.join(" ");
+                return;
+            }
+        }
+        value = typeof value === "string" ? value : JSON.stringify(value);
+        element.setAttribute(key, value);
+    });
+    return element;
+}
 const getRawCirclePath = (r, { x: xO, y: yO } = { x: 0, y: 0 }) => {
     [r, xO, yO] = [r, xO, yO].map((val) => roundNum(val, 2));
     const [b1, b2] = [0.4475 * r, (1 - 0.4475) * r];
@@ -935,11 +1036,13 @@ unhyphenate, pluralize, oxfordize, ellipsize,
     remove, replace, partition,
     objMap, objFilter, objForEach, objCompact,
     objClone, objMerge, objExpand, objFlatten,
-    // ████████ FUNCTIONS: Function Wrapping, Queuing, Manipulation ████████
+    // ████████ FUNCTIONS: Function Wrapping, Async Flow Control, Function Generation ████████
     getDynamicFunc,
+    sleep,
     // ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████
     // ░░░░░░░ GreenSock ░░░░░░░
     gsap, get, set,
+    qSel, qSelAll, addGlobalListener, createElement,
     getRawCirclePath, drawCirclePath,
     formatAsClass,
     getGSAngleDelta
