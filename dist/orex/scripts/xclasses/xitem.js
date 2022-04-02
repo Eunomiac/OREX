@@ -20,12 +20,12 @@ export default class XItem extends Application {
             xParent: XItem.XROOT,
             onRender: {
                 set: {
+                    xPercent: -50,
+                    yPercent: -50,
                     x: 0,
                     y: 0,
                     rotation: 0,
                     scale: 1,
-                    xPercent: -50,
-                    yPercent: -50,
                     transformOrigin: "50% 50%"
                 }
             }
@@ -37,15 +37,7 @@ export default class XItem extends Application {
         if (XItem.XROOT) {
             XItem.XROOT.kill();
         }
-        XItem.#XROOT = new XItem(null, {
-            id: "XROOT",
-            onRender: {
-                set: {
-                    xPercent: 0,
-                    yPercent: 0
-                }
-            }
-        });
+        XItem.#XROOT = new XItem(null, { id: "XROOT", onRender: { set: { xPercent: 0, yPercent: 0 } } });
         return XItem.#XROOT.initialize();
     }
     static REGISTRY = new Map();
@@ -86,6 +78,7 @@ export default class XItem extends Application {
     xElem;
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
+    get tweens() { return this.xElem.tweens; }
     get xParent() { return this.#xParent; }
     set xParent(xParent) { this.#xParent = xParent ?? XItem.XROOT; }
     get xKids() { return this.#xKids; }
@@ -105,6 +98,7 @@ export default class XItem extends Application {
         if (xParent) {
             xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^X?ROOT-?/, "X-"));
         }
+        DB.display(`[#${xOptions.id}] Constructing START`);
         super(xOptions);
         // this.constructor().Register(this);
         this.options.classes.push(...classes);
@@ -119,14 +113,23 @@ export default class XItem extends Application {
             onRender: this.xOptions.onRender
         });
         this.constructor.Register(this);
+        DB.log(`[#${xOptions.id}] END Constructing`);
     }
     async initialize() {
+        if (this.isInitialized) {
+            DB.info(`[#${this.id}] Ignoring Initialize(): Already Initialized!`, new Error().stack);
+        }
+        else {
+            DB.display(`[#${this.id}] Initializing START`);
+        }
         if (this.isInitialized) {
             return Promise.resolve(true);
         }
         if (await this.xElem.confirmRender(true)) {
+            DB.display(`[#${this.id}] END Initializing: Initializing XKIDS ...`);
+            this.#isInitialized = true;
             return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize()))
-                .then(() => { this.#isInitialized = true; return Promise.resolve(true); }, () => Promise.resolve(false));
+                .then(() => Promise.resolve(true), () => Promise.resolve(false));
         }
         return Promise.resolve(false);
     }
@@ -144,6 +147,7 @@ export default class XItem extends Application {
     get radius() { return this.xElem.radius; }
     get getDistanceTo() { return this.xElem.getDistanceTo.bind(this.xElem); }
     get getGlobalAngleTo() { return this.xElem.getGlobalAngleTo.bind(this.xElem); }
+    get renderApp() { return this; }
     get confirmRender() { return this.xElem.confirmRender.bind(this.xElem); }
     get adopt() { return this.xElem.adopt.bind(this.xElem); }
     _tickers = new Set();
@@ -182,10 +186,6 @@ export default class XItem extends Application {
         return context;
     }
     async renderApplication() {
-        if (!this.xElem.isRenderReady) {
-            DB.error("Attempt to render an unready Application");
-            return Promise.resolve(false);
-        }
         try {
             await this._render(true, {});
             return Promise.resolve(true);

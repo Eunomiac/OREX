@@ -917,6 +917,9 @@ const drawCirclePath = (radius, origin) => {
 const formatAsClass = (str) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^-/, "").trim().toLowerCase();
 const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
+// #region ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████ ~
+const sleep = (duration) => new Promise((resolve) => { setTimeout(resolve, duration); });
+// #endregion ▄▄▄▄▄ ASYNC ▄▄▄▄▄
 // #region ████████ EXPORTS ████████
 export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
@@ -967,7 +970,9 @@ export default {
     gsap, get, set,
     getRawCirclePath, drawCirclePath,
     formatAsClass,
-    getGSAngleDelta
+    getGSAngleDelta,
+    // ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
+    sleep
 };
 export { Dir };
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

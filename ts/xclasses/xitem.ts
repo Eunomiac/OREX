@@ -10,7 +10,7 @@ import {
 } from "../helpers/bundler.js";
 import type {XElemOptions, DOMRenderer, GSAPController, ConstructorOf} from"../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
-export interface XItemOptions extends Partial<ApplicationOptions>, Partial<XElemOptions> {
+export interface XItemOptions extends ApplicationOptions, XElemOptions {
 	id: string;
 	keepID?: boolean;
 }
@@ -21,9 +21,9 @@ const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = 
 	}]
 ];
 
-export default class XItem extends Application implements Partial<DOMRenderer>, Partial<GSAPController> {
+export default class XItem extends Application implements DOMRenderer, GSAPController {
 
-	static override get defaultOptions(): ApplicationOptions {
+	static override get defaultOptions(): ApplicationOptions & XItemOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
 			classes: ["x-item"],
@@ -31,16 +31,16 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 			xParent: XItem.XROOT,
 			onRender: {
 				set: {
+					xPercent: -50,
+					yPercent: -50,
 					x: 0,
 					y: 0,
 					rotation: 0,
 					scale: 1,
-					xPercent: -50,
-					yPercent: -50,
 					transformOrigin: "50% 50%"
 				}
 			}
-		});
+		} as Partial<XItemOptions>);
 	}
 
 	static #XROOT: XItem;
@@ -49,19 +49,12 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		if (XItem.XROOT) {
 			XItem.XROOT.kill();
 		}
-		XItem.#XROOT = new XItem(null, {
-			id: "XROOT",
-			onRender: {
-				set: {
-					xPercent: 0,
-					yPercent: 0
-				}
-			}});
+		XItem.#XROOT = new XItem(null, {id: "XROOT", onRender: {set: {xPercent: 0, yPercent: 0}}});
 		return XItem.#XROOT.initialize();
 	}
 
-	protected static REGISTRY: Map<string,XItem> = new Map();
-	public static Register(xItem: XItem) {
+	static REGISTRY: Map<string,XItem> = new Map();
+	static Register(xItem: XItem) {
 		this.REGISTRY.set(xItem.id, xItem);
 	}
 	static Unregister(xItem: string | XItem | XElem<XItem> | HTMLElement) {
@@ -78,7 +71,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	}
 	static #lastMouseUpdate: number = Date.now();
 	static #mousePos: {x: number, y: number} = {x: 0, y: 0};
-	public static LogMouseMove(x: number, y: number) {
+	static LogMouseMove(x: number, y: number) {
 		if (Date.now() - this.#lastMouseUpdate > 1000) {
 			this.#lastMouseUpdate = Date.now();
 			this.#mousePos = {x, y};
@@ -100,6 +93,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 
 	get elem() { return this.xElem.elem }
 	get elem$() { return this.xElem.elem$ }
+	get tweens() { return this.xElem.tweens }
 	get xParent(): XItem | null { return this.#xParent }
 	set xParent(xParent: XItem | null) { this.#xParent = xParent ?? XItem.XROOT }
 	get xKids(): Set<XItem> { return this.#xKids }
@@ -115,10 +109,11 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 		}
 		return xKids;
 	}
-	constructor(xParent: XItem | null, {classes = [], ...xOptions}: XItemOptions) {
+	constructor(xParent: XItem | null, {classes = [], ...xOptions}: Partial<XItemOptions>) {
 		if (xParent) {
 			xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^X?ROOT-?/, "X-"));
 		}
+		DB.display(`[#${xOptions.id}] Constructing START`);
 		super(xOptions);
 		// this.constructor().Register(this);
 		this.options.classes.push(...classes);
@@ -132,14 +127,22 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 			onRender: this.xOptions.onRender
 		});
 		(this.constructor as typeof XItem).Register(this);
+		DB.log(`[#${xOptions.id}] END Constructing`);
 	}
 
 	async initialize(): Promise<boolean> {
+		if (this.isInitialized) {
+			DB.info(`[#${this.id}] Ignoring Initialize(): Already Initialized!`, new Error().stack);
+		} else {
+			DB.display(`[#${this.id}] Initializing START`);
+		}
 		if (this.isInitialized) { return Promise.resolve(true) }
 		if (await this.xElem.confirmRender(true)) {
+			DB.display(`[#${this.id}] END Initializing: Initializing XKIDS ...`);
+			this.#isInitialized = true;
 			return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize()))
 				.then(
-					() => { this.#isInitialized = true; return Promise.resolve(true) },
+					() => Promise.resolve(true),
 					() => Promise.resolve(false)
 				);
 		}
@@ -162,6 +165,7 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	get getDistanceTo() { return this.xElem.getDistanceTo.bind(this.xElem) }
 	get getGlobalAngleTo() { return this.xElem.getGlobalAngleTo.bind(this.xElem) }
 
+	get renderApp() { return this }
 	get confirmRender() { return this.xElem.confirmRender.bind(this.xElem) }
 	get adopt() { return this.xElem.adopt.bind(this.xElem) }
 
@@ -205,10 +209,6 @@ export default class XItem extends Application implements Partial<DOMRenderer>, 
 	}
 
 	async renderApplication(): Promise<boolean> {
-		if (!this.xElem.isRenderReady) {
-			DB.error("Attempt to render an unready Application");
-			return Promise.resolve(false);
-		}
 		try {
 			await this._render(true, {});
 			return Promise.resolve(true);

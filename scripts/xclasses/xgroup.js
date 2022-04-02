@@ -41,33 +41,44 @@ export class XArm extends XItem {
         });
     }
     xItem;
+    get xParent() { return super.xParent; }
     constructor(xItem, parentOrbit) {
         super(parentOrbit, {
             id: "arm"
         });
         this.xItem = xItem;
     }
-    async uniteWithHeldItem() {
-        if (await this.xItem.initialize()) {
-            await this.stretchToXItem();
-            this.adopt(this.xItem, false);
-            this.xItem.set({ x: 0, y: 0 });
-            return Promise.resolve(true);
-        }
-        return Promise.reject(false);
+    async grabItem() {
+        this.set({ width: this.distanceToHeldItem, rotation: this.rotation + this.angleToHeldItem });
+        this.adopt(this.xItem, false);
+        this.xItem.set({ x: 0, y: 0 });
+        return Promise.resolve(true);
     }
     async initialize() {
-        if (await super.initialize() && await this.xItem.initialize()) {
-            this.set({
-                "--held-item-width": `${this.xItem.width}px`
-            });
-            this.xParent?.adopt(this, false);
-            return this.uniteWithHeldItem();
+        await super.initialize();
+        this.set({
+            "--held-item-width": `${this.xItem.width}px`
+        });
+        this.xParent.adopt(this, false);
+        return this.grabItem();
+    }
+    get positionOfHeldItem() {
+        if (!this.xItem.isInitialized) {
+            return this.xItem.pos;
         }
-        return Promise.reject();
+        return MotionPathPlugin.getRelativePosition(this.xParent.elem, this.xItem.elem, [0.5, 0.5], [0.5, 0.5]);
+    }
+    get distanceToHeldItem() {
+        if (!this.xItem.isInitialized) {
+            return this.xParent.orbitRadius;
+        }
+        return U.getDistance({ x: 0, y: 0 }, this.positionOfHeldItem);
+    }
+    get angleToHeldItem() {
+        return U.getAngleDelta(this.global.rotation, U.getAngle({ x: 0, y: 0 }, this.positionOfHeldItem));
     }
     async stretchToXItem() {
-        if (this.xParent && await this.xItem.initialize()) {
+        if (this.xParent && this.xItem.isInitialized) {
             // Relative x/y distance from Arm origin to xItem
             const { x: xDist, y: yDist } = MotionPathPlugin.getRelativePosition(this.xParent.elem, this.xItem.elem, [0.5, 0.5], [0.5, 0.5]);
             // Total Distance
@@ -103,7 +114,7 @@ export class XOrbit extends XGroup {
     #rotationDuration;
     get arms$() { return $(`#${this.id} > .x-arm`); }
     get arms() { return Array.from(this.xKids); }
-    get xItems() { return this.arms.map((xArm) => xArm.xItem); }
+    // override get xItems(): XItem[] { return this.arms.map((xArm) => xArm.xItem) }
     get xTerms() { return this.xItems.filter((xItem) => xItem instanceof XDie || xItem instanceof XMod); }
     #radiusRatio;
     get radiusRatio() { return this.#radiusRatio; }
@@ -148,35 +159,35 @@ export class XOrbit extends XGroup {
         this.#rotationDuration = 10 * this.#radiusRatio * this.#rotationScaling;
     }
     startRotating(dir = Dir.L, duration = 10) {
-        if (this.isRendered) {
-            this.to({
-                id: "rotationTween",
-                rotation: `${dir === Dir.L ? "+" : "-"}=360`,
-                duration,
-                repeat: -1,
-                ease: "none",
-                callbackScope: this,
-                onUpdate() {
-                    this.xTerms.forEach((xItem) => {
-                        if (xItem.isFreezingRotate && xItem.isInitialized && xItem.xParent?.isInitialized) {
-                            xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
-                        }
-                    });
-                }
-            });
-        }
+        this.to({
+            id: "rotationTween",
+            rotation: `${dir === Dir.L ? "+" : "-"}=360`,
+            duration,
+            repeat: -1,
+            ease: "none",
+            callbackScope: this,
+            onUpdate() {
+                this.xTerms.forEach((xItem) => {
+                    if (xItem.isFreezingRotate && xItem.isInitialized && xItem.xParent?.isInitialized) {
+                        xItem.set({ rotation: -1 * xItem.xParent.global.rotation });
+                    }
+                });
+            }
+        });
     }
     updateArmsThrottle;
     pauseRotating() {
-        if (this.isRendered) {
-            this.xElem.tweens.rotationTween?.pause();
-        }
+        this.xElem.tweens.rotationTween?.pause();
     }
     playRotating() {
-        if (this.isRendered) {
-            this.xElem.tweens.rotationTween?.play();
-        }
+        this.xElem.tweens.rotationTween?.play();
     }
+    async initialize() {
+        await super.initialize();
+        await Promise.all(this.arms.map((xArm) => xArm.initialize()));
+        return Promise.resolve(true);
+    }
+    #isArmed = false;
     updateArms(duration = 3, widthOverride) {
         if (this.updateArmsThrottle) {
             clearTimeout(this.updateArmsThrottle);
@@ -185,60 +196,65 @@ export class XOrbit extends XGroup {
             DB.log("Update Arms RUNNING!");
             const self = this;
             gsap.timeline()
-                .to(this.arms$, {
+                .fromTo(this.arms$, this.#isArmed
+                ? {}
+                : {
+                    width: (widthOverride ?? this.orbitRadius) * 1.5,
+                    rotation(i) { return self.armAngles[i]; },
+                    opacity: 0,
+                    scale: 2
+                }, {
                 width: widthOverride ?? this.orbitRadius,
                 ease: "back.out(4)",
                 duration,
                 stagger: {
                     amount: 1,
                     from: "end"
-                } /* ,
-                onUpdate() {
-                    this.targets.forEach((target: HTMLElement) => {
-                        gsap.set($(`#${target.id} > .x-item`), {x: gsap.getProperty(target, "width")});
-                    });
-                } */
+                }
+            }, "<")
+                .to(this.arms$, {
+                scale: 1,
+                opacity: 1,
+                duration: duration / 3,
+                ease: "power2.out"
             }, "<")
                 .to(this.arms$, {
                 rotation(i) { return self.armAngles[i]; },
                 ease: "power2.out",
                 duration
             }, "<");
+            if (!this.#isArmed) {
+                gsap.from(this.xElem.tweens.rotationTween, {
+                    timeScale: 3,
+                    duration: duration / 2,
+                    ease: "sine.out"
+                });
+            }
+            this.#isArmed = true;
         }, 10);
     }
-    async addXItem(xItem) {
+    async addXItem(xItem, isUpdatingArms = true) {
         const xArm = new XArm(xItem, this);
-        if (await xArm.initialize()) {
-            this.updateArms();
-            return Promise.resolve(true);
+        this.adopt(xArm);
+        if (this.isInitialized) {
+            await xArm.initialize();
+            if (isUpdatingArms) {
+                this.updateArms();
+            }
         }
-        return Promise.resolve(false);
+        return Promise.resolve(true);
     }
     async addXItems(xItems) {
-        const allPromises = xItems.map((xItem) => {
-            const xArm = new XArm(xItem, this);
-            this.adopt(xArm);
-            console.log(this.arms);
-            return xArm.initialize();
-        });
-        if (await Promise.allSettled(allPromises)) {
-            this.updateArms();
-            return Promise.resolve(true);
-        }
-        return Promise.resolve(false);
+        await Promise.allSettled(xItems.map((xItem) => this.addXItem(xItem, false)));
+        this.updateArms();
+        return Promise.resolve(true);
     }
 }
 export class XPool extends XGroup {
     static REGISTRY = new Map();
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
-            classes: ["x-pool"],
-            onRender: {
-                set: {
-                    height: 200,
-                    width: 200
-                }
-            }
+            classes: ["x-pool"]
         });
     }
     #core = [];
@@ -247,9 +263,9 @@ export class XPool extends XGroup {
     #orbitalSpeeds = new Map();
     get orbitals() { return this.#orbitals; }
     get xOrbits() { return Array.from(this.orbitals.values()); }
-    get xItems() {
-        return this.xOrbits.map((xOrbit) => xOrbit.xItems).flat();
-    }
+    // override get xItems(): XItem[] {
+    // 	return this.xOrbits.map((xOrbit) => (xOrbit.isInitialized ? xOrbit.xItems : xOrbit)).flat();
+    // }
     constructor(xParent, { orbitals = U.objClone(C.xGroupOrbitalDefaults), ...xOptions }) {
         super(xParent, xOptions);
         for (const [orbitName, { radiusRatio, rotationScaling }] of Object.entries(orbitals)) {
@@ -258,16 +274,18 @@ export class XPool extends XGroup {
             this.#orbitals.set(orbitName, new XOrbit(orbitName, this, radiusRatio, rotationScaling));
         }
     }
+    async initialize() {
+        await super.initialize();
+        await Promise.all(this.xOrbits.map((xOrbit) => xOrbit.initialize()));
+        return Promise.resolve(true);
+    }
     async addXItem(xItem, orbit) {
         const orbital = this.orbitals.get(orbit);
-        if (orbital instanceof XOrbit && await orbital.initialize()) {
-            return orbital.addXItem(xItem);
-        }
-        return Promise.resolve(false);
+        return orbital?.addXItem(xItem);
     }
     async addXItems(xItemsByOrbit) {
-        const self = this;
-        return Promise.allSettled(Object.entries(xItemsByOrbit).map(async ([orbitName, xItems]) => await Promise.allSettled(xItems.map(async (xItem) => await self.addXItem(xItem, orbitName)))));
+        return Promise.allSettled(Object.entries(xItemsByOrbit)
+            .map(async ([orbitName, xItems]) => await this.orbitals.get(orbitName)?.addXItems(xItems)));
     }
     pauseRotating() { this.xOrbits.forEach((xOrbit) => xOrbit.pauseRotating()); }
     playRotating() { this.xOrbits.forEach((xOrbit) => xOrbit.playRotating()); }

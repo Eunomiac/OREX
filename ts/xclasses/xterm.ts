@@ -52,7 +52,7 @@ export interface XDieOptions extends XTermOptions {
 
 export default class XDie extends XItem implements XTerm {
 
-	protected static override REGISTRY: Map<string, XDie> = new Map();
+	static override REGISTRY: Map<string, XDie> = new Map();
 	type: XDieOptions["type"];
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
@@ -87,7 +87,7 @@ export default class XDie extends XItem implements XTerm {
 
 	roll() { this.value = U.randInt(1, 10) as XDieValue }
 
-	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XDieOptions) {
+	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: Partial<XDieOptions>) {
 		const dieSize = xOptions.size ?? 40;
 		xOptions.onRender ??= {};
 		xOptions.onRender.set = {
@@ -122,7 +122,7 @@ export interface XModOptions extends XTermOptions {
 }
 export class XMod extends XItem implements XTerm {
 
-	protected static override REGISTRY: Map<string, XMod> = new Map();
+	static override REGISTRY: Map<string, XMod> = new Map();
 	type: XModOptions["type"];
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {

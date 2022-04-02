@@ -934,6 +934,10 @@ const formatAsClass = (str: string) => `${str}`.replace(/([A-Z])|\s/g, "-$1").re
 const getGSAngleDelta = (startAngle: number, endAngle: number) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 
+// #region ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████ ~
+const sleep = (duration: number): Promise<void> => new Promise((resolve) => { setTimeout(resolve, duration) });
+// #endregion ▄▄▄▄▄ ASYNC ▄▄▄▄▄
+
 // #region ████████ EXPORTS ████████
 export default {
 	// ████████ GETTERS: Basic Data Lookup & Retrieval ████████
@@ -994,7 +998,10 @@ export default {
 
 	getRawCirclePath, drawCirclePath,
 	formatAsClass,
-	getGSAngleDelta
+	getGSAngleDelta,
+
+	// ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
+	sleep
 };
 export type {int, float, posInt, posFloat, HTMLCode, List, Index, ConstructorOf, KnownKeys, Concrete};
 export {Dir};

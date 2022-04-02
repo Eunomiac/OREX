@@ -330,7 +330,7 @@ const PLUMBING = {
 			.pipe(header(BANNERS.js.min, {"package": packageJSON}))
 			.pipe(PIPES.replacer("js")())
 			.pipe(renamer({suffix: ".min"}))
-			.pipe(PIPES.terser()())
+			// .pipe(PIPES.terser()())
 			.pipe(PIPES.closePipe("jsMin", source, destination));
 	},
 	cssFull: (source, destination) => function pipeFullCSS() {

@@ -153,97 +153,211 @@ Object.assign(DB, {
     PING: (point, label, context, color) => new XPing(point, label, context, color),
     ClearPings: () => XPing.KillAll()
 });
+const getRollPos = (pos, size) => {
+    if (XItem.XROOT instanceof XItem) {
+        const { height, width } = XItem.XROOT;
+        return [
+            { x: 0.5 * width, y: 0.5 * height },
+            { x: 0.75 * size, y: 0.75 * size },
+            { x: width - (0.75 * size), y: 0.75 * size },
+            { x: width - (0.75 * size), y: height - (0.75 * size) },
+            { x: 0.75 * size, y: height - (0.75 * size) }
+        ][pos];
+    }
+    else {
+        DB.error("Attempt to getRollPos() before XItem.XROOT Rendered.");
+        return { x: 0, y: 0 };
+    }
+};
 const ClickPhases = ["PositionXDie", "ParentXArm", "StretchXArm", "ResumeRotation"];
 const BuildTestContext = async () => {
-    const TranslateBox = new XPool(XItem.XROOT, {
-        id: "translate-box",
-        classes: ["translate-box"],
+    DB.groupTitle("Position Test Setup");
+    DB.groupLog("Instantiating Roll");
+    const MainRoll = new XRoll(XItem.XROOT, {
+        id: "Roll",
         onRender: {
-            set: {
-                xPercent: 0,
-                yPercent: 0
-            },
-            to: {
-                x: "+=500",
-                duration: 5,
-                ease: "power3.inOut",
-                repeat: -1,
-                yoyo: true
-            }
+            set: { x: 500, y: 500, height: 500, width: 500, outline: "5px solid blue" }
         }
     });
-    const ScaleBox = new XGroup(TranslateBox, {
-        id: "scale-box-1",
-        classes: ["scale-box"],
+    DB.groupEnd();
+    DB.groupLog("Instantiating Dice");
+    const Die = new XDie(MainRoll, {
+        id: "Roll-Die",
+        type: XTermType.BasicDie
+    });
+    const RollDice = [...new Array(5)].map(() => new XDie(MainRoll, {
+        id: "Roll-Die",
+        type: XTermType.BasicDie
+    }));
+    const FloatDie = new XDie(XItem.XROOT, {
+        id: "Float-Die",
+        type: XTermType.BasicDie,
+        color: "red",
         onRender: {
-            set: {
-                xPercent: 0,
-                yPercent: 0
-            },
-            to: {
-                scale: 2,
-                duration: 15,
-                ease: "sine.inOut",
-                repeat: -1,
-                yoyo: true
-            }
+            set: { x: 1200, y: 200 }
         }
     });
-    const ExtraScaleBox = new XGroup(ScaleBox, {
-        id: "scale-box-2",
-        classes: ["extra-scale-box"],
+    const RandomDice = [
+        { x: 200, y: 200, color: "blue" },
+        { x: 400, y: 900, color: "gold" },
+        { x: 800, y: 200, color: "green" },
+        { x: 800, y: 900, color: "cyan" },
+        { x: 50, y: 500, color: "magenta" }
+    ].map((dieParams, i) => new XDie(XItem.XROOT, {
+        id: `RandomDie-${i}`,
+        type: XTermType.BasicDie,
+        color: dieParams.color,
         onRender: {
-            set: {
-                xPercent: 0,
-                yPercent: 0
-            },
-            to: {
-                scale: 3,
-                duration: 5,
-                ease: "sine.inOut",
-                repeat: -1,
-                yoyo: true
-            }
+            set: { x: dieParams.x, y: dieParams.y }
         }
-    });
-    const RotateBox = new XGroup(ExtraScaleBox, {
-        id: "rotate-box-1",
-        classes: ["rotate-box"],
-        onRender: {
-            set: {
-                xPercent: 0,
-                yPercent: 0
-            },
-            to: {
-                rotation: "+=360",
-                duration: 2,
-                ease: "none",
-                repeat: -1
-            }
-        }
-    });
-    const CounterRotateBox = new XGroup(RotateBox, {
-        id: "rotate-box-2",
-        classes: ["rotate-box"],
-        onRender: {
-            set: {
-                xPercent: 0,
-                yPercent: 0
-            },
-            to: {
-                rotation: "-=360",
-                duration: 2,
-                ease: "power4.inOut",
-                repeat: -1
-            }
-        }
-    });
-    await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
-    return { TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox };
+    }));
+    DB.groupEnd();
+    DB.groupLog("Initializing FloatDie");
+    await Promise.all([FloatDie, ...RandomDice].map((die) => die.initialize()));
+    DB.groupEnd();
+    DB.groupLog("Adding Die");
+    await MainRoll.addXItems({ [XOrbitType.Main]: [Die, ...RollDice] });
+    DB.groupEnd();
+    DB.groupDisplay("Initializing Roll");
+    await MainRoll.initialize();
+    const Orbit = MainRoll.orbitals.get(XOrbitType.Main);
+    // await Orbit.initialize();
+    DB.groupEnd();
+    DB.groupDisplay("Fetching Arm");
+    const [Arm] = Orbit.arms;
+    DB.log("XArm", Arm);
+    DB.groupEnd();
+    const T = {
+        Die,
+        FloatDie,
+        Arm,
+        Orbit,
+        MainRoll
+    };
+    const getPosData = () => {
+        const posData = {};
+        ["MainRoll", "Orbit", "Arm", "Die", "FloatDie"].forEach((xName) => {
+
+            const xItem = T[xName];
+            const xParent = xItem.xParent;
+            const parent = MotionPathPlugin.convertCoordinates(xItem.elem, xParent.elem, xItem.xElem.origin);
+            const global = MotionPathPlugin.convertCoordinates(xItem.elem, XItem.XROOT.elem, xItem.xElem.origin);
+            posData[xName] = {
+                local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
+                origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
+                parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
+                global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
+            };
+        });
+        console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
+    };
+    Object.assign(globalThis, T, { getPosData, RandomDice });
+    DB.log("Setup Complete.");
+    DB.groupDisplay("Starting Timeouts...");
+    setTimeout(async () => {
+        DB.groupEnd();
+        DB.groupEnd();
+        DB.log("Initial Position Data");
+        getPosData();
+        return;
+        DB.groupTitle("Initializing Test XRoll... ");
+        const nestedRolls = await Promise.all([
+            [[8], { height: 150, width: 150, dieColor: "purple", poolColor: "gold" }],
+            [[3], { height: 100, width: 100, dieColor: "blue", poolColor: "orange" }],
+            [[3], { height: 75, width: 75, dieColor: "magenta", poolColor: "lime" }]
+        ].map(([dice, params]) => TESTS.createRoll(dice, params)));
+        const ROLL = await TESTS.createRoll([7], { x: 1250, y: 500 }, nestedRolls);
+        Object.assign(globalThis, { ROLL, nestedRolls });
+        DB.groupEnd();
+        setTimeout(() => TESTS.xArmTest(ROLL), 500);
+    }, U.randInt(1000, 5000));
 };
-const TESTS = {
-    testCoords: async () => {
-        const { TranslateBox, ScaleBox, RotateBox, CounterRotateBox } = await BuildTestContext();
+const TESTS_ARCHIVE = {
+    nestedPositionTest: async () => {
+        const TranslateBox = new XPool(XItem.XROOT, {
+            id: "translate-box",
+            classes: ["translate-box"],
+            onRender: {
+                set: {
+                    xPercent: 0,
+                    yPercent: 0
+                },
+                to: {
+                    x: "+=500",
+                    duration: 5,
+                    ease: "power3.inOut",
+                    repeat: -1,
+                    yoyo: true
+                }
+            }
+        });
+        const ScaleBox = new XGroup(TranslateBox, {
+            id: "scale-box-1",
+            classes: ["scale-box"],
+            onRender: {
+                set: {
+                    xPercent: 0,
+                    yPercent: 0
+                },
+                to: {
+                    scale: 2,
+                    duration: 15,
+                    ease: "sine.inOut",
+                    repeat: -1,
+                    yoyo: true
+                }
+            }
+        });
+        const ExtraScaleBox = new XGroup(ScaleBox, {
+            id: "scale-box-2",
+            classes: ["extra-scale-box"],
+            onRender: {
+                set: {
+                    xPercent: 0,
+                    yPercent: 0
+                },
+                to: {
+                    scale: 3,
+                    duration: 5,
+                    ease: "sine.inOut",
+                    repeat: -1,
+                    yoyo: true
+                }
+            }
+        });
+        const RotateBox = new XGroup(ExtraScaleBox, {
+            id: "rotate-box-1",
+            classes: ["rotate-box"],
+            onRender: {
+                set: {
+                    xPercent: 0,
+                    yPercent: 0
+                },
+                to: {
+                    rotation: "+=360",
+                    duration: 2,
+                    ease: "none",
+                    repeat: -1
+                }
+            }
+        });
+        const CounterRotateBox = new XGroup(RotateBox, {
+            id: "rotate-box-2",
+            classes: ["rotate-box"],
+            onRender: {
+                set: {
+                    xPercent: 0,
+                    yPercent: 0
+                },
+                to: {
+                    rotation: "-=360",
+                    duration: 2,
+                    ease: "power4.inOut",
+                    repeat: -1
+                }
+            }
+        });
+        await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
         const TestDie = new XDie(CounterRotateBox, { id: "test-die", type: XTermType.BasicDie, value: 3, color: "lime", size: 50 });
         const dieMarkers = [
             { x: 0.5, y: 0, background: "yellow" },
@@ -289,18 +403,50 @@ const TESTS = {
             ...xMarkers
         ].forEach((xItem) => xItem.initialize());
         DB.log("Test Die Objs =>", dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, TestDie);
-    },
+    }
+};
+const DBFUNCS = {
+    BuildTestContext,
+    makeRoll: async (dice, { pos = 0, color = "cyan", size = 200 } = {}) => {
+        const rollPos = getRollPos(pos, size);
+        const xRoll = new XRoll(XItem.XROOT, {
+            id: "ROLL",
+            onRender: {
+                set: {
+                    ...rollPos,
+                    "height": size,
+                    "width": size,
+                    "--bg-color": color
+                }
+            }
+        });
+        await xRoll.initialize();
+        const xDice = Object.fromEntries([
+            XOrbitType.Main,
+            XOrbitType.Inner,
+            XOrbitType.Outer
+        ].map((orbitType) => {
+            const numDice = dice.shift();
+            if (!numDice) {
+                return [];
+            }
+            return [orbitType, [...new Array(numDice)].map(() => new XDie(xRoll, {
+                    id: "xDie",
+                    type: XTermType.BasicDie
+                }))];
+        }));
+        DB.display("XROLL's XDICE", xDice);
+        await Promise.all(Object.values(xDice).flat().filter((xDie) => Boolean(xDie)).map((xDie) => xDie.initialize()));
+        await xRoll.addXItems(xDice);
+        return xRoll;
+    }
+};
+const TESTS = {
     makePool: (xParent, { id, x, y, size = 200, color = "cyan" }) => {
         return new XPool(xParent, {
             id,
             onRender: {
-                set: {
-                    "height": size,
-                    "width": size,
-                    "left": x - (0.5 * size),
-                    "top": y - (0.5 * size),
-                    "--bg-color": color
-                }
+                set: {}
             },
             orbitals: C.xGroupOrbitalDefaults
         });
@@ -488,4 +634,4 @@ const TESTS = {
         }
     }
 };
-export { DB as default, TESTS };
+export { DB as default, TESTS, DBFUNCS };

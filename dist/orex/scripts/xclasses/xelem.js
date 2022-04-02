@@ -12,28 +12,36 @@ XItem
 export default class XElem {
     // ▮▮▮▮▮▮▮ [Render Control] Async Confirmation of Element Rendering ▮▮▮▮▮▮▮
     renderPromise;
-    #isRenderReady = false;
-    get isRenderReady() { return this.#isRenderReady; }
     async confirmRender(isRendering = true) {
-        this.#isRenderReady = this.isRenderReady || isRendering;
         if (this.isRendered) {
             return Promise.resolve(true);
-        }
-        if (!this.isRenderReady) {
-            return Promise.resolve(false);
         }
         this.renderPromise = this.renderApp.renderApplication();
         await this.renderPromise;
         if (this.parentApp) {
-            if (!(await this.parentApp.confirmRender())) {
+            if (!this.parentApp.isRendered) {
                 console.warn(`Attempt to render child [ ${this.id} ] of unrendered parent [ ${this.parentApp.id} ].`);
                 return Promise.resolve(false);
             }
             this.parentApp?.adopt(this.renderApp, false);
         }
-        if (this.onRender.set) {
-            this.set(this.onRender.set);
-        }
+        this.set({
+            ...this.onRender?.set ?? {}
+        });
+        // console.log(`${this.id} SET ON RENDER`, {
+        // 	xPercent: U.get(this.elem, "xPercent"),
+        // 	yPercent: U.get(this.elem, "yPercent"),
+        // 	left: -0.01 * U.pInt(U.get(this.elem, "xPercent")) * this.width,
+        // 	top: -0.01 * U.pInt(U.get(this.elem, "yPercent")) * this.height,
+        // 	width: this.width,
+        // 	height: this.height,
+        // 	directWidth: U.get(this.elem, "width", "px"),
+        // 	directHeight: U.get(this.elem, "height", "px")
+        // });
+        // this.set({
+        // 	left: -0.01 * U.pInt(U.get(this.elem, "xPercent")) * this.width,
+        // 	top: -0.01 * U.pInt(U.get(this.elem, "yPercent")) * this.height
+        // });
         if (this.onRender.to && this.onRender.from) {
             this.fromTo(this.onRender.from, this.onRender.to);
         }
