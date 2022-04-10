@@ -12,7 +12,7 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem,
+	XROOT, XElem,
 	XItem,
 	XArm, XOrbit,
 	XGroup, XPool, XRoll,
@@ -48,7 +48,7 @@ Hooks.once("init", async () => {
 	preloadTemplates();
 	DB.groupEnd();
 	DB.groupInfo("Rendering XROOT to DOM");
-	await XItem.InitializeXROOT();
+	await XROOT.InitializeXROOT();
 	DB.groupEnd();
 	DB.log("ORE-X INITIALIZED");
 	DB.groupDisplay("Finishing Initialization ...");
@@ -65,7 +65,7 @@ Hooks.once("ready", async () => {
 	DB.groupInfo("Preparing Debug Controls...");
 	const DBCONTROLS = {
 		U,
-		XElem, XItem,
+		XElem, XItem, XROOT,
 		XGroup, XPool, XRoll, XArm, XOrbit,
 		XDie,
 		gsap,
@@ -79,7 +79,7 @@ Hooks.once("ready", async () => {
 			gsap.ticker.wake();
 			gsap.globalTimeline.play();
 		},
-		killAll: XItem.InitializeXROOT
+		killAll: XROOT.InitializeXROOT
 	};
 	DB.groupEnd();
 	DB.groupInfo("Declaring Debug Console Globals... ");

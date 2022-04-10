@@ -21,6 +21,8 @@ const prefixer = require("autoprefixer");
 const minifier = require("cssnano");
 
 const packageJSON = require("./package");
+
+const {analyzeProject} = require("codehawk-cli");
 // #endregion ▮▮▮▮[IMPORTS]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[UTILITY] Data References & Utility Functions for File Parsing ▮▮▮▮▮▮▮ ~
 const ANSICOLORS = {
@@ -162,10 +164,19 @@ const padHeaderLines = (match) => {
 	});
 	return returnLines.join("\n");
 };
-// const multiLineStripper = (match, startBreak, contents, endBreak) => {
-// 	console.
-
-// };
+const roundNum = (num, sigDigits = 0) => (sigDigits === 0 ? Math.round(num) : Math.round(num * 10 ** sigDigits) / 10 ** sigDigits);
+const subGroup = (array, groupSize) => {
+	const subArrays = [];
+	while (array.length > groupSize) {
+		const subArray = [];
+		while (subArray.length < groupSize) {
+			subArray.push(array.shift());
+		}
+		subArrays.push(subArray);
+	}
+	subArrays.push(array);
+	return subArrays;
+};
 // #endregion ▮▮▮▮[UTILITY]▮▮▮▮
 
 const ISDEPLOYING = false;
@@ -194,7 +205,7 @@ const BUILDFILES = {
 		"./scripts/": ["ts/**/*.ts"]
 	},
 	js: {
-		[`./dist/${SYSTEM}/scripts/`]: ["scripts/**/*.js", "scripts/**/*.js"]
+		[`./dist/${SYSTEM}/scripts/`]: ["scripts/**/*.js"]
 	},
 	css: {
 		[`./dist/${SYSTEM}/css/`]: ["scss/**/*.scss"],
@@ -286,7 +297,55 @@ const PIPES = {
 		return thisDest;
 	}
 };
+
+
+
+
 const PLUMBING = {
+	analyzeJS: async function analyzeJS(done) {
+		try {
+			const analysisData = analyzeProject("./");
+			const returnData = {
+				AVERAGE: roundNum(analysisData.summary.average, 2),
+				MEDIAN: roundNum(analysisData.summary.median, 2),
+				WORST: roundNum(analysisData.summary.worst, 2)
+			};
+			analysisData.resultsList.forEach(async ({filename, complexityReport, timesDependedOn}) => {
+				returnData[filename] = {
+					cyclomatic: `${complexityReport.aggregate.cyclomatic} (Density: ${roundNum(complexityReport.aggregate.cyclomaticDensity, 2)})`,
+					halstead: subGroup(Object.entries(complexityReport.aggregate.halstead)
+						.map(([test, result], i) => {
+							let resultString = `[${test}] `;
+							if (typeof result === "object") {
+								resultString += `${result.distinct} (${result.total} total) `;
+							} else {
+								resultString += `${roundNum(result, 3)} `;
+							}
+							return resultString;
+						}), 3)
+						.map((subArray) => subArray.join(" ")),
+					params: complexityReport.aggregate.paramCount,
+					sloc: `Logical: ${complexityReport.aggregate.sloc.logical}, Physical: ${complexityReport.aggregate.sloc.physical}`,
+					maintainability: roundNum(complexityReport.maintainability, 2),
+					codehawkScore: roundNum(complexityReport.codehawkScore, 3),
+					coverage: complexityReport.coverage,
+					timesDependedOn
+				};
+			});
+			let analysisString = JSON.stringify(returnData, null, 2);
+			while (analysisString.length > 150_000) {
+				logger(analysisString.slice(0, 150_000));
+				analysisString = analysisString.slice(150_000);
+				logger(" ");
+				logger(`${analysisString.length} to go ...`);
+				await new Promise((resolve) => setTimeout(resolve, 20000));
+			}
+			logger(analysisString);
+		} catch (err) {
+			return done();
+		}
+		return done();
+	},
 	init: function initDist(done) {
 		try {
 			cleaner.sync(["./dist/", "./scripts/"]);
@@ -381,17 +440,20 @@ BUILDFUNCS.ts = parallel(
 		return funcs;
 	})(BUILDFILES.ts)
 );
-BUILDFUNCS.js = parallel(
-	...((buildFiles) => {
-		const funcs = [];
-		for (const [destGlob, sourceGlobs] of Object.entries(buildFiles)) {
-			sourceGlobs.forEach((sourceGlob) => {
-				funcs.push(PLUMBING.jsMin(sourceGlob, destGlob));
-				funcs.push(PLUMBING.jsFull(sourceGlob, destGlob));
-			});
-		}
-		return funcs;
-	})(BUILDFILES.js)
+BUILDFUNCS.js = series(
+	parallel(
+		...((buildFiles) => {
+			const funcs = [];
+			for (const [destGlob, sourceGlobs] of Object.entries(buildFiles)) {
+				sourceGlobs.forEach((sourceGlob) => {
+					funcs.push(PLUMBING.jsMin(sourceGlob, destGlob));
+					funcs.push(PLUMBING.jsFull(sourceGlob, destGlob));
+				});
+			}
+			return funcs;
+		})(BUILDFILES.js)
+	),
+	PLUMBING.analyzeJS
 );
 // #endregion ▄▄▄▄▄ JS ▄▄▄▄▄
 

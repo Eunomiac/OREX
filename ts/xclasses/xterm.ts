@@ -12,14 +12,14 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XItem, XGroup, XPool, XRoll
+	XROOT, XItem, XGroup, XPool, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XItemOptions} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 export interface XTermOptions extends XItemOptions {
-	type: XTermType,
+	type?: XTermType,
 	size?: number,
 }
 
@@ -27,8 +27,7 @@ export interface XTerm {
 	type: XTermType,
 	// THIS SHIT IS WRONG AND BAD: NEED TO ACCOUNT FOR OTHER TYPES OF VALUES
 	value?: XDieValue,
-	ApplyEffect?: (xRoll: XRoll) => XRoll,
-	readonly isFreezingRotate: true
+	ApplyEffect?: (xRoll: XRoll) => XRoll
 }
 
 export const enum XTermType {
@@ -51,24 +50,27 @@ export interface XDieOptions extends XTermOptions {
 }
 
 export default class XDie extends XItem implements XTerm {
-
+	static override async Make(xParent: XGroup, xOptions: Partial<XDieOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XDie> {
+		return await super.Make(xParent, xOptions, onRenderOptions) as XDie;
+	}
 	static override REGISTRY: Map<string, XDie> = new Map();
-	type: XDieOptions["type"];
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
 			classes: ["x-die"],
-			template: U.getTemplatePath("xdie"),
-			onRender: {
-				set: {
-					fontSize: "calc(1.2 * var(--die-size))",
-					fontFamily: "Oswald",
-					textAlign: "center"
-				}
-			}
+			template: U.getTemplatePath("xdie")
 		});
 	}
+	override get xParent(): XGroup { return super.xParent as XGroup }
 
-	override readonly isFreezingRotate = true;
+	type: XDieOptions["type"];
+
+	override onRenderOptions = {
+		...super.onRenderOptions,
+		fontSize: "calc(1.2 * var(--die-size))",
+		fontFamily: "Oswald",
+		textAlign: "center"
+	};
+
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
 	#value: XDieValue = 0;
@@ -87,20 +89,18 @@ export default class XDie extends XItem implements XTerm {
 
 	roll() { this.value = U.randInt(1, 10) as XDieValue }
 
-	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: Partial<XDieOptions>) {
-		const dieSize = xOptions.size ?? 40;
-		xOptions.onRender ??= {};
-		xOptions.onRender.set = {
-			...{
-				"--die-size": `${dieSize}px`,
-				"--die-color-fg": xOptions.numColor ?? "black",
-				"--die-color-bg": xOptions.color ?? "white",
-				"--die-color-stroke": xOptions.strokeColor ?? "black"
-			},
-			...xOptions.onRender.set ?? {}
+	constructor(xParent: XGroup, xOptions: Partial<XDieOptions>, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
+		const dieSize = xOptions.size ?? onRenderOptions.height ?? onRenderOptions.width ?? 40;
+		onRenderOptions = {
+			"--die-size": `${dieSize}px`,
+			"--die-color-fg": xOptions.numColor ?? "black",
+			"--die-color-bg": xOptions.color ?? "white",
+			"--die-color-stroke": xOptions.strokeColor ?? "black",
+			...onRenderOptions
 		};
 		xOptions.type = xOptions.type ?? XTermType.BasicDie;
-		super(xParent, xOptions);
+		xOptions.isFreezingRotate ??= true;
+		super(xParent, xOptions, onRenderOptions);
 		this.value = xOptions.value ?? 0;
 		this.type = xOptions.type;
 	}
@@ -117,31 +117,27 @@ export default class XDie extends XItem implements XTerm {
 	}
 }
 
+export type XModType = XTermType.Difficulty | XTermType.Modifier | XTermType.Trait;
 export interface XModOptions extends XTermOptions {
-	type: XTermType.Difficulty | XTermType.Modifier | XTermType.Trait
+	type?: XModType;
 }
 export class XMod extends XItem implements XTerm {
-
+	static override async Make(xParent: XGroup, xOptions: Partial<XModOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XMod> {
+		return await super.Make(xParent, xOptions, onRenderOptions) as XMod;
+	}
 	static override REGISTRY: Map<string, XMod> = new Map();
-	type: XModOptions["type"];
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
 			classes: ["x-mod"],
-			template: U.getTemplatePath("xmod"),
-			onRender: {
-				set: {
-					fontSize: "calc(1.2 * var(--die-size))",
-					fontFamily: "Oswald",
-					textAlign: "center"
-				}
-			}
+			template: U.getTemplatePath("xmod")
 		});
 	}
-	override readonly isFreezingRotate = true;
+	override get xParent(): XGroup { return super.xParent as XGroup }
 
 	private _value: XDieValue = 0;
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
+	type: XModType;
 	get value() { return (this._value = this._value ?? 0) }
 	set value(val: XDieValue) {
 		this._value = val;
@@ -150,27 +146,27 @@ export class XMod extends XItem implements XTerm {
 		}
 	}
 
-	override get xParent() {
+	override onRenderOptions = {
+		...super.onRenderOptions,
+		fontSize: "calc(1.2 * var(--die-size))",
+		fontFamily: "Oswald",
+		textAlign: "center"
+	};
 
-
-		return <XItem>super.xParent;
-	}
-	override set xParent(xItem: XItem) { super.xParent = xItem }
-
-
-	constructor(xParent: XGroup | typeof XItem.XROOT, xOptions: XModOptions) {
-		const dieSize = xOptions.size ?? 40;
-		xOptions.onRender ??= {};
-		xOptions.onRender.set = {
-			...{
-				"--die-size": `${dieSize}px`
-			},
-			...xOptions.onRender.set ?? {}
+	constructor(xParent: XGroup | typeof XROOT.XROOT, xOptions: XModOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
+		onRenderOptions = {
+			fontSize: "calc(1.2 * var(--die-size))",
+			fontFamily: "Oswald",
+			textAlign: "center",
+			...onRenderOptions
 		};
-		xOptions.type = xOptions.type ?? XTermType.BasicDie;
-		super(xParent, xOptions);
-		// this.value = xOptions.value ?? 0;
-		this.type = xOptions.type;
+		xOptions = {
+			type: XTermType.Modifier,
+			isFreezingRotate: true,
+			...xOptions
+		};
+		super(xParent, xOptions, onRenderOptions);
+		this.type = xOptions.type ?? XTermType.Modifier;
 	}
 
 	override getData() {

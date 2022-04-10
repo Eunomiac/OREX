@@ -319,6 +319,10 @@ const degToRad = (deg: number, isConstrained = true): number => {
 	deg *= Math.PI / 180;
 	return deg;
 };
+
+const FILTERS = {
+	IsInstance: ((classRef: unknown) => ((item: unknown) => typeof classRef === "function" && item instanceof classRef))
+};
 // #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
 
 // #region ████████ STRINGS: String Parsing, Manipulation, Conversion, Regular Expressions ████████
@@ -674,6 +678,17 @@ const pullElement = (array: unknown[], checkFunc = (_v: unknown = true, _i = 0, 
 	return index !== -1 && array.splice(index, 1).pop();
 };
 const pullIndex = (array: unknown[], index: posInt) => pullElement(array, (v, i) => i === index);
+const subGroup = (array: unknown[], groupSize: posInt) => {
+	const subArrays = [];
+	while (array.length > groupSize) {
+		const subArray = [];
+		while (subArray.length < groupSize) {
+			subArray.push(array.shift());
+		}
+		subArrays.push(subArray);
+	}
+	subArrays.push(array);
+};
 
 /*~ #region TO PROCESS: ARRAY FUNCTIONS: Last, Flip, Insert, Change, Remove
 export const Last = (arr) => (Array.isArray(arr) && arr.length ? arr[arr.length - 1] : undefined);
@@ -894,9 +909,9 @@ const getDynamicFunc = (funcName: string, func: (...args: unknown[]) => unknown,
 // #region ████████ HTML: Parsing HTML Code, Manipulating DOM Objects ████████ ~
 // #region ░░░░░░░[GreenSock]░░░░ Wrappers for GreenSock Functions ░░░░░░░ ~
 
-function get(target: gsap.TweenTarget, property: string, unit: string): number;
-function get(target: gsap.TweenTarget, property: string): string | number;
-function get(target: gsap.TweenTarget, property: string, unit?: string): string | number {
+function get(target: gsap.TweenTarget, property: keyof gsap.CSSProperties & string, unit: string): number;
+function get(target: gsap.TweenTarget, property: keyof gsap.CSSProperties & string): string | number;
+function get(target: gsap.TweenTarget, property: keyof gsap.CSSProperties & string, unit?: string): string | number {
 	if (unit) {
 		const propVal = regExtract(gsap.getProperty(target, property, unit), /[\d.]+/);
 		if (typeof propVal === "string") {
@@ -945,9 +960,11 @@ export default {
 
 	// ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 	isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
-	isUndefined, isDefined, isEmpty, hasItems, isInstance, isInstanceFunc,
+	isUndefined, isDefined, isEmpty, hasItems, isInstance,
 	areEqual,
 	pFloat, pInt, radToDeg, degToRad,
+
+	FILTERS,
 
 	// ████████ REGEXP: Regular Expressions, Replacing, Matching ████████
 	testRegExp,
@@ -983,6 +1000,7 @@ export default {
 	getLast,
 	unique,
 	removeFirst, pullElement, pullIndex,
+	subGroup,
 
 	// ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
 	remove, replace, partition,

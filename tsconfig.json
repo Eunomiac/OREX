@@ -2,7 +2,7 @@
 	"extends": "@tsconfig/node16/tsconfig.json",
 	"compilerOptions": {
 		"allowJs": true,
-		"checkJs": false,
+		"checkJs": true,
 		// "declaration": true,
 		// "declarationMap": true,
 		"isolatedModules": true,
@@ -33,7 +33,7 @@
 	"exclude": [
 		"/ts/@types/**",
 		"dist/**",
-		"scripts/**",
+		"/scripts/**",
 		"gulpfile.js",
 		"node_modules/**",
 		".eslintrc.js",

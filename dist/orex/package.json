@@ -3,16 +3,23 @@
   "version": "0.0.1-prealpha",
   "description": "An implementation of the One Roll Engine for Foundry Virtual Tabletop",
   "scripts": {
-    "build all": "gulp"
+    "build all": "gulp",
+    "codehawk": "codehawk ts"
   },
   "browserslist": [
-    "last 3 versions"
+		"last 1 chrome version",
+		"last 1 firefox version",
+		"last 1 safari version",
+		"> 10%"
   ],
   "author": "Eunomiac",
   "license": "MIT",
   "private": true,
   "types": "./orex.d.ts",
   "devDependencies": {
+    "@babel/cli": "^7.17.6",
+    "@babel/core": "^7.17.9",
+    "@babel/preset-typescript": "^7.16.7",
     "@league-of-foundry-developers/foundry-vtt-types": "^9.255.0",
     "@tsconfig/node16": "^1.0.2",
     "@types/gsap": "^3.0.0",
@@ -21,6 +28,7 @@
     "@typescript-eslint/eslint-plugin": "^5.15.0",
     "@typescript-eslint/parser": "^5.15.0",
     "autoprefixer": "^10.4.4",
+    "codehawk-cli": "^8.3.1",
     "cssnano": "^5.1.4",
     "del": "^6.0.0",
     "eslint": "^8.11.0",

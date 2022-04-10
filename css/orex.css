@@ -15,8 +15,6 @@
   /* .x-die */ }
   #XROOT .x-elem {
     position: absolute;
-    -webkit-transform-origin: 50% 50%;
-    -ms-transform-origin: 50% 50%;
     transform-origin: 50% 50%; }
   #XROOT .translate-box {
     height: 500px;
@@ -40,7 +38,6 @@
   #XROOT .x-pool {
     --bg-color: cyan;
     border-radius: 100%;
-    background: -o-radial-gradient(var(--bg-color), transparent 75%);
     background: radial-gradient(var(--bg-color), transparent 75%); }
   #XROOT .x-arm > * {
     top: unset;

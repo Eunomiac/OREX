@@ -313,6 +313,9 @@ const degToRad = (deg, isConstrained = true) => {
     deg *= Math.PI / 180;
     return deg;
 };
+const FILTERS = {
+    IsInstance: ((classRef) => ((item) => typeof classRef === "function" && item instanceof classRef))
+};
 // #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
 // #region ████████ STRINGS: String Parsing, Manipulation, Conversion, Regular Expressions ████████
 // #region ░░░░░░░[Case Conversion]░░░░ Upper, Lower, Sentence & Title Case ░░░░░░░ ~
@@ -671,6 +674,17 @@ const pullElement = (array, checkFunc = (_v = true, _i = 0, _a = []) => { checkF
     return index !== -1 && array.splice(index, 1).pop();
 };
 const pullIndex = (array, index) => pullElement(array, (v, i) => i === index);
+const subGroup = (array, groupSize) => {
+    const subArrays = [];
+    while (array.length > groupSize) {
+        const subArray = [];
+        while (subArray.length < groupSize) {
+            subArray.push(array.shift());
+        }
+        subArrays.push(subArray);
+    }
+    subArrays.push(array);
+};
 const checkVal = ({ k, v }, checkTest) => {
     if (typeof checkTest === "function") {
         if (isDefined(v)) {
@@ -926,9 +940,10 @@ export default {
     GMID, getUID: UUIDify,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
     isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
-    isUndefined, isDefined, isEmpty, hasItems, isInstance, isInstanceFunc,
+    isUndefined, isDefined, isEmpty, hasItems, isInstance,
     areEqual,
     pFloat, pInt, radToDeg, degToRad,
+    FILTERS,
     // ████████ REGEXP: Regular Expressions, Replacing, Matching ████████
     testRegExp,
     regExtract,
@@ -959,6 +974,7 @@ export default {
     getLast,
     unique,
     removeFirst, pullElement, pullIndex,
+    subGroup,
     // ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████
     remove, replace, partition,
     objMap, objFilter, objForEach, objCompact,
