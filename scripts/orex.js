@@ -9,7 +9,6 @@ preloadTemplates, U,
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
 XROOT, XElem, XItem, XArm, XOrbit, XGroup, XPool, XRoll, XDie, 
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
-/*DEVCODE*/
 // #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
 DB, TESTS, DBFUNCS } from "./helpers/bundler.js";
 // #region ====== GreenSock Animation ====== ~
@@ -75,5 +74,7 @@ Hooks.once("ready", async () => {
     DB.groupEnd();
     DB.groupEnd();
     DB.log("... Readying Complete.");
+    DB.groupDisplay("Initializing Roll Generation");
+    // const MAINROLL =
     /*!DEVCODE*/
 });

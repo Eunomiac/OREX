@@ -7,7 +7,7 @@ gsap, MotionPathPlugin,
 U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮ XItems ▮▮▮▮▮▮▮
-XItem, XROOT
+XItem, XROOT, XGroup
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "../helpers/bundler.js";
 // #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
@@ -24,18 +24,34 @@ export default class XElem {
     }
     // #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
     // #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
-    get parentApp() { return this.renderApp.xParent; }
+    get xParent() { return this.renderApp.xParent; }
     adopt(child, isRetainingPosition = true) {
-        child.xParent?.unregisterXKid(child);
-        this.renderApp.registerXKid(child);
-        // If both the renderApp and child are already initialized, assume retaining position.
-        if (this.renderApp.isInitialized && child.isInitialized) {
-            child.set({
-                ...this.getLocalPosData(child),
-                ...child.xOptions.isFreezingRotate ? { rotation: -1 * this.global.rotation } : {}
-            });
+        if (this.renderApp instanceof XGroup) {
+            child.xParent?.disown(child);
+            child.xParent = this.renderApp;
+            this.renderApp.registerXKid(child);
+            // If both the renderApp and child are already initialized, assume retaining position.
+            if (this.renderApp.isInitialized() && child.isInitialized()) {
+                child.set({
+                    ...this.getLocalPosData(child),
+                    ...child.xOptions.isFreezingRotate ? { rotation: -1 * this.global.rotation } : {}
+                });
+            }
+            child.elem$.appendTo(this.elem);
         }
-        child.elem$.appendTo(this.elem);
+    }
+    disown(child) {
+        if (this.renderApp instanceof XGroup) {
+            this.renderApp.unregisterXKid(child);
+        }
+    }
+    tweenTimeScale(tweenID, timeScale = 1, duration = 1) {
+        const tween = this.tweens[tweenID];
+        return gsap.to(tween, {
+            timeScale,
+            duration,
+            ease: "sine.inOut"
+        });
     }
     // #endregion ▄▄▄▄▄ Parenting ▄▄▄▄▄
     // #region ████████ Positioning: Positioning DOM Element in Local and Global (XROOT) Space ████████ ~
@@ -61,24 +77,24 @@ export default class XElem {
             },
             get x() { return this.pos.x; },
             get y() { return this.pos.y; },
+            get height() { return self.height * this.scale; },
+            get width() { return self.width * this.scale; },
             get rotation() {
-                let totalRotation = self.rotation, { parentApp } = self;
-                while (parentApp?.isRendered) {
-                    totalRotation += parentApp.rotation;
-                    parentApp = parentApp.xParent;
+                let totalRotation = self.rotation, { xParent } = self;
+                while (xParent?.isRendered) {
+                    totalRotation += xParent.rotation;
+                    ({ xParent } = xParent);
                 }
                 return totalRotation;
             },
             get scale() {
-                let totalScale = self.scale, { parentApp } = self;
-                while (parentApp?.isRendered) {
-                    totalScale *= parentApp.scale;
-                    parentApp = parentApp.xParent;
+                let totalScale = self.scale, { xParent } = self;
+                while (xParent?.isRendered) {
+                    totalScale *= xParent.scale;
+                    ({ xParent } = xParent);
                 }
                 return totalScale;
-            },
-            get height() { return this.height; },
-            get width() { return this.width; }
+            }
         };
     }
     get height() { return U.pInt(U.get(this.elem, "height", "px")); }
@@ -109,6 +125,7 @@ export default class XElem {
     // #endregion ▄▄▄▄▄ Positioning ▄▄▄▄▄
     // #region ████████ GSAP: GSAP Animation Method Wrappers ████████ ~
     tweens = {};
+    get isFreezingRotate() { return this.renderApp.isFreezingRotate; }
     /*~ Figure out a way to have to / from / fromTo methods on all XItems that:
             - will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
             - if timescale is small enough, just uses.set() ~*/
@@ -130,7 +147,7 @@ export default class XElem {
         return tween;
     }
     set(vars) {
-        if (!this.renderApp.isInitialized) {
+        if (!this.renderApp.isInitialized()) {
             this.renderApp.onRenderOptions = {
                 ...this.renderApp.onRenderOptions,
                 ...vars

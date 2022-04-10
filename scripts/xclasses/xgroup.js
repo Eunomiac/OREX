@@ -14,13 +14,40 @@ export default class XGroup extends XItem {
     static override get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-g"] }) }
     override get xParent(): XG { return super.xParent as XG }
     */
-    static async Make(xParent, xOptions, onRenderOptions) {
-        return await XItem.Make(xParent, xOptions, onRenderOptions);
-    }
+    // static override async Make(xParent: XGroup, xOptions: Partial<XGroupOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XGroup> {
+    // 	return await XItem.Make(xParent, xOptions, onRenderOptions) as XGroup;
+    // }
     static REGISTRY = new Map();
     static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-group"] }); }
-    get xParent() { return super.xParent ?? null; }
-    get xItems() { return Array.from(this.xKids); }
+    #xKids = new Set();
+    get xKids() { return this.#xKids; }
+    get hasKids() { return this.xKids.size > 0; }
+    registerXKid(xKid) { this.xKids.add(xKid); }
+    unregisterXKid(xKid) { this.xKids.delete(xKid); }
+    getXKids(classRef, isGettingAll = false) {
+        const xKids = Array.from(this.xKids.values())
+            .flat()
+            .filter(U.FILTERS.IsInstance(classRef));
+        if (isGettingAll) {
+            xKids.push(...xKids
+                .map((xKid) => (xKid instanceof XGroup ? xKid.getXKids(classRef, true) : []))
+                .flat());
+        }
+        return xKids;
+    }
+    async initialize(renderOptions = {}) {
+        await super.initialize(renderOptions);
+        return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize({})))
+            .then(() => Promise.resolve(this), () => Promise.reject());
+    }
+    async addXItem(xItem) {
+        this.adopt(xItem);
+        return xItem;
+    }
+    async addXItems(xItems) {
+        return Promise.allSettled(xItems.map((xItem) => this.addXItem(xItem)))
+            .then(() => Promise.resolve(xItems), () => Promise.reject());
+    }
     constructor(xParent, xOptions, renderOptions = {}) {
         super(xParent, xOptions, renderOptions);
     }
@@ -52,23 +79,23 @@ export class XROOT extends XGroup {
 }
 // #endregion 🟩🟩🟩 XROOT 🟩🟩🟩
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
-export class XArm extends XItem {
-    static async Make(heldItem, xParent) {
-        const xArm = await super.Make(xParent, { id: "-" }, {
-            height: 0,
-            width: 0,
-            transformOrigin: "0% 50%",
-            top: "50%",
-            left: "50%",
-            xPercent: 0,
-            yPercent: 0
-        });
-        xArm.xItem = heldItem;
-        return xArm.grabItem();
-    }
+export class XArm extends XGroup {
+    // static override async Make(heldItem: XItem, xParent: XOrbit): Promise<XItem> {
+    // 	const xArm = await super.Make(xParent, {id: "-"}, {
+    // 		height: 0,
+    // 		width: 0,
+    // 		transformOrigin: "0% 50%",
+    // 		top: "50%",
+    // 		left: "50%",
+    // 		xPercent: 0,
+    // 		yPercent: 0
+    // 	}) as XArm;
+    // 	xArm.xItem = heldItem;
+    // 	return xArm.grabItem();
+    // }
     static REGISTRY = new Map();
     static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-arm"] }); }
-    get xParent() { return super.xParent; }
+    get xParent() { return this.xParent; }
     xItem;
     grabItem() {
         this.set({ width: this.distanceToHeldItem, rotation: this.rotation + this.angleToHeldItem });
@@ -84,11 +111,11 @@ export class XArm extends XItem {
         return this;
     }
     get positionOfHeldItem() {
-        // if (!this.xItem.isInitialized) { return this.xItem.pos }
+        // if (!this.xItem.isInitialized()) { return this.xItem.pos }
         return MotionPathPlugin.getRelativePosition(this.xParent.elem, this.xItem.elem, [0.5, 0.5], [0.5, 0.5]);
     }
     get distanceToHeldItem() {
-        // if (!this.xItem.isInitialized) { return this.xParent.orbitRadius }
+        // if (!this.xItem.isInitialized()) { return this.xParent.orbitRadius }
         return U.getDistance({ x: 0, y: 0 }, this.positionOfHeldItem);
     }
     get angleToHeldItem() {
@@ -122,22 +149,30 @@ export var XOrbitType;
     XOrbitType["Outer"] = "Outer";
 })(XOrbitType || (XOrbitType = {}));
 export class XOrbit extends XGroup {
-    static async Make(parentGroup, { name, radiusRatio, rotationScaling }, onRenderOptions) {
-        name ??= XOrbitType.Main;
-        radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
-        rotationScaling ??= C.xGroupOrbitalDefaults[name].rotationScaling;
-        const xOrbit = await super.Make(parentGroup, {
-            id: name
-        }, {
-            height: parentGroup.height,
-            width: parentGroup.width,
-            left: 0.5 * parentGroup.width,
-            top: 0.5 * parentGroup.height,
-            ...onRenderOptions
-        });
-        xOrbit.initializeRadius({ ratio: radiusRatio, scale: rotationScaling });
-        return xOrbit;
-    }
+    // static override async Make(
+    // 	parentGroup: XPool,
+    // 	{
+    // 		name,
+    // 		radiusRatio,
+    // 		rotationScaling
+    // 	}: Partial<XGroupOptions & XOrbitSpecs>,
+    // 	onRenderOptions: Partial<gsap.CSSProperties>
+    // ) {
+    // 	name ??= XOrbitType.Main;
+    // 	radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
+    // 	rotationScaling ??= C.xGroupOrbitalDefaults[name].rotationScaling;
+    // 	const xOrbit = await super.Make(parentGroup, {
+    // 		id: name
+    // 	}, {
+    // 		height: parentGroup.height,
+    // 		width: parentGroup.width,
+    // 		left: 0.5 * parentGroup.width,
+    // 		top: 0.5 * parentGroup.height,
+    // 		...onRenderOptions
+    // 	}) as XOrbit;
+    // 	xOrbit.initializeRadius({ratio: radiusRatio, scale: rotationScaling});
+    // 	return xOrbit;
+    // }
     static REGISTRY = new Map();
     static get defaultOptions() { return U.objMerge(super.defaultOptions, { classes: ["x-orbit"] }); }
     get xParent() { return super.xParent; }
@@ -269,9 +304,9 @@ export class XOrbit extends XGroup {
             this.#isArmed = true;
         }, 10);
     }
-    async addXItem(xItem, isUpdatingArms = true) {
+    async addXItem(xItem) {
         const xArm = await XArm.Make(xItem, this);
-        if (this.isInitialized) {
+        if (this.isInitialized()) {
             await xArm.initialize();
             if (isUpdatingArms) {
                 this.updateArms();
@@ -324,6 +359,7 @@ export class XPool extends XGroup {
         return Promise.resolve(this);
     }
     async addXItem(xItem, orbit) {
+        // return XArm.Connect(this, this.orbitals.get(orbit));
         const orbital = this.orbitals.get(orbit);
         return orbital?.addXItem(xItem);
     }

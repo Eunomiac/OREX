@@ -12,18 +12,20 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮ XItems ▮▮▮▮▮▮▮
-	XItem, XROOT
+	XItem, XROOT, XGroup
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {KnownKeys} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 // #region ████████ Type Definitions: TypeScript Interfaces Related to DOM Elements ████████ ~
-export interface Position extends Exclude<Point, PIXI.Point> {
-	rotation: number;
-	scale: number;
+
+export type Point = gsap.Point2D;
+export interface Position extends Point {
 	height: number;
 	width: number;
+	rotation: number;
+	scale: number;
 }
 export type XAnim = gsap.core.Tween | gsap.core.Timeline;
 
@@ -38,7 +40,9 @@ export interface XTweenVars extends gsap.TweenVars {
 }
 export interface DOMRenderer extends Position {
 	id: string;
-	renderApp: XItem;
+	renderApp: Application;
+	xParent: XGroup | null;
+
 	elem: HTMLElement;
 	elem$: JQuery<HTMLElement>;
 
@@ -47,14 +51,20 @@ export interface DOMRenderer extends Position {
 
 	adopt: (xItem: XItem) => void,
 }
-export interface GSAPController {
+export interface Renderable extends DOMRenderer {
+	set: (vars: gsap.TweenVars) => gsap.core.Tween | boolean
+}
+export interface Tweenable extends Renderable {
 	tweens: Record<string, XAnim>;
+	to: ({scalingDuration, ...vars}: XTweenVars) => gsap.core.Tween,
+	from: ({scalingDuration, ...vars}: XTweenVars) => gsap.core.Tween,
+	fromTo: (fromVars: gsap.TweenVars, {scalingDuration, ...toVars}: XTweenVars) => gsap.core.Tween
 }
 // #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
 
 // #region 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 
-export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSAPController {
+export default class XElem<RenderItem extends XItem> implements DOMRenderer, Renderable {
 
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
 	readonly id: string;
@@ -69,20 +79,38 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 	// #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
 
 	// #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
-	get parentApp(): XItem | null { return this.renderApp.xParent }
+	get xParent(): XGroup | null { return this.renderApp.xParent }
 
 	adopt(child: XItem, isRetainingPosition = true): void {
-		child.xParent?.unregisterXKid(child);
-		this.renderApp.registerXKid(child);
+		if (this.renderApp instanceof XGroup) {
+			child.xParent?.disown(child);
+			child.xParent = this.renderApp;
+			this.renderApp.registerXKid(child);
 
-		// If both the renderApp and child are already initialized, assume retaining position.
-		if (this.renderApp.isInitialized && child.isInitialized) {
-			child.set({
-				...this.getLocalPosData(child),
-				...child.xOptions.isFreezingRotate ? {rotation: -1 * this.global.rotation} : {}
-			});
+			// If both the renderApp and child are already initialized, assume retaining position.
+			if (this.renderApp.isInitialized() && child.isInitialized()) {
+				child.set({
+					...this.getLocalPosData(child),
+					...child.xOptions.isFreezingRotate ? {rotation: -1 * this.global.rotation} : {}
+				});
+			}
+
+			child.elem$.appendTo(this.elem);
 		}
-		child.elem$.appendTo(this.elem);
+	}
+	disown(child: XItem): void {
+		if (this.renderApp instanceof XGroup) {
+			this.renderApp.unregisterXKid(child);
+		}
+	}
+
+	tweenTimeScale(tweenID: keyof typeof this.tweens, timeScale = 1, duration = 1) {
+		const tween = this.tweens[tweenID];
+		return gsap.to(tween, {
+			timeScale,
+			duration,
+			ease: "sine.inOut"
+		});
 	}
 	// #endregion ▄▄▄▄▄ Parenting ▄▄▄▄▄
 
@@ -113,26 +141,26 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 			},
 			get x() { return this.pos.x },
 			get y() { return this.pos.y },
+			get height() { return self.height * this.scale },
+			get width() { return self.width * this.scale },
 			get rotation() {
 				let totalRotation = self.rotation,
-								{parentApp} = self;
-				while (parentApp?.isRendered) {
-					totalRotation += parentApp.rotation;
-					parentApp = parentApp.xParent;
+								{xParent} = self;
+				while (xParent?.isRendered) {
+					totalRotation += xParent.rotation;
+					({xParent} = xParent);
 				}
 				return totalRotation;
 			},
 			get scale() {
 				let totalScale = self.scale,
-								{parentApp} = self;
-				while (parentApp?.isRendered) {
-					totalScale *= parentApp.scale;
-					parentApp = parentApp.xParent;
+								{xParent} = self;
+				while (xParent?.isRendered) {
+					totalScale *= xParent.scale;
+					({xParent} = xParent);
 				}
 				return totalScale;
-			},
-			get height(): number { return this.height },
-			get width(): number { return this.width }
+			}
 		};
 	}
 
@@ -169,6 +197,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 
 	// #region ████████ GSAP: GSAP Animation Method Wrappers ████████ ~
 	tweens: Record<string, XAnim> = {};
+	get isFreezingRotate() { return this.renderApp.isFreezingRotate }
 	/*~ Figure out a way to have to / from / fromTo methods on all XItems that:
 			- will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
 			- if timescale is small enough, just uses.set() ~*/
@@ -191,7 +220,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, GSA
 		return tween;
 	}
 	set(vars: gsap.TweenVars): gsap.core.Tween | boolean {
-		if (!this.renderApp.isInitialized) {
+		if (!this.renderApp.isInitialized()) {
 			this.renderApp.onRenderOptions = {
 				...this.renderApp.onRenderOptions,
 				...vars

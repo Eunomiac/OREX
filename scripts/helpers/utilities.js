@@ -932,7 +932,7 @@ const formatAsClass = (str) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^
 const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 // #region ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████ ~
-const sleep = (duration) => new Promise((resolve) => { setTimeout(resolve, duration); });
+const sleep = (duration) => new Promise((resolve) => { setTimeout(resolve, duration >= 100 ? duration : duration * 1000); });
 // #endregion ▄▄▄▄▄ ASYNC ▄▄▄▄▄
 // #region ████████ EXPORTS ████████
 export default {

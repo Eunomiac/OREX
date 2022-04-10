@@ -18,11 +18,13 @@ import {
 	XGroup, XPool, XRoll,
 	XDie,
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
-	/*DEVCODE*/
+
 	// #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
 	DB, TESTS, DBFUNCS, XTermType, XOrbitType
 	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
 	/*!DEVCODE*/
+	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
+
 } from "./helpers/bundler.js";
 // #region ====== GreenSock Animation ====== ~
 
@@ -91,6 +93,9 @@ Hooks.once("ready", async () => {
 	DB.groupEnd();
 	DB.groupEnd();
 	DB.log("... Readying Complete.");
+
+	DB.groupDisplay("Initializing Roll Generation");
+	// const MAINROLL =
 
 /*!DEVCODE*/
 });

@@ -36,7 +36,7 @@ export {default as XPad} from "../xclasses/xpad.js";
 
 // #region ████████ TYPES: TypeScript Type Definitions ████████
 export type {int, float, posInt, posFloat, HTMLCode, List, Index, ConstructorOf, KnownKeys, Concrete} from "./utilities.js";
-export type {Position, XAnim, DOMRenderer, GSAPController, XTweenVars} from "../xclasses/xelem.js";
+export type {Position, XAnim, Renderable, Tweenable} from "../xclasses/xelem.js";
 export type {XItemOptions} from "../xclasses/xitem.js";
 export type {XGroupOptions, XPoolOptions, XOrbitSpecs, XRollOptions} from "../xclasses/xgroup.js";
 export type {XTerm, XTermOptions, XDieValue, XDieFace, XDieOptions} from "../xclasses/xterm.js";

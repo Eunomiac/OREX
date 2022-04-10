@@ -45,7 +45,7 @@ export default class XDie extends XItem {
     set value(val) {
         if (val && val > 0 && val <= 10) {
             this.#value = val;
-            if (this.isInitialized) {
+            if (this.isInitialized()) {
                 this.value$.html(this.face);
             }
         }
@@ -95,7 +95,7 @@ export class XMod extends XItem {
     get value() { return (this._value = this._value ?? 0); }
     set value(val) {
         this._value = val;
-        if (this.isInitialized) {
+        if (this.isInitialized()) {
             this.value$.html(`${val}`);
         }
     }

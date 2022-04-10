@@ -13,7 +13,7 @@ const header = require("gulp-header");
 const replacer = require("gulp-replace");
 
 const typescript = require("gulp-typescript");
-const terser = require("gulp-terser");
+// const terser = require("gulp-terser");
 
 const sasser = require("gulp-sass")(require("node-sass"));
 const bundler = require("gulp-postcss");
@@ -280,17 +280,17 @@ const PIPES = {
 		return pipeline;
 	},
 	tsProject: typescript.createProject("tsconfig.json", {declaration: ISGENERATINGTYPEFILES}),
-	terser: () => plumber().pipe(terser, {
-		parse: {},
-		compress: {},
-		mangle: {
-			properties: {}
-		},
-		format: {},
-		sourceMap: {},
-		ecma: 2020,
-		module: true
-	}),
+	// terser: () => plumber().pipe(terser, {
+	// 	parse: {},
+	// 	compress: {},
+	// 	mangle: {
+	// 		properties: {}
+	// 	},
+	// 	format: {},
+	// 	sourceMap: {},
+	// 	ecma: 2020,
+	// 	module: true
+	// }),
 	closePipe: (title, source, destination) => {
 		const thisDest = dest(destination);
 		thisDest.on("finish", () => logger(logParts.finish(title, source, destination)));

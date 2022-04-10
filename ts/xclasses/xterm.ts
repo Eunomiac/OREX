@@ -25,6 +25,7 @@ export interface XTermOptions extends XItemOptions {
 
 export interface XTerm {
 	type: XTermType,
+	xParent: XItem | XROOT,
 	// THIS SHIT IS WRONG AND BAD: NEED TO ACCOUNT FOR OTHER TYPES OF VALUES
 	value?: XDieValue,
 	ApplyEffect?: (xRoll: XRoll) => XRoll
@@ -78,7 +79,7 @@ export default class XDie extends XItem implements XTerm {
 	set value(val: XDieValue) {
 		if (val && val > 0 && val <= 10) {
 			this.#value = val;
-			if (this.isInitialized) {
+			if (this.isInitialized()) {
 				this.value$.html(this.face);
 			}
 		}
@@ -141,7 +142,7 @@ export class XMod extends XItem implements XTerm {
 	get value() { return (this._value = this._value ?? 0) }
 	set value(val: XDieValue) {
 		this._value = val;
-		if (this.isInitialized) {
+		if (this.isInitialized()) {
 			this.value$.html(`${val}`);
 		}
 	}

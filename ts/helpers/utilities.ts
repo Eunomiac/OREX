@@ -950,7 +950,7 @@ const getGSAngleDelta = (startAngle: number, endAngle: number) => signNum(roundN
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 
 // #region ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████ ~
-const sleep = (duration: number): Promise<void> => new Promise((resolve) => { setTimeout(resolve, duration) });
+const sleep = (duration: number): Promise<void> => new Promise((resolve) => { setTimeout(resolve, duration >= 100 ? duration : duration * 1000) });
 // #endregion ▄▄▄▄▄ ASYNC ▄▄▄▄▄
 
 // #region ████████ EXPORTS ████████

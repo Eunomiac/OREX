@@ -10,10 +10,7 @@ import {
 	XTermType, XOrbitType, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./bundler.js";
-import type {
-	XArm, XOrbit
-} from "../xclasses/xgroup.js";
-import type {Index, XOrbitSpecs, XItemOptions, XDieValue} from "./bundler.js";
+import type {XArm, XOrbit, Index, XOrbitSpecs, XItemOptions, XDieValue} from "./bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 // #region ████████ XLogger: Formatted Logging to Console ████████ ~
@@ -141,7 +138,7 @@ class XPing {
 	label: string;
 	color: string;
 	point: Point;
-	context: XItem;
+	context: XItem | XROOT;
 
 	constructor(point: Point, label: string, context = XROOT.XROOT as XGroup, color = "random") {
 		this.color = color === "random" ? U.randElem(Object.keys(C.colors)) : color;
@@ -182,6 +179,35 @@ class XPing {
 		);
 	}
 }
+
+const getPosData = (xItems: XItem[]) => {
+	const posData: Record<string, any> = {};
+	xItems.forEach((xItem) => {
+		const xParent = xItem.xParent!;
+		const parent = MotionPathPlugin.convertCoordinates(
+			xItem.elem,
+			xParent.elem,
+			xItem.xElem.origin
+		);
+		const global = MotionPathPlugin.convertCoordinates(
+			xItem.elem,
+			XROOT.XROOT.elem,
+			xItem.xElem.origin
+		);
+		let xName = xItem.id.replace(/_.*$/u, "");
+		if (xName in posData) {
+			xName += `_${Object.keys(posData).length}`;
+		}
+		posData[xName] = {
+			local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
+			origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
+			parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
+			global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
+		};
+	});
+	console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
+	return posData;
+};
 
 Object.assign(DB, {
 	PING: (point: Point, label: string, context?: XGroup, color?: string) => new XPing(point, label, context, color),
@@ -284,23 +310,11 @@ const BuildTestContext = async () => {
 	Object.assign(globalThis, T, {getPosData, RandomDice});
 	DB.log("Setup Complete.");
 	DB.groupDisplay("Starting Timeouts...");
-	setTimeout(async () => {
-		DB.groupEnd();
-		DB.groupEnd();
-		DB.log("Initial Position Data");
-		getPosData();
-		return;
-		DB.groupTitle("Initializing Test XRoll... ");
-		const nestedRolls = await Promise.all((<Array<Parameters<typeof TESTS.createRoll>>>[
-			[[8], {height: 150, width: 150, dieColor: "purple", poolColor: "gold"}],
-			[[3], {height: 100, width: 100, dieColor: "blue", poolColor: "orange"}],
-			[[3], {height: 75, width: 75, dieColor: "magenta", poolColor: "lime"}]
-		]).map(([dice, params]) => TESTS.createRoll(dice, params)));
-		const ROLL = await TESTS.createRoll([7], {x: 1250, y: 500}, nestedRolls);
-		Object.assign(globalThis, {ROLL, nestedRolls});
-		DB.groupEnd();
-		setTimeout(() => TESTS.xArmTest(ROLL), 500);
-	}, U.randInt(1000, 5000));
+	await U.sleep(U.randInt(1, 5));
+	DB.groupEnd();
+	DB.groupEnd();
+	DB.log("Initial Position Data");
+	getPosData();
 };
 const TESTS_ARCHIVE = {
 	nestedPositionTest: async () => {
@@ -445,197 +459,6 @@ const DBFUNCS = {
 		return xRoll;
 	}
 };
-const TESTS = {
-	// makePool: (xParent: XItem, {id, x, y, size = 200, color = "cyan"}: {id: string, x: number, y: number, size: number, color: string}) => {
-	// 	return new XPool(xParent, {
-	// 		id,
-	// 		onRender: {
-	// 			set: {
-	// 			}
-	// 		},
-	// 		orbitals: C.xGroupOrbitalDefaults
-	// 	});
-	// },
-	makeDie: ({value = undefined, color = "white", numColor = "black", strokeColor = "black", size = 50} = {}) => new XDie(XROOT.XROOT, {
-		id: "x-die",
-		type: XTermType.BasicDie,
-		value,
-		color,
-		numColor,
-		strokeColor,
-		size
-	}),
-	// testGroups: async () => {
-	// 	const POOLS = [
-	// 		// {x: 550, y: 350, size: 200, color: "gold", orbitals: {main: 0.75, outer: 1.25, inner: 0.25}, dice: {main: [5, "cyan", [3, "red"]]}},
-	// 		{
-	// 			x: 950, y: 650, size: 400, color: "rgba(255, 0, 0, 0.5)",
-	// 			/* orbitals: {
-	// 				[XOrbitType.Core]: { radiusRatio: 0.35, rotationScaling: 1},
-	// 				[XOrbitType.Main]: { radiusRatio: 1, rotationScaling: 1},
-	// 				[XOrbitType.Outer]: { radiusRatio: 1.5, rotationScaling: 1}
-	// 			}, */
-	// 			dice: {
-	// 				main: [6, "cyan", [2, "lime"]],
-	// 				outer: [5, "silver", [3, "gold"], [4, "rgba(0, 0, 255, 0.5)"]],
-	// 				inner: [3, "red"]
-	// 			}
-	// 		}
-	// 	].map(async ({x, y, size, color, /* orbitals, */ dice}, i) => {
-	// 		const xPool = TESTS.makePool(XROOT.XROOT, {
-	// 			id: "POOL",
-	// 			x, y, size, color/* , orbitals */
-	// 		});
-	// 		await xPool.initialize(); // @ts-expect-error How to tell TS the type of object literal's values?
-	// 		globalThis.CIRCLE ??= []; // @ts-expect-error How to tell TS the type of object literal's values?
-	// 		globalThis.CIRCLE.push(xPool);
-	// 		for (const [name, [numDice, color, ...nestedPools]] of Object.entries(dice) as Array<[XOrbitType, [number, string, ...Array<[number, string]>]]>) {
-	// 			for (let j = 0; j < numDice; j++) {
-	// 				const xDie = new XDie(XROOT.XROOT as XGroup, {
-	// 					id: "xDie",
-	// 					type: XTermType.BasicDie,
-	// 					value: U.randInt(0, 9) as XDieValue,
-	// 					color: typeof color === "string" ? color : undefined
-	// 				});
-	// 				if (!(await xPool.addXItem(xDie, name))) {
-	// 					DB.error(`Error rendering xDie '${xDie.id}'`);
-	// 				}
-	// 			}
-	// 			if (nestedPools.length) {
-	// 				DB.log("Nested Pools", nestedPools);
-	// 				for (const [nestedNumDice, nestedColor] of nestedPools) {
-	// 					const nestedPool = TESTS.makePool(XROOT.XROOT, {
-	// 						id: "subPool",
-	// 						x: 0,
-	// 						y: 0,
-	// 						size: 75,
-	// 						color: nestedColor
-	// 					});
-	// 					await xPool.addXItem(nestedPool, name);
-	// 					await nestedPool.initialize();
-	// 					for (let k = 0; k < nestedNumDice; k++) {
-	// 						const id = "xDie";
-	// 						try {
-	// 							await nestedPool.addXItem(new XDie(XROOT.XROOT as XGroup, {
-	// 								id,
-	// 								type: XTermType.BasicDie,
-	// 								value: U.randInt(0, 9) as XDieValue,
-	// 								color: typeof nestedColor === "string" ? nestedColor : undefined
-	// 							}), XOrbitType.Main);
-	// 						} catch (error) {
-	// 							DB.error(`Error rendering xDie '${id}'`, error);
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	});
-	// 	await Promise.allSettled(POOLS);
-	// 	// @ts-expect-error Debugging
-	// 	globalThis.POOLS = POOLS;
-	// 	return Promise.allSettled(POOLS);
-	// },
-	createRoll: async (dice: number[], setParams: Record<string,any> = {}, nestedXGroups: XGroup[] = []) => {
-		setParams = {x: 0, y: 0, height: 400, width: 400, dieColor: "white", poolColor: "cyan", ...setParams};
-		const {dieColor, poolColor, ...set} = setParams;
-		set["--bg-color"] = poolColor;
-		const rollPool = await XRoll.Make(XROOT.XROOT, {
-			id: "ROLL"
-		}, {set});
-		await rollPool.initialize();
-		// const dieColors = ["white", "cyan", "gold", "lime"];
-		let diceToAdd: Array<XDie|XGroup> = dice.flatMap((qty) => {
-			const color = dieColor; // dieColors.shift();
-			return [...new Array(qty)].map(() => new XDie(XROOT.XROOT, {
-				id: "xDie",
-				type: XTermType.BasicDie,
-				value: 0, // 0 = blank, unrolled die; a '10' represents a 10-value die showing a '0'.
-				color
-			}));
-		});
-		await Promise.allSettled(diceToAdd.map((xDie) => xDie.initialize()));
-		nestedXGroups.forEach((xGroup) => {
-			const index = Math.floor(Math.random() * diceToAdd.length);
-			diceToAdd = [
-				...diceToAdd.slice(0, index),
-				xGroup,
-				...diceToAdd.slice(index)
-			];
-		});
-		await rollPool.addXItems({[XOrbitType.Main]: diceToAdd});
-		return rollPool;
-	},
-	angleClicks: async (focus: XRoll, isXArmTest?: [XItem, XDie]) => {
-		const pointMarker = await XItem.Make(XROOT.XROOT, {
-			id: "pointMarker"
-		}, {
-			height: 0,
-			width: 0,
-			x: 0,
-			y: 0
-		});
-		await pointMarker.initialize();
-		document.addEventListener("click", async (event) => {
-			DB.display("Click Event Triggered");
-			DB.PING({x: event.pageX, y: event.pageY}, "EVENT");
-			pointMarker.set({x: event.pageX, y: event.pageY});
-			DB.log(`Event Position: {x: ${event.pageX}, y: ${event.pageY}}`);
-			DB.log(`Focus Position: {x: ${focus.global.x}, y: ${focus.global.y}}`);
-			DB.log(`Distance: ${focus.getDistanceTo({x: event.pageX, y: event.pageY})}`);
-			DB.log(`Angle: ${focus.getGlobalAngleTo({x: event.pageX, y: event.pageY})}`);
-			if (isXArmTest) {
-				const [xArm, xDie] = isXArmTest as [XArm, XDie];
-				const clickPhase = ClickPhases.shift() as string;
-				ClickPhases.push(clickPhase);
-				const {x, y} = xArm.xElem.getLocalPosData(pointMarker);
-				DB.display(`Click pos from xArm: {x: ${U.roundNum(x, 1)}, y: ${U.roundNum(y, 1)}}`);
-				switch (clickPhase) {
-					case "PositionXDie": {
-						focus.pauseRotating();
-						XROOT.XROOT.adopt(xDie);
-						xDie.set({x: event.pageX, y: event.pageY, rotation: 0});
-						break;
-					}
-					case "ParentXArm": {
-						const {x, y} = MotionPathPlugin.convertCoordinates(xDie.elem, xArm.elem, {x: 0, y: 0});
-						DB.PING({x, y}, "xDie", xArm);
-						xArm.adopt(xDie, true),
-						xArm.set({outlineColor: "gold"});
-						break;
-					}
-					case "StretchXArm": {
-						await xArm.snapToXItem();
-						await xDie.set({x: 0, y: 0, rotation: -1 * xArm.global.rotation});
-						const {x, y} = MotionPathPlugin.convertCoordinates(xDie.elem, xArm.elem, {x: 0, y: 0});
-						DB.PING({x, y}, "xDie", xArm);
-						break;
-					}
-					case "ResumeRotation": {
-						focus.playRotating();
-						break;
-					}
-					// no default
-				}
-				DB.log("Objects", {event, focus, xDie, xArm});
-			} else {
-				DB.log("Objects", {event, focus});
-			}
-		});
-	},
-	xArmTest: async (parentRoll: XRoll) => {
-		const [targetDie] = (parentRoll.orbitals.get(XOrbitType.Main)?.xTerms ?? []) as XDie[];
-		if (targetDie?.isInitialized && targetDie.xParent) {
-			const xArm = targetDie.xParent;
-			XROOT.XROOT.adopt(targetDie, true);
-			targetDie.set({"x": 100, "y": 100, "--die-color-bg": "magenta"});
-			Object.assign(globalThis, {
-				xDie: targetDie,
-				xArm
-			});
-			TESTS.angleClicks(parentRoll, [xArm, targetDie]);
-			DB.log("XArm Test Ready", {parentRoll, xDie: targetDie, xArm});
-		}
-	}
-};
+const TESTS = {};
 
 export {DB as default, TESTS, DBFUNCS};

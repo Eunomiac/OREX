@@ -8,7 +8,7 @@ import {
 	XElem, XROOT, XGroup
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XGroupOptions, DOMRenderer, GSAPController, ConstructorOf} from"../helpers/bundler.js";
+import type {XGroupOptions, Renderable, Tweenable, ConstructorOf} from"../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 export interface XItemOptions extends ApplicationOptions {
 	id: string;
@@ -22,16 +22,47 @@ const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = 
 	}]
 ];
 
-export default class XItem extends Application implements DOMRenderer, GSAPController {
-	// #region ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮ ~
-	static async Make(xParent: XGroup, options: Partial<XGroupOptions>, onRenderOptions: Partial<gsap.CSSProperties>) {
-		const xItem = new (this.constructor as typeof XItem)(xParent, options, onRenderOptions);
+abstract class XBase extends Application {
+
+
+}
+
+abstract class XFactoryBase {
+	abstract Make<CLS extends typeof XItem>(
+		classRef: CLS,
+		xParent: XGroup | null,
+		options: Partial<XItemOptions>,
+		onRenderOptions: Partial<gsap.CSSProperties>
+	): Promise<InstanceType<CLS>>;
+}
+export class XBuilder extends XFactoryBase {
+	override async Make<CLS extends typeof XItem>(
+		Structor: CLS,
+		xParent: XGroup | null,
+		options: Partial<XItemOptions>,
+		onRenderOptions: Partial<gsap.CSSProperties>
+	): Promise<InstanceType<CLS>> {
+		const xItem = new Structor(xParent, options, onRenderOptions);
 		await xItem.render();
-		xParent.adopt(xItem);
-		(this.constructor as typeof XItem).Register?.(xItem);
+		xParent?.adopt(xItem);
+		Structor.Register?.(xItem);
 		xItem.set(onRenderOptions);
-		return xItem;
+		return xItem as InstanceType<CLS>;
 	}
+}
+export interface lockedXItem<T extends XItem> extends XItem {
+	xParent: XGroup
+}
+export default class XItem extends XBase implements Renderable, Tweenable {
+	// #region ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮ ~
+	// static async Make(this: XItem, xParent: XGroup, options: Partial<XGroupOptions>, onRenderOptions: Partial<gsap.CSSProperties>) {
+	// 	const xItem = new (this.constructor())(xParent, options, onRenderOptions);
+	// 	await xItem.render();
+	// 	xParent.adopt(xItem);
+	// 	(this.constructor as typeof XItem).Register?.(xItem);
+	// 	xItem.set(onRenderOptions);
+	// 	return xItem as typeof XItem;
+	// }
 
 	static override get defaultOptions(): ApplicationOptions & XItemOptions {
 		return U.objMerge(super.defaultOptions, {
@@ -82,8 +113,7 @@ export default class XItem extends Application implements DOMRenderer, GSAPContr
 
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
 	readonly xElem: XElem<typeof this>;
-	protected _xParent: XItem | null; //~ null only in the single case of the top XItem, XROOT.XROOT
-
+	#xParent: XGroup | null; //~ null only in the single case of the top XItem, XROOT.XROOT
 	#xKids: Set<typeof this> = new Set();
 
 	readonly xOptions: XItemOptions;
@@ -97,9 +127,8 @@ export default class XItem extends Application implements DOMRenderer, GSAPContr
 		transformOrigin: "50% 50%"
 	};
 
-
 	constructor(
-		xParent: XItem | null,
+		xParent: XGroup | null,
 		{
 			classes = [],
 			...xOptions
@@ -125,9 +154,9 @@ export default class XItem extends Application implements DOMRenderer, GSAPContr
 			...this.options
 		};
 		if (xParent === null && xOptions.id === "XROOT") {
-			this._xParent = null;
+			this.#xParent = null;
 		} else {
-			this._xParent = xParent ?? XROOT.XROOT;
+			this.#xParent = xParent ?? XROOT.XROOT;
 		}
 		this.xElem = new XElem(this);
 		DB.log(`[#${xOptions.id}] END Constructing`);
@@ -135,33 +164,14 @@ export default class XItem extends Application implements DOMRenderer, GSAPContr
 	// #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
 
 
-	get elem() { return this.xElem.elem }
-	get elem$() { return this.xElem.elem$ }
+	renderApp: XItem = this;
+	onRender = {};
 	get tweens() { return this.xElem.tweens }
 
-	get xParent(): XItem | null { return this._xParent }
-	set xParent(xParent: XItem | null) { this._xParent = xParent ?? XROOT.XROOT }
-	get xKids(): Set<XItem> { return this.#xKids }
-	get hasKids() { return this.xKids.size > 0 }
-	registerXKid(xKid: XItem) {
-		if (xKid instanceof XItem) {
-			xKid.xParent = this;
-			this.xKids.add(xKid);
-		}
-	}
-	unregisterXKid(xKid: XItem) {
-		this.xKids.delete(xKid);
-	}
-	getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
-		const xKids: X[] = Array.from(this.xKids.values())
-			.flat()
-			.filter(U.FILTERS.IsInstance(classRef)) as X[];
-		if (isGettingAll) {
-			xKids.push(...Array.from(this.xKids.values()).map((xKid) => xKid.getXKids(classRef, true)).flat());
-		}
-		return xKids;
-	}
-
+	get elem() { return this.xElem.elem }
+	get elem$() { return this.xElem.elem$ }
+	get xParent(): XGroup | null { return this.#xParent }
+	set xParent(xParent: XGroup | null) { this.#xParent = xParent ?? XROOT.XROOT }
 
 	#initializePromise?: Promise<typeof this>;
 	get initializePromise() { return this.#initializePromise }
@@ -178,29 +188,27 @@ export default class XItem extends Application implements DOMRenderer, GSAPContr
 		};
 		DB.display(`[#${this.id}] END Initializing: Setting Initial Render Options ...`);
 		this.set(this.onRenderOptions);
-		return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize({})))
-			.then(
-				() => Promise.resolve(this),
-				() => Promise.reject()
-			);
+		return this;
 	}
 
 	get isRendered() { return this.rendered }
-	get isInitialized() { return Boolean(this.#initializePromise) }
+	isInitialized(): this is lockedXItem<typeof this> { return Boolean(this.#initializePromise) }
 	get x() { return this.xElem.x }
 	get y() { return this.xElem.y }
 	get pos() { return this.xElem.pos }
 	get rotation() { return this.xElem.rotation }
 	get scale() { return this.xElem.scale }
+	get origin() { return this.xElem.origin }
 	get global() { return this.xElem.global }
 	get height() { return this.xElem.height }
 	get width() { return this.xElem.width }
 	get size() { return this.xElem.size }
 
+	isFreezingRotate = false;
+
 	get getDistanceTo() { return this.xElem.getDistanceTo.bind(this.xElem) }
 	get getGlobalAngleTo() { return this.xElem.getGlobalAngleTo.bind(this.xElem) }
 
-	get renderApp() { return this }
 	override async render(): Promise<typeof this> {
 		try {
 			await this._render(true, {});
@@ -216,6 +224,7 @@ export default class XItem extends Application implements DOMRenderer, GSAPContr
 	}
 
 	get adopt() { return this.xElem.adopt.bind(this.xElem) }
+	get disown() { return this.xElem.disown.bind(this.xElem) }
 
 	private _tickers: Set<() => void> = new Set();
 	addTicker(func: () => void): void {
@@ -231,6 +240,7 @@ export default class XItem extends Application implements DOMRenderer, GSAPContr
 	get to() { return this.xElem.to.bind(this.xElem) }
 	get from() { return this.xElem.from.bind(this.xElem) }
 	get fromTo() { return this.xElem.fromTo.bind(this.xElem) }
+	get tweenTimeScale() { return this.xElem.tweenTimeScale.bind(this.xElem) }
 
 	kill() {
 		if (this.hasKids) {

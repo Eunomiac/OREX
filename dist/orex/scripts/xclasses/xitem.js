@@ -11,16 +11,30 @@ const LISTENERS = [
             XItem.LogMouseMove(event.pageX, event.pageY);
         }]
 ];
-export default class XItem extends Application {
-    // ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮
-    static async Make(xParent, options, onRenderOptions) {
-        const xItem = new this.constructor(xParent, options, onRenderOptions);
+class XBase extends Application {
+}
+class XFactoryBase {
+}
+export class XBuilder extends XFactoryBase {
+    async Make(Structor, xParent, options, onRenderOptions) {
+        const xItem = new Structor(xParent, options, onRenderOptions);
         await xItem.render();
-        xParent.adopt(xItem);
-        this.constructor.Register?.(xItem);
+        xParent?.adopt(xItem);
+        Structor.Register?.(xItem);
         xItem.set(onRenderOptions);
         return xItem;
     }
+}
+export default class XItem extends XBase {
+    // ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮
+    // static async Make(this: XItem, xParent: XGroup, options: Partial<XGroupOptions>, onRenderOptions: Partial<gsap.CSSProperties>) {
+    // 	const xItem = new (this.constructor())(xParent, options, onRenderOptions);
+    // 	await xItem.render();
+    // 	xParent.adopt(xItem);
+    // 	(this.constructor as typeof XItem).Register?.(xItem);
+    // 	xItem.set(onRenderOptions);
+    // 	return xItem as typeof XItem;
+    // }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
@@ -64,7 +78,7 @@ export default class XItem extends Application {
     }
     // ████████ CONSTRUCTOR & Essential Fields ████████
     xElem;
-    _xParent;
+    #xParent;
     #xKids = new Set();
     xOptions;
     onRenderOptions = {
@@ -96,39 +110,21 @@ export default class XItem extends Application {
             ...this.options
         };
         if (xParent === null && xOptions.id === "XROOT") {
-            this._xParent = null;
+            this.#xParent = null;
         }
         else {
-            this._xParent = xParent ?? XROOT.XROOT;
+            this.#xParent = xParent ?? XROOT.XROOT;
         }
         this.xElem = new XElem(this);
         DB.log(`[#${xOptions.id}] END Constructing`);
     }
+    renderApp = this;
+    onRender = {};
+    get tweens() { return this.xElem.tweens; }
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
-    get tweens() { return this.xElem.tweens; }
-    get xParent() { return this._xParent; }
-    set xParent(xParent) { this._xParent = xParent ?? XROOT.XROOT; }
-    get xKids() { return this.#xKids; }
-    get hasKids() { return this.xKids.size > 0; }
-    registerXKid(xKid) {
-        if (xKid instanceof XItem) {
-            xKid.xParent = this;
-            this.xKids.add(xKid);
-        }
-    }
-    unregisterXKid(xKid) {
-        this.xKids.delete(xKid);
-    }
-    getXKids(classRef, isGettingAll = false) {
-        const xKids = Array.from(this.xKids.values())
-            .flat()
-            .filter(U.FILTERS.IsInstance(classRef));
-        if (isGettingAll) {
-            xKids.push(...Array.from(this.xKids.values()).map((xKid) => xKid.getXKids(classRef, true)).flat());
-        }
-        return xKids;
-    }
+    get xParent() { return this.#xParent; }
+    set xParent(xParent) { this.#xParent = xParent ?? XROOT.XROOT; }
     #initializePromise;
     get initializePromise() { return this.#initializePromise; }
     async initialize(renderOptions = {}) {
@@ -145,23 +141,23 @@ export default class XItem extends Application {
         };
         DB.display(`[#${this.id}] END Initializing: Setting Initial Render Options ...`);
         this.set(this.onRenderOptions);
-        return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize({})))
-            .then(() => Promise.resolve(this), () => Promise.reject());
+        return this;
     }
     get isRendered() { return this.rendered; }
-    get isInitialized() { return Boolean(this.#initializePromise); }
+    isInitialized() { return Boolean(this.#initializePromise); }
     get x() { return this.xElem.x; }
     get y() { return this.xElem.y; }
     get pos() { return this.xElem.pos; }
     get rotation() { return this.xElem.rotation; }
     get scale() { return this.xElem.scale; }
+    get origin() { return this.xElem.origin; }
     get global() { return this.xElem.global; }
     get height() { return this.xElem.height; }
     get width() { return this.xElem.width; }
     get size() { return this.xElem.size; }
+    isFreezingRotate = false;
     get getDistanceTo() { return this.xElem.getDistanceTo.bind(this.xElem); }
     get getGlobalAngleTo() { return this.xElem.getGlobalAngleTo.bind(this.xElem); }
-    get renderApp() { return this; }
     async render() {
         try {
             await this._render(true, {});
@@ -177,6 +173,7 @@ export default class XItem extends Application {
         }
     }
     get adopt() { return this.xElem.adopt.bind(this.xElem); }
+    get disown() { return this.xElem.disown.bind(this.xElem); }
     _tickers = new Set();
     addTicker(func) {
         this._tickers.add(func);
@@ -190,6 +187,7 @@ export default class XItem extends Application {
     get to() { return this.xElem.to.bind(this.xElem); }
     get from() { return this.xElem.from.bind(this.xElem); }
     get fromTo() { return this.xElem.fromTo.bind(this.xElem); }
+    get tweenTimeScale() { return this.xElem.tweenTimeScale.bind(this.xElem); }
     kill() {
         if (this.hasKids) {
             this.getXKids(XItem).forEach((xItem) => xItem.kill());
