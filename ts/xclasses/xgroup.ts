@@ -138,7 +138,7 @@ export class XArm extends XGroup {
 	xItem!: XItem;
 
 	grabItem(): XItem {
-		this.set({width: this.distanceToHeldItem, rotation: this.rotation + this.angleToHeldItem});
+		this.snapToXItem();
 		this.adopt(this.xItem, true);
 		this.xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
 		return this.xItem;
