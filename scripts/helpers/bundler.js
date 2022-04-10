@@ -62,8 +62,6 @@ const FACTORIES = {
         "--die-color-fg": "black"
     }),
     XArm: classBuilder(XArm, { id: "-" }, {
-        // height: 0,
-        // width: 0,
         transformOrigin: "0% 50%",
         top: "50%",
         left: "50%",

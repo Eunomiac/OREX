@@ -114,8 +114,6 @@ const FACTORIES = {
 		"--die-color-fg": "black"
 	}),
 	XArm: classBuilder<typeof XArm, XItemOptions, typeof XOrbit>(XArm, {id: "-"}, {
-		// height: 0,
-		// width: 0,
 		transformOrigin: "0% 50%",
 		top: "50%",
 		left: "50%",

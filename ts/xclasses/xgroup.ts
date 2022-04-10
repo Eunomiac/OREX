@@ -139,9 +139,29 @@ export class XArm extends XGroup {
 
 	grabItem(): XItem {
 		this.snapToXItem();
-		this.adopt(this.xItem, true);
+		this.adopt(this.xItem);
 		this.xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
+		this.to({
+			width: this.targetWidth,
+			rotation: this.targetRotation,
+			duration: 10,
+			ease: "power3.inOut"
+		});
 		return this.xItem;
+	}
+
+	async grabItemTest(xItem: XItem) {
+		gsap.globalTimeline.timeScale(0.02);
+		this.set({outline: "2px dotted black", opacity: 0.8});
+		await this.snapToXItem(xItem);
+		this.adopt(xItem);
+		xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
+		this.to({
+			width: this.targetWidth,
+			rotation: this.targetRotation,
+			duration: 10,
+			ease: "power3.inOut"
+		});
 	}
 
 	constructor(xParent: XOrbit, xOptions: Partial<XItemOptions> = {}, renderOptions: Partial<gsap.CSSProperties> = {}) {
@@ -161,6 +181,9 @@ export class XArm extends XGroup {
 		return this;
 	}
 
+	get targetWidth() { return this.xParent.orbitRadius }
+	get targetRotation() { return this.xParent.armAngles.get(this) }
+
 	get positionOfHeldItem(): Point {
 		// if (!this.xItem.isInitialized()) { return this.xItem.pos }
 		return MotionPathPlugin.getRelativePosition(this.xParent.elem, this.xItem.elem, [0.5, 0.5], [0.5, 0.5]);
@@ -174,15 +197,19 @@ export class XArm extends XGroup {
 	}
 
 	get rotWidthToGrab() {
-		const {x: xDist, y: yDist} = MotionPathPlugin.getRelativePosition(this.xParent.elem, this.xItem.elem, [0.5, 0.5], [0.5, 0.5]);
+		return this.getRotWidthToItem(this.xItem);
+	}
+
+	getRotWidthToItem(xItem: XItem) {
+		const {x: xDist, y: yDist} = MotionPathPlugin.getRelativePosition(this.xParent.elem, xItem.elem, [0.5, 0.5], [0.5, 0.5]);
 		// Total Distance
 		const distToFloat = U.getDistance({x: 0, y: 0}, {x: xDist, y: yDist});
 		// Angle from Arm origin to target die
-		const angleToFloat = U.getAngle({x: 0, y: 0}, {x: xDist, y: yDist});
+		const angleToFloat = U.getAngle({x: 0, y: 0}, {x: xDist, y: yDist}, undefined, [-180, 180]);
 		// Get global Arm rotation
-		const curAngle = this.global.rotation;
+		const curAngle = U.cycleAngle(this.global.rotation - 180, [-180, 180]);
 		// Get rotation delta
-		const angleDelta = U.getAngleDelta(curAngle, angleToFloat);
+		const angleDelta = U.getAngleDelta(curAngle, angleToFloat, [-180, 180]);
 		// Adjust local arm rotation angle and width to match
 		return {
 			width: distToFloat,
@@ -190,8 +217,8 @@ export class XArm extends XGroup {
 		};
 	}
 
-	async snapToXItem() {
-		this.set(this.rotWidthToGrab);
+	async snapToXItem(xItem: XItem = this.xItem) {
+		this.set(this.getRotWidthToItem(xItem));
 	}
 
 	get orbitWeight() { return this.xItem.size }
@@ -248,13 +275,13 @@ export class XOrbit extends XGroup {
 	get totalArmWeight() { return this.arms.map((arm) => arm.orbitWeight).reduce((tot, val) => tot + val, 0) }
 	get armAngles() {
 		const anglePerWeight = 360 / this.totalArmWeight;
-		const armAngles: number[] = [];
+		const newArmAngles: Map<XArm,number> = new Map();
 		let usedWeight = 0;
 		this.arms.forEach((arm) => {
 			usedWeight += arm.orbitWeight;
-			armAngles.push((usedWeight - (0.5 * arm.orbitWeight)) * anglePerWeight);
+			newArmAngles.set(arm, (usedWeight - (0.5 * arm.orbitWeight)) * anglePerWeight);
 		});
-		return armAngles;
+		return newArmAngles;
 	}
 
 	constructor(xParent: XPool, {name, radiusRatio, rotationScaling, ...xOptions}: XOrbitOptions, onRenderOptions: Partial<gsap.CSSProperties>) {
@@ -322,15 +349,13 @@ export class XOrbit extends XGroup {
 					this.#isArmed
 						? {}
 						: {
-								width: (widthOverride ?? this.orbitRadius) * 1.5,
-								rotation(i) { return self.armAngles[i] },
-								opacity: 1,
+								width: (widthOverride ?? this.orbitRadius) * 3,
+								rotation(i) { return Array.from(self.armAngles.values())[i] },
+								opacity: 0,
 								scale: 2
 							},
 					{
 						width: widthOverride ?? this.orbitRadius,
-						scale: 1,
-						opacity: 1,
 						ease: "back.out(4)",
 						duration,
 						stagger: {
@@ -347,7 +372,7 @@ export class XOrbit extends XGroup {
 					ease: "power2.out"
 				}, "<")
 				.to(this.arms$, {
-					rotation(i) { return self.armAngles[i] },
+					rotation(i) { return Array.from(self.armAngles.values())[i] },
 					ease: "power2.out",
 					duration
 				}, "<");
@@ -359,7 +384,7 @@ export class XOrbit extends XGroup {
 				});
 			}
 			this.#isArmed = true;
-		}, 10);
+		}, 100);
 	}
 
 	override async addXItem<T extends XItem>(xItem: T, isUpdatingArms = true): Promise<T> {

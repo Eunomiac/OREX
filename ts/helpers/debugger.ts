@@ -247,7 +247,7 @@ const BuildTestContext = async () => {
 	DB.groupEnd();
 	DB.groupLog("Instantiating Dice");
 	const Die = await FACTORIES.XDie.Make(MainRoll, {id: "Roll-Die", type: XTermType.BasicDie});
-	const RollDice = await Promise.all([...new Array(5)].map(() => FACTORIES.XDie.Make(MainRoll, {id: "Roll-Die", type: XTermType.BasicDie})));
+	const RollDice = await Promise.all([...new Array(5)].map(() => FACTORIES.XDie.Make(MainRoll, {id: "Roll-Die", type: XTermType.BasicDie, color: "gold"})));
 	const FloatDie = await FACTORIES.XDie.Make(XROOT.XROOT, {id: "Float-Die", type: XTermType.BasicDie, color: "red"}, {x: 1200, y: 200});
 	const RandomDice = await Promise.all([
 		{x: 200, y: 200, color: "blue"},
