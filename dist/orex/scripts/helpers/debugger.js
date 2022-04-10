@@ -4,8 +4,7 @@ import {
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 C, U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XROOT, XItem, XGroup, XPool, XDie, XTermType, XOrbitType, XRoll
- } from "./bundler.js";
+FACTORIES, XROOT, XItem, XTermType, XOrbitType } from "./bundler.js";
 // ████████ XLogger: Formatted Logging to Console ████████
 const XLogger = (type, stylesOverride, message, ...content) => {
     if (C.isDebugging) {
@@ -203,19 +202,19 @@ const ClickPhases = ["PositionXDie", "ParentXArm", "StretchXArm", "ResumeRotatio
 const BuildTestContext = async () => {
     DB.groupTitle("Position Test Setup");
     DB.groupLog("Instantiating Roll");
-    const MainRoll = await XRoll.Make(XROOT.XROOT, { id: "Roll" }, { x: 500, y: 500, height: 500, width: 500, outline: "5px solid blue" });
+    const MainRoll = await FACTORIES.XRoll.Make(XROOT.XROOT, { id: "Roll" }, { x: 300, y: 300, height: 200, width: 200, outline: "5px solid blue" });
     DB.groupEnd();
     DB.groupLog("Instantiating Dice");
-    const Die = await XDie.Make(MainRoll, { id: "Roll-Die", type: XTermType.BasicDie }, {});
-    const RollDice = await Promise.all([...new Array(5)].map(() => XDie.Make(MainRoll, { id: "Roll-Die", type: XTermType.BasicDie }, {})));
-    const FloatDie = await XDie.Make(XROOT.XROOT, { id: "Float-Die", type: XTermType.BasicDie, color: "red" }, { x: 1200, y: 200 });
+    const Die = await FACTORIES.XDie.Make(MainRoll, { id: "Roll-Die", type: XTermType.BasicDie });
+    const RollDice = await Promise.all([...new Array(5)].map(() => FACTORIES.XDie.Make(MainRoll, { id: "Roll-Die", type: XTermType.BasicDie })));
+    const FloatDie = await FACTORIES.XDie.Make(XROOT.XROOT, { id: "Float-Die", type: XTermType.BasicDie, color: "red" }, { x: 1200, y: 200 });
     const RandomDice = await Promise.all([
         { x: 200, y: 200, color: "blue" },
         { x: 400, y: 900, color: "gold" },
         { x: 800, y: 200, color: "green" },
         { x: 800, y: 900, color: "cyan" },
         { x: 50, y: 500, color: "magenta" }
-    ].map((dieParams, i) => new XDie(XROOT.XROOT, {
+    ].map((dieParams, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
         id: `RandomDie-${i}`,
         type: XTermType.BasicDie,
         color: dieParams.color
@@ -224,15 +223,14 @@ const BuildTestContext = async () => {
     DB.groupLog("Initializing FloatDie");
     await Promise.all([FloatDie, ...RandomDice].map((die) => die.initialize()));
     DB.groupEnd();
-    DB.groupLog("Adding Die");
+    DB.groupLog("Initializing Roll");
+    await MainRoll.initialize();
+    DB.groupEnd();
+    DB.groupLog("Adding Dice");
     await MainRoll.addXItems({ [XOrbitType.Main]: [Die, ...RollDice] });
     DB.groupEnd();
-    DB.groupDisplay("Initializing Roll");
-    await MainRoll.initialize();
-    const Orbit = MainRoll.orbitals.get(XOrbitType.Main);
-    // await Orbit.initialize();
-    DB.groupEnd();
     DB.groupDisplay("Fetching Arm");
+    const Orbit = MainRoll.orbitals.get(XOrbitType.Main);
     const [Arm] = Orbit.arms;
     DB.log("XArm", Arm);
     DB.groupEnd();
@@ -271,7 +269,7 @@ const BuildTestContext = async () => {
 };
 const TESTS_ARCHIVE = {
     nestedPositionTest: async () => {
-        const TranslateBox = await XPool.Make(XROOT.XROOT, {
+        const TranslateBox = await FACTORIES.XPool.Make(XROOT.XROOT, {
             id: "translate-box",
             classes: ["translate-box"]
         }, { xPercent: 0, yPercent: 0 });
@@ -283,7 +281,7 @@ const TESTS_ARCHIVE = {
             repeat: -1,
             yoyo: true
         });
-        const ScaleBox = await XGroup.Make(TranslateBox, {
+        const ScaleBox = await FACTORIES.XGroup.Make(TranslateBox, {
             id: "scale-box-1",
             classes: ["scale-box"]
         }, {
@@ -298,7 +296,7 @@ const TESTS_ARCHIVE = {
             repeat: -1,
             yoyo: true
         });
-        const ExtraScaleBox = await XGroup.Make(ScaleBox, {
+        const ExtraScaleBox = await FACTORIES.XGroup.Make(ScaleBox, {
             id: "scale-box-2",
             classes: ["extra-scale-box"]
         }, {
@@ -313,7 +311,7 @@ const TESTS_ARCHIVE = {
             repeat: -1,
             yoyo: true
         });
-        const RotateBox = await XGroup.Make(ExtraScaleBox, {
+        const RotateBox = await FACTORIES.XGroup.Make(ExtraScaleBox, {
             id: "rotate-box-1",
             classes: ["rotate-box"]
         }, {
@@ -327,7 +325,7 @@ const TESTS_ARCHIVE = {
             ease: "none",
             repeat: -1
         });
-        const CounterRotateBox = await XGroup.Make(RotateBox, {
+        const CounterRotateBox = await FACTORIES.XGroup.Make(RotateBox, {
             id: "rotate-box-2",
             classes: ["rotate-box"]
         }, {
@@ -342,12 +340,12 @@ const TESTS_ARCHIVE = {
             repeat: -1
         });
         await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
-        const TestDie = await XGroup.Make(CounterRotateBox, { id: "test-die" }, { height: 40, width: 40, background: "lime" });
+        const TestDie = await FACTORIES.XGroup.Make(CounterRotateBox, { id: "test-die" }, { height: 40, width: 40, background: "lime" });
         const dieMarkers = await Promise.all([
             { x: 0.5, y: 0, background: "yellow" },
             { x: 0, y: 1, background: "cyan" },
             { x: 1, y: 1, background: "magenta" }
-        ].map(({ x, y, background }, i) => XItem.Make(TestDie, {
+        ].map(({ x, y, background }, i) => FACTORIES.XItem.Make(TestDie, {
             id: `die-marker-${i + 1}`,
             classes: ["x-marker"]
         }, {
@@ -359,7 +357,7 @@ const TESTS_ARCHIVE = {
         })));
         await Promise.all(dieMarkers.map((marker) => marker.initialize()));
         const xMarkers = await Promise.all(["yellow", "cyan", "magenta"]
-            .map((background, i) => XItem.Make(XROOT.XROOT, {
+            .map((background, i) => FACTORIES.XItem.Make(XROOT.XROOT, {
             id: `x-marker-${i + 1}`,
             classes: ["x-marker"]
         }, {
@@ -378,7 +376,7 @@ const DBFUNCS = {
     BuildTestContext,
     makeRoll: async (dice, { pos = 0, color = "cyan", size = 200 } = {}) => {
         const rollPos = getRollPos(pos, size);
-        const xRoll = await XRoll.Make(XROOT.XROOT, {
+        const xRoll = await FACTORIES.XRoll.Make(XROOT.XROOT, {
             id: "ROLL"
         }, {
             ...rollPos,
@@ -396,7 +394,7 @@ const DBFUNCS = {
             if (!numDice) {
                 return Promise.resolve([]);
             }
-            return Promise.all([orbitType, [...new Array(numDice)].map(() => XDie.Make(xRoll, {
+            return Promise.all([orbitType, [...new Array(numDice)].map(() => FACTORIES.XDie.Make(xRoll, {
                     id: "xDie",
                     type: XTermType.BasicDie
                 }, {}))]);

@@ -10,8 +10,9 @@ import {
 	XMod,
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Enums]▮▮▮▮▮▮▮
-	Dir
+	Dir,
 	// #endregion ▮▮▮▮[Enums]▮▮▮▮
+	FACTORIES
 } from "../helpers/bundler.js";
 import type {XItemOptions, XDieValue} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
@@ -42,7 +43,7 @@ import type {XItemOptions, XDieValue} from "../helpers/bundler.js";
 */
 // #endregion ▮▮▮▮[SCHEMA]▮▮▮▮
 /*!DEVCODE*/
-// #region 🟩🟩🟩 XGroup: Any XItem That Can Contain Child XItems 🟩🟩🟩
+// #region 🟩🟩🟩 XGroup: Any XItem That Can Contain Child XItems 🟩🟩🟩 ~
 export interface XGroupOptions extends XItemOptions { }
 export default class XGroup extends XItem {
 	/*
@@ -95,13 +96,13 @@ export default class XGroup extends XItem {
 			);
 	}
 
-	constructor(xParent: XGroup | null, xOptions: Partial<XGroupOptions>, renderOptions: Partial<gsap.CSSProperties> = {}) {
+	constructor(xParent: XGroup | null, xOptions: XGroupOptions, renderOptions: Partial<gsap.CSSProperties> = {}) {
 		super(xParent, xOptions, renderOptions);
 	}
 }
 // #endregion ▄▄▄▄▄ XGroup ▄▄▄▄▄
 
-// #region 🟩🟩🟩 XROOT: Base Container for All XItems - Only XItem that Doesn't Need an XParent 🟩🟩🟩
+// #region 🟩🟩🟩 XROOT: Base Container for All XItems - Only XItem that Doesn't Need an XParent 🟩🟩🟩 ~
 export class XROOT extends XGroup {
 	static async Make(): Promise<XROOT> {
 		XROOT.XROOT?.kill();
@@ -121,39 +122,35 @@ export class XROOT extends XGroup {
 	static #XROOT: XROOT;
 	static get XROOT() { return XROOT.#XROOT }
 	static async InitializeXROOT(): Promise<XROOT> { return XROOT.Make() }
-	override get xParent() { return null }
+	declare xParent: null;
 	constructor() {
-		super(null, {id: "XROOT"}, {xPercent: -50, yPercent: -50});
+		super(null, {id: "XROOT"}, {xPercent: 0, yPercent: 0});
 	}
 }
 // #endregion 🟩🟩🟩 XROOT 🟩🟩🟩
 
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
 export class XArm extends XGroup {
-	// static override async Make(heldItem: XItem, xParent: XOrbit): Promise<XItem> {
-	// 	const xArm = await super.Make(xParent, {id: "-"}, {
-	// 		height: 0,
-	// 		width: 0,
-	// 		transformOrigin: "0% 50%",
-	// 		top: "50%",
-	// 		left: "50%",
-	// 		xPercent: 0,
-	// 		yPercent: 0
-	// 	}) as XArm;
-	// 	xArm.xItem = heldItem;
-	// 	return xArm.grabItem();
-	// }
 	static override REGISTRY: Map<string, XArm> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-arm"]}) }
-	override get xParent(): XOrbit { return this.xParent as XOrbit }
+	declare xParent: XOrbit;
 
 	xItem!: XItem;
 
 	grabItem(): XItem {
 		this.set({width: this.distanceToHeldItem, rotation: this.rotation + this.angleToHeldItem});
-		this.adopt(this.xItem);
-		this.xItem.set({x: 0, y: 0});
+		this.adopt(this.xItem, true);
+		this.xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
 		return this.xItem;
+	}
+
+	constructor(xParent: XOrbit, xOptions: Partial<XItemOptions> = {}, renderOptions: Partial<gsap.CSSProperties> = {}) {
+		renderOptions.transformOrigin = "right";
+		renderOptions.right = xParent.width / 2;
+		renderOptions.top = xParent.height / 2;
+		delete renderOptions.left;
+		xOptions.id ??= "arm";
+		super(xParent, xOptions as XItemOptions, renderOptions);
 	}
 
 	override async initialize(): Promise<this> {
@@ -212,35 +209,12 @@ export enum XOrbitType {
 	Inner = "Inner",
 	Outer = "Outer"
 }
+export interface XOrbitOptions extends XGroupOptions, XOrbitSpecs { }
 export class XOrbit extends XGroup {
 
-	// static override async Make(
-	// 	parentGroup: XPool,
-	// 	{
-	// 		name,
-	// 		radiusRatio,
-	// 		rotationScaling
-	// 	}: Partial<XGroupOptions & XOrbitSpecs>,
-	// 	onRenderOptions: Partial<gsap.CSSProperties>
-	// ) {
-	// 	name ??= XOrbitType.Main;
-	// 	radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
-	// 	rotationScaling ??= C.xGroupOrbitalDefaults[name].rotationScaling;
-	// 	const xOrbit = await super.Make(parentGroup, {
-	// 		id: name
-	// 	}, {
-	// 		height: parentGroup.height,
-	// 		width: parentGroup.width,
-	// 		left: 0.5 * parentGroup.width,
-	// 		top: 0.5 * parentGroup.height,
-	// 		...onRenderOptions
-	// 	}) as XOrbit;
-	// 	xOrbit.initializeRadius({ratio: radiusRatio, scale: rotationScaling});
-	// 	return xOrbit;
-	// }
 	static override REGISTRY: Map<string, XOrbit> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-orbit"]}) }
-	override get xParent(): XPool { return super.xParent as XPool }
+	declare xParent: XPool;
 
 	#radiusRatio: number;
 	get radiusRatio() { return this.#radiusRatio }
@@ -267,7 +241,7 @@ export class XOrbit extends XGroup {
 	get orbitType() { return this.#orbitType }
 	get arms$() { return $(`#${this.id} > .x-arm`) }
 	get arms() { return Array.from(this.xKids) as XArm[] }
-	// override get xItems(): XItem[] { return this.arms.map((xArm) => xArm.xItem) }
+	get xItems(): XItem[] { return this.arms.map((xArm) => xArm.xItem) }
 	get xTerms(): Array<XItem & XTerm> { return this.xItems.filter((xItem) => xItem instanceof XDie || xItem instanceof XMod) as Array<XItem & XTerm> }
 
 	get orbitRadius() { return this.radiusRatio * 0.5 * (this.xParent?.width ?? 0) }
@@ -283,14 +257,15 @@ export class XOrbit extends XGroup {
 		return armAngles;
 	}
 
-	constructor(name: XOrbitType, parentGroup: XPool, radiusRatio?: number, rotationScaling?: number) {
+	constructor(xParent: XPool, {name, radiusRatio, rotationScaling, ...xOptions}: XOrbitOptions, onRenderOptions: Partial<gsap.CSSProperties>) {
 		radiusRatio ??= C.xGroupOrbitalDefaults[name].radiusRatio;
 		rotationScaling ??= C.xGroupOrbitalDefaults[name].rotationScaling;
-		super(parentGroup, {id: name}, {
-			height: parentGroup.height,
-			width: parentGroup.width,
-			left: 0.5 * parentGroup.width,
-			top: 0.5 * parentGroup.height
+		super(xParent, xOptions, {
+			height: xParent.height,
+			width: xParent.width,
+			left: 0.5 * xParent.width,
+			top: 0.5 * xParent.height,
+			...onRenderOptions
 		});
 		this.#orbitType = name;
 		this.#radiusRatio = radiusRatio;
@@ -300,6 +275,7 @@ export class XOrbit extends XGroup {
 	}
 
 	protected startRotating(duration = 10) {
+		DB.title("STARTING ROTATING");
 		this.to({
 			id: "rotationTween",
 			rotation: this.#rotationAngle,
@@ -326,8 +302,9 @@ export class XOrbit extends XGroup {
 
 	override async initialize(): Promise<this> {
 		await super.initialize();
-		await Promise.all(this.arms.map((xArm) => xArm.initialize()));
 		this.startRotating();
+		await Promise.all(this.arms.map((xArm) => xArm.initialize()));
+		this.updateArms();
 		return Promise.resolve(this);
 	}
 
@@ -347,11 +324,13 @@ export class XOrbit extends XGroup {
 						: {
 								width: (widthOverride ?? this.orbitRadius) * 1.5,
 								rotation(i) { return self.armAngles[i] },
-								opacity: 0,
+								opacity: 1,
 								scale: 2
 							},
 					{
 						width: widthOverride ?? this.orbitRadius,
+						scale: 1,
+						opacity: 1,
 						ease: "back.out(4)",
 						duration,
 						stagger: {
@@ -373,7 +352,7 @@ export class XOrbit extends XGroup {
 					duration
 				}, "<");
 			if (!this.#isArmed) {
-				gsap.from(this.xElem.tweens.rotationTween, {
+				gsap.from(this.tweens.rotationTween, {
 					timeScale: 3,
 					duration: duration / 2,
 					ease: "sine.out"
@@ -383,8 +362,10 @@ export class XOrbit extends XGroup {
 		}, 10);
 	}
 
-	override async addXItem<T extends XItem>(xItem: T): Promise<T> {
-		const xArm =  await XArm.Make(xItem, this);
+	override async addXItem<T extends XItem>(xItem: T, isUpdatingArms = true): Promise<T> {
+		const xArm = await FACTORIES.XArm.Make(this);
+		xArm.xItem = xItem;
+		xArm.grabItem();
 		if (this.isInitialized()) {
 			await xArm.initialize();
 			if (isUpdatingArms) {
@@ -395,8 +376,8 @@ export class XOrbit extends XGroup {
 	}
 
 	override async addXItems<T extends XItem>(xItems: T[]): Promise<T[]> {
-		await Promise.allSettled(xItems.map((xItem) => this.addXItem(xItem, false)));
-		this.updateArms();
+		await Promise.allSettled(xItems.map((xItem) => this.addXItem(xItem, false)))
+			.then(() => this.updateArms());
 		return Promise.resolve(xItems);
 	}
 }
@@ -407,60 +388,75 @@ export interface XPoolOptions extends XGroupOptions {
 	orbitals?: Partial<Record<XOrbitType, XOrbitSpecs>>;
 }
 export class XPool extends XGroup {
-	static override async Make(xParent: XGroup, xOptions: Partial<XPoolOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XPool> {
-		return await super.Make(xParent, xOptions, onRenderOptions) as XPool;
-	}
 	static override REGISTRY: Map<string, XPool> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-pool"]}) }
-	override get xParent(): XGroup { return super.xParent as XGroup }
+	declare xParent: XGroup;
 
 	#core: XItem[] = [];
-	#orbitals?: Map<XOrbitType, XOrbit>;
-	#orbitalWeights: Map<XOrbitType, number> = new Map();
-	#orbitalSpeeds: Map<XOrbitType, number> = new Map();
+	#orbitals: Map<XOrbitType, XOrbit> = new Map();
+	#orbitalSpecs: Map<XOrbitType, XOrbitSpecs> = new Map();
 
-	get orbitals() { return this.#orbitals ?? new Map() }
+	get orbitals() { return this.#orbitals }
 	get xOrbits(): XOrbit[] { return Array.from(this.orbitals.values()) }
 
-	constructor(xParent: XGroup, {orbitals, ...xOptions}: Partial<XPoolOptions>, onRenderOptions: Partial<gsap.CSSProperties>) {
+	constructor(xParent: XGroup, {orbitals, ...xOptions}: XPoolOptions, onRenderOptions: Partial<gsap.CSSProperties>) {
 		orbitals ??= Object.fromEntries(Object.entries(U.objClone(C.xGroupOrbitalDefaults)).map(([name, data]) => ([name, {name, ...data}])));
 		super(xParent, xOptions, onRenderOptions);
-		for (const [orbitName, {radiusRatio, rotationScaling}] of Object.entries(orbitals)) {
-			this.#orbitalWeights.set(orbitName as XOrbitType, radiusRatio);
-			this.#orbitalSpeeds.set(orbitName as XOrbitType, rotationScaling);
-
+		for (const [orbitName, orbitSpecs] of Object.entries(orbitals) as Array<[XOrbitType, XOrbitSpecs]>) {
+			this.#orbitalSpecs.set(orbitName, orbitSpecs);
 		}
 	}
 
-	override async initialize(onRenderOptions: Partial<gsap.CSSProperties> = {}): Promise<this> {
-		if (this.initializePromise) { return this.initializePromise }
-		await super.initialize(onRenderOptions);
-		this.#orbitals ??= new Map();
-		await Promise.all(Array.from(this.#orbitalWeights).map(async ([orbitName, orbitWeight]: [XOrbitType, number]) => {
-			const orbitSpeed = this.#orbitalSpeeds.get(orbitName)!;
-			const xOrbit = await XOrbit.Make(this, {
-				name: orbitName,
-				radiusRatio: orbitWeight,
-				rotationScaling: orbitSpeed
-			}, {});
-			return xOrbit.initialize();
-		}));
-		return Promise.resolve(this);
+	async createOrbital(name: XOrbitType): Promise<XOrbit> {
+		if (this.#orbitals.has(name)) { return this.#orbitals.get(name)! }
+		const xOrbit = await FACTORIES.XOrbit.Make(this, {id: name, ...this.#orbitalSpecs.get(name)}, {
+			height: this.height,
+			width: this.width,
+			left: 0.5 * this.width,
+			top: 0.5 * this.height,
+			xPercent: -50,
+			yPercent: -50
+		});
+		this.#orbitals.set(name, xOrbit);
+		const {radiusRatio, rotationScaling} = this.#orbitalSpecs.get(name) ?? {};
+		if (typeof radiusRatio === "number" && typeof rotationScaling === "number") {
+			xOrbit.initializeRadius({ratio: radiusRatio, scale: rotationScaling});
+		}
+		if (this.isInitialized()) {
+			await xOrbit.initialize();
+		}
+		return xOrbit;
 	}
 
-	async addXItem(xItem: XItem, orbit: XOrbitType) {
-		// return XArm.Connect(this, this.orbitals.get(orbit));
-
-
-		const orbital = this.orbitals.get(orbit);
-		return orbital?.addXItem(xItem);
+	override async addXItem<T extends XItem>(xItem: T, orbit: XOrbitType = XOrbitType.Main): Promise<T> {
+		let orbital = this.orbitals.get(orbit);
+		if (!orbital) {
+			orbital = await this.createOrbital(orbit);
+		}
+		const addedItem = await orbital.addXItem(xItem);
+		return addedItem;
 	}
-
-	async addXItems(xItemsByOrbit: Partial<Record<XOrbitType, XItem[]>>) {
-		return Promise.allSettled(Object.entries(xItemsByOrbit)
-			.map(async ([orbitName, xItems]) => await this.orbitals.get(orbitName as XOrbitType)?.addXItems(xItems)));
+	override async addXItems<T extends XItem>(xItemsByOrbit: Partial<Record<XOrbitType, T[]>> | T[]): Promise<T[]> {
+		if (Array.isArray(xItemsByOrbit)) {
+			xItemsByOrbit = {
+				[XOrbitType.Main]: [...xItemsByOrbit]
+			};
+		}
+		const returnItems: T[] = [];
+		return Promise.allSettled((Object.entries(xItemsByOrbit) as Array<[XOrbitType, T[]]>)
+			.map(async ([orbitName, xItems]) => {
+				let orbital = this.orbitals.get(orbitName);
+				if (!orbital) {
+					orbital = await this.createOrbital(orbitName);
+				}
+				returnItems.push(...xItems);
+				return this.orbitals.get(orbitName)!.addXItems(xItems);
+			}))
+			.then(
+				() => Promise.resolve(returnItems),
+				() => Promise.reject()
+			);
 	}
-
 	public pauseRotating() { this.xOrbits.forEach((xOrbit) => xOrbit.pauseRotating()) }
 	public playRotating() { this.xOrbits.forEach((xOrbit) => xOrbit.playRotating()) }
 }
@@ -469,12 +465,9 @@ export class XPool extends XGroup {
 // #region 🟥🟥🟥 XRoll: An XPool That Can Be Rolled, Its Child XTerms Evaluated Into a Roll Result 🟥🟥🟥 ~
 export interface XRollOptions extends XPoolOptions { }
 export class XRoll extends XPool {
-	static override async Make(xParent: XGroup, xOptions: Partial<XRollOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XRoll> {
-		return await super.Make(xParent, xOptions, onRenderOptions) as XRoll;
-	}
 	static override REGISTRY: Map<string, XRoll> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-roll"]}) }
-	override get xParent(): XGroup { return super.xParent as XGroup }
+	declare xParent: XGroup;
 
 	#hasRolled = false;
 	get hasRolled() { return this.#hasRolled }
@@ -488,7 +481,7 @@ export class XRoll extends XPool {
 	get dice$() { return $(`#${this.id} .x-die`) }
 	get diceVals$() { return $(`#${this.id} .x-die .die-val`) }
 
-	constructor(xParent: XGroup, xOptions: Partial<XRollOptions>, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
+	constructor(xParent: XGroup, xOptions: XRollOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
 		super(xParent, xOptions, onRenderOptions);
 	}
 
@@ -544,12 +537,9 @@ export class XRoll extends XPool {
 // #region 🟥🟥🟥 XSource: An XPool containing XItems that players can grab and use 🟥🟥🟥 ~
 export interface XSourceOptions extends XPoolOptions { }
 export class XSource extends XPool {
-	static override async Make(xParent: XGroup, xOptions: Partial<XSourceOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XSource> {
-		return await super.Make(xParent, xOptions, onRenderOptions) as XSource;
-	}
 	static override REGISTRY: Map<string, XSource> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-source"]}) }
-	override get xParent(): XGroup { return super.xParent as XGroup }
+	declare xParent: XGroup;
 
 	constructor(xParent: XGroup, xOptions: XSourceOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
 		super(xParent, xOptions, onRenderOptions);

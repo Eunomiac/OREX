@@ -180,6 +180,7 @@ const subGroup = (array, groupSize) => {
 // #endregion ▮▮▮▮[UTILITY]▮▮▮▮
 
 const ISDEPLOYING = false;
+const ISANALYZING = false;
 const ISGENERATINGTYPEFILES = false;
 const SYSTEM = "orex";
 const SYSTEMNAME = "ORE-X";
@@ -303,6 +304,7 @@ const PIPES = {
 
 const PLUMBING = {
 	analyzeJS: async function analyzeJS(done) {
+		if (!ISANALYZING) { return done() }
 		try {
 			const analysisData = analyzeProject("./");
 			const returnData = {

@@ -4,38 +4,14 @@ import {
 gsap, 
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, DB, XElem, XROOT, XGroup
-// #endregion ▮▮▮▮[Utility]▮▮▮▮
- } from "../helpers/bundler.js";
+U, DB, XElem, XROOT, XGroup } from "../helpers/bundler.js";
 const LISTENERS = [
     ["mousemove", (event) => {
             XItem.LogMouseMove(event.pageX, event.pageY);
         }]
 ];
-class XBase extends Application {
-}
-class XFactoryBase {
-}
-export class XBuilder extends XFactoryBase {
-    async Make(Structor, xParent, options, onRenderOptions) {
-        const xItem = new Structor(xParent, options, onRenderOptions);
-        await xItem.render();
-        xParent?.adopt(xItem);
-        Structor.Register?.(xItem);
-        xItem.set(onRenderOptions);
-        return xItem;
-    }
-}
-export default class XItem extends XBase {
+export default class XItem extends Application {
     // #region ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮ ~
-    // static async Make(this: XItem, xParent: XGroup, options: Partial<XGroupOptions>, onRenderOptions: Partial<gsap.CSSProperties>) {
-    // 	const xItem = new (this.constructor())(xParent, options, onRenderOptions);
-    // 	await xItem.render();
-    // 	xParent.adopt(xItem);
-    // 	(this.constructor as typeof XItem).Register?.(xItem);
-    // 	xItem.set(onRenderOptions);
-    // 	return xItem as typeof XItem;
-    // }
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
             popOut: false,
@@ -49,10 +25,10 @@ export default class XItem extends XBase {
     // #region ▮▮▮▮▮▮▮[Static Registration] Registration & Retrieval of XItem Instances ▮▮▮▮▮▮▮ ~
     static get Structor() { return this.constructor; }
     static Register(xItem) {
-        this.Structor.REGISTRY.set(xItem.id, xItem);
+        this.REGISTRY.set(xItem.id, xItem);
     }
     static Unregister(xItem) {
-        this.Structor.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
+        this.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
     }
     static GetAll() {
         return Array.from(this.REGISTRY.values());
@@ -82,18 +58,26 @@ export default class XItem extends XBase {
     // #endregion ▮▮▮▮[Mouse Tracking]▮▮▮▮
     // #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
     xElem;
-    #xParent; //~ null only in the single case of the top XItem, XROOT.XROOT
+    xParent; //~ null only in the single case of the top XItem, XROOT.XROOT
     #xKids = new Set();
     xOptions;
-    onRenderOptions = {
+    defaultOnRenderOptions = {
         xPercent: -50,
         yPercent: -50,
         x: 0,
         y: 0,
+        opacity: 1,
         rotation: 0,
         scale: 1,
         transformOrigin: "50% 50%"
     };
+    onRenderOptions = {};
+    get renderOptions() {
+        return {
+            ...this.defaultOnRenderOptions,
+            ...this.onRenderOptions
+        };
+    }
     constructor(xParent, { classes = [], ...xOptions }, onRenderOptions) {
         if (xParent) {
             xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^XROOT-?/, "X-"));
@@ -101,35 +85,25 @@ export default class XItem extends XBase {
         DB.display(`[#${xOptions.id}] Constructing START`);
         super(xOptions);
         this.options.classes.push(...classes);
-        this.onRenderOptions = {
-            xPercent: -50,
-            yPercent: -50,
-            transformOrigin: "50% 50%",
-            x: 0,
-            y: 0,
-            ...onRenderOptions
-        };
+        this.onRenderOptions = onRenderOptions;
         this.xOptions = {
             ...xOptions,
             ...this.options
         };
         if (xParent === null && xOptions.id === "XROOT") {
-            this.#xParent = null;
+            this.xParent = null;
         }
         else {
-            this.#xParent = xParent ?? XROOT.XROOT;
+            this.xParent = xParent ?? XROOT.XROOT;
         }
         this.xElem = new XElem(this);
         DB.log(`[#${xOptions.id}] END Constructing`);
     }
     // #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
     renderApp = this;
-    onRender = {};
     get tweens() { return this.xElem.tweens; }
     get elem() { return this.xElem.elem; }
     get elem$() { return this.xElem.elem$; }
-    get xParent() { return this.#xParent; }
-    set xParent(xParent) { this.#xParent = xParent ?? XROOT.XROOT; }
     #initializePromise;
     get initializePromise() { return this.#initializePromise; }
     async initialize(renderOptions = {}) {
@@ -140,13 +114,14 @@ export default class XItem extends XBase {
         else {
             DB.display(`[#${this.id}] Initializing START`);
         }
+        this.#initializePromise = Promise.resolve(this);
         this.onRenderOptions = {
             ...this.onRenderOptions,
             ...renderOptions
         };
         DB.display(`[#${this.id}] END Initializing: Setting Initial Render Options ...`);
-        this.set(this.onRenderOptions);
-        return this;
+        this.set(this.renderOptions);
+        return this.#initializePromise;
     }
     get isRendered() { return this.rendered; }
     isInitialized() { return Boolean(this.#initializePromise); }
@@ -194,7 +169,7 @@ export default class XItem extends XBase {
     get fromTo() { return this.xElem.fromTo.bind(this.xElem); }
     get tweenTimeScale() { return this.xElem.tweenTimeScale.bind(this.xElem); }
     kill() {
-        if (this.hasKids) {
+        if (this instanceof XGroup && this.hasKids) {
             this.getXKids(XItem).forEach((xItem) => xItem.kill());
         }
         this._tickers.forEach((func) => gsap.ticker.remove(func));

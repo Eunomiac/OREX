@@ -42,7 +42,7 @@
   #XROOT .x-arm > * {
     top: unset;
     left: unset;
-    right: calc(-1 * var(--held-item-width)); }
+    right: calc(100% - var(--held-item-width)); }
   #XROOT .x-die {
     height: var(--die-size);
     width: var(--die-size); }

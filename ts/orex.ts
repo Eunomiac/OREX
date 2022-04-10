@@ -20,7 +20,7 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 
 	// #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
-	DB, TESTS, DBFUNCS, XTermType, XOrbitType
+	DB, TESTS, DBFUNCS, XTermType, XOrbitType, FACTORIES
 	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
 	/*!DEVCODE*/
 	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
@@ -95,7 +95,15 @@ Hooks.once("ready", async () => {
 	DB.log("... Readying Complete.");
 
 	DB.groupDisplay("Initializing Roll Generation");
-	// const MAINROLL =
+	DBFUNCS.BuildTestContext();
+	return;
+	const MAINROLL = await FACTORIES.XRoll.Make(XROOT.XROOT, {id: "MAIN"}, {
+		"x": 500, "y": 400, "height": 300, "width": 300, "--bg-color": "cyan"
+	});
+	Object.assign(globalThis, {MAINROLL});
+	await MAINROLL.initialize({
+		"x": 500, "y": 400, "size": 300, "--bg-color": "cyan"
+	});
 
 /*!DEVCODE*/
 });

@@ -19,13 +19,13 @@ import type {XItemOptions} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 export interface XTermOptions extends XItemOptions {
-	type?: XTermType,
+	type: XTermType,
 	size?: number,
 }
 
 export interface XTerm {
 	type: XTermType,
-	xParent: XItem | XROOT,
+	xParent: XGroup,
 	// THIS SHIT IS WRONG AND BAD: NEED TO ACCOUNT FOR OTHER TYPES OF VALUES
 	value?: XDieValue,
 	ApplyEffect?: (xRoll: XRoll) => XRoll
@@ -51,9 +51,6 @@ export interface XDieOptions extends XTermOptions {
 }
 
 export default class XDie extends XItem implements XTerm {
-	static override async Make(xParent: XGroup, xOptions: Partial<XDieOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XDie> {
-		return await super.Make(xParent, xOptions, onRenderOptions) as XDie;
-	}
 	static override REGISTRY: Map<string, XDie> = new Map();
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
@@ -61,16 +58,9 @@ export default class XDie extends XItem implements XTerm {
 			template: U.getTemplatePath("xdie")
 		});
 	}
-	override get xParent(): XGroup { return super.xParent as XGroup }
+	declare xParent: XGroup;
 
 	type: XDieOptions["type"];
-
-	override onRenderOptions = {
-		...super.onRenderOptions,
-		fontSize: "calc(1.2 * var(--die-size))",
-		fontFamily: "Oswald",
-		textAlign: "center"
-	};
 
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
@@ -90,13 +80,16 @@ export default class XDie extends XItem implements XTerm {
 
 	roll() { this.value = U.randInt(1, 10) as XDieValue }
 
-	constructor(xParent: XGroup, xOptions: Partial<XDieOptions>, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
-		const dieSize = xOptions.size ?? onRenderOptions.height ?? onRenderOptions.width ?? 40;
+	constructor(xParent: XGroup, xOptions: XDieOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
+		const dieSize = xOptions.size ?? onRenderOptions.size ?? onRenderOptions.height ?? onRenderOptions.width ?? 40;
 		onRenderOptions = {
 			"--die-size": `${dieSize}px`,
 			"--die-color-fg": xOptions.numColor ?? "black",
 			"--die-color-bg": xOptions.color ?? "white",
 			"--die-color-stroke": xOptions.strokeColor ?? "black",
+			"fontSize": "calc(1.2 * var(--die-size))",
+			"fontFamily": "Oswald",
+			"textAlign": "center",
 			...onRenderOptions
 		};
 		xOptions.type = xOptions.type ?? XTermType.BasicDie;
@@ -120,12 +113,9 @@ export default class XDie extends XItem implements XTerm {
 
 export type XModType = XTermType.Difficulty | XTermType.Modifier | XTermType.Trait;
 export interface XModOptions extends XTermOptions {
-	type?: XModType;
+	type: XModType;
 }
 export class XMod extends XItem implements XTerm {
-	static override async Make(xParent: XGroup, xOptions: Partial<XModOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XMod> {
-		return await super.Make(xParent, xOptions, onRenderOptions) as XMod;
-	}
 	static override REGISTRY: Map<string, XMod> = new Map();
 	static override get defaultOptions() {
 		return U.objMerge(super.defaultOptions, {
@@ -133,7 +123,7 @@ export class XMod extends XItem implements XTerm {
 			template: U.getTemplatePath("xmod")
 		});
 	}
-	override get xParent(): XGroup { return super.xParent as XGroup }
+	declare xParent: XGroup;
 
 	private _value: XDieValue = 0;
 	protected get value$() { return $(`#${this.id} .die-val`) }
@@ -162,7 +152,6 @@ export class XMod extends XItem implements XTerm {
 			...onRenderOptions
 		};
 		xOptions = {
-			type: XTermType.Modifier,
 			isFreezingRotate: true,
 			...xOptions
 		};

@@ -15,7 +15,7 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem, XItem, XPool, XRoll,
+	XElem, XItem, XGroup, XPool, XRoll,
 	XTermType
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
@@ -33,9 +33,10 @@ class XMod extends XItem implements XTerm {
 			classes: ["x-mod"]
 		});
 	}
+	declare xParent: XGroup;
 
-	constructor(xParent: XPool, xOptions: XModOptions) {
-		super(xParent, xOptions);
+	constructor(xParent: XPool, xOptions: XModOptions, onRenderOptions: Partial<gsap.CSSProperties>) {
+		super(xParent, xOptions, onRenderOptions);
 		this.type = xOptions.type;
 	}
 

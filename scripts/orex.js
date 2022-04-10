@@ -10,7 +10,11 @@ preloadTemplates, U,
 XROOT, XElem, XItem, XArm, XOrbit, XGroup, XPool, XRoll, XDie, 
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
-DB, TESTS, DBFUNCS } from "./helpers/bundler.js";
+DB, TESTS, DBFUNCS, FACTORIES
+// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
+/*!DEVCODE*/
+// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
+ } from "./helpers/bundler.js";
 // #region ====== GreenSock Animation ====== ~
 // #endregion _______ GreenSock Animation _______
 gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
@@ -75,6 +79,14 @@ Hooks.once("ready", async () => {
     DB.groupEnd();
     DB.log("... Readying Complete.");
     DB.groupDisplay("Initializing Roll Generation");
-    // const MAINROLL =
+    DBFUNCS.BuildTestContext();
+    return;
+    const MAINROLL = await FACTORIES.XRoll.Make(XROOT.XROOT, { id: "MAIN" }, {
+        "x": 500, "y": 400, "height": 300, "width": 300, "--bg-color": "cyan"
+    });
+    Object.assign(globalThis, { MAINROLL });
+    await MAINROLL.initialize({
+        "x": 500, "y": 400, "size": 300, "--bg-color": "cyan"
+    });
     /*!DEVCODE*/
 });

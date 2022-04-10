@@ -5,12 +5,13 @@ import {
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U, DB,
-	XElem, XROOT, XGroup
+	XElem, XROOT, XGroup, XPool, XRoll,
+	XDie, XTerm, XMod
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
 import type {XGroupOptions, Renderable, Tweenable, ConstructorOf} from"../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
-export interface XItemOptions extends ApplicationOptions {
+export interface XItemOptions extends Partial<ApplicationOptions> {
 	id: string;
 	keepID?: boolean;
 	isFreezingRotate?: boolean;
@@ -22,48 +23,11 @@ const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = 
 	}]
 ];
 
-abstract class XBase extends Application {
-
-
-}
-
-abstract class XFactoryBase {
-	abstract Make<CLS extends typeof XItem>(
-		classRef: CLS,
-		xParent: XGroup | null,
-		options: Partial<XItemOptions>,
-		onRenderOptions: Partial<gsap.CSSProperties>
-	): Promise<InstanceType<CLS>>;
-}
-export class XBuilder extends XFactoryBase {
-	override async Make<CLS extends typeof XItem>(
-		Structor: CLS,
-		xParent: XGroup | null,
-		options: Partial<XItemOptions>,
-		onRenderOptions: Partial<gsap.CSSProperties>
-	): Promise<InstanceType<CLS>> {
-		const xItem = new Structor(xParent, options, onRenderOptions);
-		await xItem.render();
-		xParent?.adopt(xItem);
-		Structor.Register?.(xItem);
-		xItem.set(onRenderOptions);
-		return xItem as InstanceType<CLS>;
-	}
-}
 export interface lockedXItem<T extends XItem> extends XItem {
 	xParent: XGroup
 }
-export default class XItem extends XBase implements Renderable, Tweenable {
+export default class XItem extends Application implements Renderable, Tweenable {
 	// #region ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮ ~
-	// static async Make(this: XItem, xParent: XGroup, options: Partial<XGroupOptions>, onRenderOptions: Partial<gsap.CSSProperties>) {
-	// 	const xItem = new (this.constructor())(xParent, options, onRenderOptions);
-	// 	await xItem.render();
-	// 	xParent.adopt(xItem);
-	// 	(this.constructor as typeof XItem).Register?.(xItem);
-	// 	xItem.set(onRenderOptions);
-	// 	return xItem as typeof XItem;
-	// }
-
 	static override get defaultOptions(): ApplicationOptions & XItemOptions {
 		return U.objMerge(super.defaultOptions, {
 			popOut: false,
@@ -79,10 +43,10 @@ export default class XItem extends XBase implements Renderable, Tweenable {
 	protected static get Structor() { return this.constructor as typeof XItem }
 
 	static Register(xItem: XItem) {
-		this.Structor.REGISTRY.set(xItem.id, xItem);
+		this.REGISTRY.set(xItem.id, xItem);
 	}
 	static Unregister(xItem: string | XItem | XElem<XItem> | HTMLElement) {
-		this.Structor.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
+		this.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id);
 	}
 	static GetAll() {
 		return Array.from(this.REGISTRY.values());
@@ -113,26 +77,34 @@ export default class XItem extends XBase implements Renderable, Tweenable {
 
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
 	readonly xElem: XElem<typeof this>;
-	#xParent: XGroup | null; //~ null only in the single case of the top XItem, XROOT.XROOT
+	xParent: XGroup | null; //~ null only in the single case of the top XItem, XROOT.XROOT
 	#xKids: Set<typeof this> = new Set();
 
 	readonly xOptions: XItemOptions;
-	onRenderOptions: Partial<gsap.CSSProperties> = {
+	defaultOnRenderOptions: Partial<gsap.CSSProperties> = {
 		xPercent: -50,
 		yPercent: -50,
 		x: 0,
 		y: 0,
+		opacity: 1,
 		rotation: 0,
 		scale: 1,
 		transformOrigin: "50% 50%"
 	};
+	onRenderOptions: Partial<gsap.CSSProperties> = {};
+	get renderOptions() {
+		return {
+			...this.defaultOnRenderOptions,
+			...this.onRenderOptions
+		};
+	}
 
 	constructor(
 		xParent: XGroup | null,
 		{
 			classes = [],
 			...xOptions
-		}: Partial<XItemOptions>,
+		}: XItemOptions,
 		onRenderOptions: Partial<gsap.CSSProperties>
 	) {
 		if (xParent) {
@@ -141,22 +113,15 @@ export default class XItem extends XBase implements Renderable, Tweenable {
 		DB.display(`[#${xOptions.id}] Constructing START`);
 		super(xOptions);
 		this.options.classes.push(...classes);
-		this.onRenderOptions = {
-			xPercent: -50,
-			yPercent: -50,
-			transformOrigin: "50% 50%",
-			x: 0,
-			y: 0,
-			...onRenderOptions
-		};
+		this.onRenderOptions = onRenderOptions;
 		this.xOptions = {
 			...xOptions,
 			...this.options
 		};
 		if (xParent === null && xOptions.id === "XROOT") {
-			this.#xParent = null;
+			this.xParent = null;
 		} else {
-			this.#xParent = xParent ?? XROOT.XROOT;
+			this.xParent = xParent ?? XROOT.XROOT;
 		}
 		this.xElem = new XElem(this);
 		DB.log(`[#${xOptions.id}] END Constructing`);
@@ -165,13 +130,10 @@ export default class XItem extends XBase implements Renderable, Tweenable {
 
 
 	renderApp: XItem = this;
-	onRender = {};
 	get tweens() { return this.xElem.tweens }
 
 	get elem() { return this.xElem.elem }
 	get elem$() { return this.xElem.elem$ }
-	get xParent(): XGroup | null { return this.#xParent }
-	set xParent(xParent: XGroup | null) { this.#xParent = xParent ?? XROOT.XROOT }
 
 	#initializePromise?: Promise<typeof this>;
 	get initializePromise() { return this.#initializePromise }
@@ -182,13 +144,14 @@ export default class XItem extends XBase implements Renderable, Tweenable {
 		} else {
 			DB.display(`[#${this.id}] Initializing START`);
 		}
+		this.#initializePromise = Promise.resolve(this);
 		this.onRenderOptions = {
 			...this.onRenderOptions,
 			...renderOptions
 		};
 		DB.display(`[#${this.id}] END Initializing: Setting Initial Render Options ...`);
-		this.set(this.onRenderOptions);
-		return this;
+		this.set(this.renderOptions);
+		return this.#initializePromise;
 	}
 
 	get isRendered() { return this.rendered }
@@ -243,7 +206,7 @@ export default class XItem extends XBase implements Renderable, Tweenable {
 	get tweenTimeScale() { return this.xElem.tweenTimeScale.bind(this.xElem) }
 
 	kill() {
-		if (this.hasKids) {
+		if (this instanceof XGroup && this.hasKids) {
 			this.getXKids(XItem).forEach((xItem) => xItem.kill());
 		}
 		this._tickers.forEach((func) => gsap.ticker.remove(func));

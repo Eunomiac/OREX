@@ -141,8 +141,8 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, Ren
 			},
 			get x() { return this.pos.x },
 			get y() { return this.pos.y },
-			get height() { return self.height * this.scale },
-			get width() { return self.width * this.scale },
+			get height() { return self.height },
+			get width() { return self.width },
 			get rotation() {
 				let totalRotation = self.rotation,
 								{xParent} = self;
@@ -220,16 +220,19 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, Ren
 		return tween;
 	}
 	set(vars: gsap.TweenVars): gsap.core.Tween | boolean {
-		if (!this.renderApp.isInitialized()) {
+		if (!this.renderApp.isRendered) {
 			this.renderApp.onRenderOptions = {
 				...this.renderApp.onRenderOptions,
 				...vars
 			};
 			return true;
 		}
-		return gsap.set(this.elem, vars);
+		return gsap.set(this.elem, {
+			...vars,
+			...this.renderApp.isInitialized() ? {} : {opacity: 0}
+		});
 	}
-	to({scalingDuration, ...vars}: XTweenVars): XAnim {
+	to({scalingDuration, ...vars}: XTweenVars): gsap.core.Tween {
 		const tween = gsap.to(this.elem, vars);
 		if (vars.id) {
 			this.tweens[vars.id] = tween;
