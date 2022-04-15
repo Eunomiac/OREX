@@ -137,16 +137,18 @@ export class XArm extends XGroup {
 
 	xItem!: XItem;
 
-	grabItem(): XItem {
+	grabItem(isTweening = false): XItem {
 		this.snapToXItem();
 		this.adopt(this.xItem);
 		this.xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
-		this.to({
-			width: this.targetWidth,
-			rotation: this.targetRotation,
-			duration: 10,
-			ease: "power3.inOut"
-		});
+		if (this.isInitialized() && isTweening) {
+			this.to({
+				width: this.targetWidth,
+				rotation: this.targetRotation,
+				duration: 10,
+				ease: "power3.inOut"
+			});
+		}
 		return this.xItem;
 	}
 
@@ -182,7 +184,7 @@ export class XArm extends XGroup {
 	}
 
 	get targetWidth() { return this.xParent.orbitRadius }
-	get targetRotation() { return this.xParent.armAngles.get(this) }
+	get targetRotation() { return this.xParent.armAngles.get(this.id) }
 
 	get positionOfHeldItem(): Point {
 		// if (!this.xItem.isInitialized()) { return this.xItem.pos }
@@ -268,20 +270,27 @@ export class XOrbit extends XGroup {
 	get orbitType() { return this.#orbitType }
 	get arms$() { return $(`#${this.id} > .x-arm`) }
 	get arms() { return Array.from(this.xKids) as XArm[] }
+	get xItems$() { return $(`#${this.id} > .x-arm > .x-item`)}
 	get xItems(): XItem[] { return this.arms.map((xArm) => xArm.xItem) }
 	get xTerms(): Array<XItem & XTerm> { return this.xItems.filter((xItem) => xItem instanceof XDie || xItem instanceof XMod) as Array<XItem & XTerm> }
 
 	get orbitRadius() { return this.radiusRatio * 0.5 * (this.xParent?.width ?? 0) }
-	get totalArmWeight() { return this.arms.map((arm) => arm.orbitWeight).reduce((tot, val) => tot + val, 0) }
+
+	#armAngles?: Map<string,number>;
 	get armAngles() {
-		const anglePerWeight = 360 / this.totalArmWeight;
-		const newArmAngles: Map<XArm,number> = new Map();
+		if (!this.arms?.length) { return new Map() }
+		return this.#armAngles ?? this.updateArmAngles();
+	}
+	updateArmAngles(): Map<string,number> {
+		const totalArmWeight = this.arms.map((arm) => arm.orbitWeight).reduce((tot, val) => tot + val, 0);
+		const anglePerWeight = 360 / totalArmWeight;
+		this.#armAngles = new Map();
 		let usedWeight = 0;
 		this.arms.forEach((arm) => {
 			usedWeight += arm.orbitWeight;
-			newArmAngles.set(arm, (usedWeight - (0.5 * arm.orbitWeight)) * anglePerWeight);
+			this.#armAngles!.set(arm.id, (usedWeight - (0.5 * arm.orbitWeight)) * anglePerWeight);
 		});
-		return newArmAngles;
+		return this.#armAngles;
 	}
 
 	constructor(xParent: XPool, {name, radiusRatio, rotationScaling, ...xOptions}: XOrbitOptions, onRenderOptions: Partial<gsap.CSSProperties>) {
@@ -302,8 +311,9 @@ export class XOrbit extends XGroup {
 	}
 
 	protected startRotating(duration = 10) {
+		// return;
 		DB.title("STARTING ROTATING");
-		this.to({
+		this.tweens.rotationTween = this.to({
 			id: "rotationTween",
 			rotation: this.#rotationAngle,
 			duration,
@@ -312,7 +322,7 @@ export class XOrbit extends XGroup {
 			callbackScope: this,
 			onUpdate() {
 				this.xTerms.forEach((xItem: XItem & XTerm) => {
-					if (xItem.xOptions.isFreezingRotate && xItem.xParent) {
+					if (xItem.xOptions.isFreezingRotate && xItem.xParent instanceof XArm) {
 						xItem.set({rotation: -1 * xItem.xParent.global.rotation});
 					}
 				});
@@ -341,49 +351,92 @@ export class XOrbit extends XGroup {
 			clearTimeout(this.updateArmsThrottle);
 		}
 		this.updateArmsThrottle = setTimeout(() => {
-			DB.log("Update Arms RUNNING!");
+			DB.log("Update Arms RUNNING!", {targets: this.arms$, isArmed: this.#isArmed});
 			const self = this;
-			gsap.timeline()
-				.fromTo(
+			const updateTimeline = gsap.timeline({
+				stagger: {
+					amount: 0.5,
+					from: "start"
+				}});
+			if (!this.#isArmed) {
+				updateTimeline
+					.set(
+						this.arms$,
+						{
+							width: (widthOverride ?? this.orbitRadius) * 10,
+							rotation(i) { return Array.from(self.armAngles.values())[i] - 50 }
+						},
+						0
+					)
+					.to(
+						this.xItems$,
+						{
+							scale: 5,
+							duration: 0,
+							ease: "none",
+							immediateRender: true
+						},
+						0
+					)
+					.to(
+						this.xItems$,
+						{
+							id: "XItems_fadeDownAndIn",
+							opacity: 1,
+							scale: 1,
+							duration: duration / 1.5,
+							ease: "power2",
+							callbackScope: this,
+							onUpdate() {
+								this.xTerms.forEach((xItem: XItem & XTerm) => {
+									if (xItem.xOptions.isFreezingRotate) {
+										xItem.set({rotation: -1 * xItem.xParent.global.rotation});
+									}
+								});
+							}
+						},
+						0
+					)
+					.from(
+						this.tweens.rotationTween,
+						{
+							id: "XOrbitTween_fromRotationTimeScale",
+							timeScale: 15,
+							duration,
+							ease: "power2"
+						},
+						0
+					);
+				this.#isArmed = true;
+			}
+			updateTimeline
+				.to(
 					this.arms$,
-					this.#isArmed
-						? {}
-						: {
-								width: (widthOverride ?? this.orbitRadius) * 3,
-								rotation(i) { return Array.from(self.armAngles.values())[i] },
-								opacity: 0,
-								scale: 2
-							},
 					{
+						id: "XArms_toOrbitRadius",
 						width: widthOverride ?? this.orbitRadius,
-						ease: "back.out(4)",
-						duration,
-						stagger: {
-							amount: 1,
-							from: "end"
-						}
+						ease: "back.out(0.9)",
+						duration
 					},
 					"<"
 				)
 				.to(this.arms$, {
-					scale: 1,
-					opacity: 1,
-					duration: duration / 3,
-					ease: "power2.out"
-				}, "<")
-				.to(this.arms$, {
+					id: "XArms_toArmAngles",
 					rotation(i) { return Array.from(self.armAngles.values())[i] },
 					ease: "power2.out",
 					duration
 				}, "<");
-			if (!this.#isArmed) {
-				gsap.from(this.tweens.rotationTween, {
-					timeScale: 3,
-					duration: duration / 2,
-					ease: "sine.out"
-				});
-			}
-			this.#isArmed = true;
+			// GSDevTools.create({
+			// 	animation: updateTimeline,
+			// 	css: {
+			// 		width: "80%",
+			// 		bottom: "100px",
+			// 		left: "10px"
+			// 	},
+			// 	// globalSync: true
+			// 	// timeScale: 0.1,
+			// 	// paused: true
+			// });
 		}, 100);
 	}
 
@@ -391,6 +444,7 @@ export class XOrbit extends XGroup {
 		const xArm = await FACTORIES.XArm.Make(this);
 		xArm.xItem = xItem;
 		xArm.grabItem();
+		this.updateArmAngles();
 		if (this.isInitialized()) {
 			await xArm.initialize();
 			if (isUpdatingArms) {

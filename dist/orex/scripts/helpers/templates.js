@@ -14,6 +14,9 @@ const templatePaths = {
     },
     CHAT: {
         xRoll: getTemplatePath("chat/xroll")
+    },
+    DEBUG: {
+        xDisplay: getTemplatePath("xdisplay")
     }
 };
 export default async () => loadTemplates(Object.values(U.objFlatten(templatePaths)));

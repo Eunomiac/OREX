@@ -5,7 +5,6 @@ import {
 	Dragger,
 	InertiaPlugin,
 	MotionPathPlugin,
-	GSDevTools,
 	RoughEase,
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
@@ -119,7 +118,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, Ren
 	get x() { return U.pInt(U.get(this.elem, "x", "px")) }
 	get y() { return U.pInt(U.get(this.elem, "y", "px")) }
 	get pos(): Point { return {x: this.x, y: this.y} }
-	get rotation() { return U.pFloat(U.get(this.elem, "rotation"), 2) }
+	get rotation() { return U.cycleAngle(U.pFloat(U.get(this.elem, "rotation"), 2), [-180, 180]) }
 	get scale() { return U.pFloat(U.get(this.elem, "scale"), 2) || 1 }
 	get origin() {
 		return {
@@ -150,7 +149,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, Ren
 					totalRotation += xParent.rotation;
 					({xParent} = xParent);
 				}
-				return totalRotation;
+				return U.cycleAngle(totalRotation, [-180, 180]);
 			},
 			get scale() {
 				let totalScale = self.scale,
@@ -176,7 +175,7 @@ export default class XElem<RenderItem extends XItem> implements DOMRenderer, Ren
 				this.elem,
 				globalPoint ?? ofItem.global.pos
 			),
-			rotation: ofItem.global.rotation - this.global.rotation,
+			rotation: U.cycleAngle(ofItem.global.rotation - this.global.rotation, [-180, 180]),
 			scale: ofItem.global.scale / this.global.scale,
 			height: ofItem.height,
 			width: ofItem.width

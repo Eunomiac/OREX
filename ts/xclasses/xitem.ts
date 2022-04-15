@@ -139,7 +139,7 @@ export default class XItem extends Application implements Renderable, Tweenable 
 	get initializePromise() { return this.#initializePromise }
 	async initialize(renderOptions: Partial<gsap.CSSProperties> = {}): Promise<typeof this> {
 		if (this.initializePromise) {
-			DB.info(`[#${this.id}] Ignoring Initialize(): Already Promised!`, new Error().stack);
+			// DB.info(`[#${this.id}] Ignoring Initialize(): Already Promised!`, new Error().stack);
 			return this.initializePromise;
 		} else {
 			DB.display(`[#${this.id}] Initializing START`);

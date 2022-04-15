@@ -104,7 +104,7 @@ export default class XItem extends Application {
     get initializePromise() { return this.#initializePromise; }
     async initialize(renderOptions = {}) {
         if (this.initializePromise) {
-            DB.info(`[#${this.id}] Ignoring Initialize(): Already Promised!`, new Error().stack);
+            // DB.info(`[#${this.id}] Ignoring Initialize(): Already Promised!`, new Error().stack);
             return this.initializePromise;
         }
         else {

@@ -16,7 +16,8 @@ export const U = {...baseU, getTemplatePath};
 export {default as C} from "./config.js";
 // #endregion ░░░░[Utilities & Constants]░░░░
 // #region ░░░░░░░ Debugging ░░░░░░░ ~
-import {default as DB} from "./debugger.js";
+import {default as DB, XDisplay} from "./debugger.js";
+import type {XDisplayOptions} from "./debugger.js";
 export {TESTS, DBFUNCS} from "./debugger.js";
 // #endregion ░░░░[Debugging]░░░░
 // #region ░░░░░░░ GSAP Animation ░░░░░░░ ~
@@ -25,7 +26,6 @@ export {
 	Draggable as Dragger,
 	InertiaPlugin,
 	MotionPathPlugin,
-	GSDevTools,
 	RoughEase
 } from "gsap/all";
 export {default as preloadTemplates} from "./templates.js";
@@ -120,7 +120,13 @@ const FACTORIES = {
 		xPercent: 0,
 		yPercent: 0
 	}),
-	XOrbit: classBuilder<typeof XOrbit, XOrbitOptions, typeof XPool>(XOrbit)
+	XOrbit: classBuilder<typeof XOrbit, XOrbitOptions, typeof XPool>(XOrbit),
+	/*DEVCODE*/
+	XDisplay: classBuilder<typeof XDisplay, XDisplayOptions, typeof XROOT>(XDisplay, {id: "DISPLAY"}, {
+		xPercent: 0,
+		yPercent: 0
+	})
+	/*!DEVCODE*/
 };
 export {FACTORIES};
 // #endregion ▄▄▄▄▄ FACTORIES ▄▄▄▄▄

@@ -1,0 +1,57 @@
+@if $isDebugging {
+	// .x-arm { outline: 1px solid red }
+	.x-arm .x-arm { outline-color: darkgreen }
+	.x-arm .x-arm .x-arm { outline-color: magenta }
+
+	.x-display {
+		position: fixed !important;
+		top: 10px;
+		right: 10px;
+		height: auto;
+		max-width: calc(2 * var(--sidebar-width));
+		padding: 5px;
+
+		display: grid;
+		// grid-template-columns: repeat(var(--num-display-columns), auto);
+		// grid-template-rows: repeat(var(--num-display-rows), auto);
+		// grid-auto-flow: column dense;
+		row-gap: 10px;
+
+		background: rgba(0, 50, 0, 0.7);
+		color: lime;
+		border: 3px solid lime;
+		border-radius: 10px;
+		font-family: "Fira Code";
+
+		white-space: nowrap;
+
+		.x-watch-item {
+			width: fit-content;
+
+			display: flex;
+			flex-direction: row;
+			justify-content: stretch;
+
+			text-align: left;
+			font-size: 14px;
+
+			label, span {
+				display: inline-block;
+				width: auto;
+				overflow: hidden;
+				white-space: nowrap;
+			}
+
+			label {
+				font-weight: bold;
+				font-size: 16px;
+				margin-right: 10px;
+				flex-basis: fit-content;
+			}
+
+			span.x-watch-value {
+				min-width: 40px;
+			}
+		}
+	}
+}

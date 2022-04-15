@@ -1,6 +1,7 @@
 .x-die {
 	height: var(--die-size);
 	width: var(--die-size);
+	opacity: 0;
 
 	svg {
 		position: absolute;

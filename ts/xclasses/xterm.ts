@@ -1,13 +1,5 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
-	// #region ====== GreenSock Animation ====== ~
-	gsap,
-	Dragger,
-	InertiaPlugin,
-	MotionPathPlugin,
-	GSDevTools,
-	RoughEase,
-	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
@@ -59,6 +51,7 @@ export default class XDie extends XItem implements XTerm {
 		});
 	}
 	declare xParent: XGroup;
+	declare xOptions: XDieOptions;
 
 	type: XDieOptions["type"];
 
@@ -79,6 +72,12 @@ export default class XDie extends XItem implements XTerm {
 	get isRolled() { return this.value > 0 }
 
 	roll() { this.value = U.randInt(1, 10) as XDieValue }
+
+	override async initialize(onRenderOptions: Partial<gsap.CSSProperties> = {}) {
+		await super.initialize(onRenderOptions);
+		this.value$.html(this.face);
+		return this;
+	}
 
 	constructor(xParent: XGroup, xOptions: XDieOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
 		const dieSize = xOptions.size ?? onRenderOptions.size ?? onRenderOptions.height ?? onRenderOptions.width ?? 40;

@@ -1,8 +1,10 @@
 
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { 
+// ▮▮▮▮▮▮▮ External Libraries ▮▮▮▮▮▮▮
 // ====== GreenSock Animation ======
-gsap, Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, // GreenSock Animation Platform
+gsap, Dragger, InertiaPlugin, MotionPathPlugin, 
+
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 preloadTemplates, U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
@@ -12,7 +14,7 @@ DB, TESTS, DBFUNCS, FACTORIES
 
  } from "./helpers/bundler.js";
 // ====== GreenSock Animation ======
-gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
+gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin);
 
 Hooks._hooks.init.unshift(() => {
     DB.groupTitle("BOOTING");

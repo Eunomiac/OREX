@@ -1,4 +1,4 @@
-$isDebugging: false; // true;
+$isDebugging: true; // true;
 
 // Add custom fonts by visiting and search https://fonts.google.com
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap");
@@ -30,8 +30,4 @@ $isDebugging: false; // true;
 	@import "components/xdie";
 }
 
-@if $isDebugging {
-	.x-arm { outline: 1px solid red }
-	.x-arm .x-arm { outline-color: darkgreen }
-	.x-arm .x-arm .x-arm { outline-color: magenta }
-}
+@import "debug/debug";

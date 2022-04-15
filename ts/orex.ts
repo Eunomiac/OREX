@@ -1,11 +1,12 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import {
+	// #region ▮▮▮▮▮▮▮ External Libraries ▮▮▮▮▮▮▮ ~
 	// #region ====== GreenSock Animation ====== ~
 	gsap,
 	Dragger,
 	InertiaPlugin,
 	MotionPathPlugin,
-	GSDevTools, // GreenSock Animation Platform
+	// #endregion ___ GreenSock Animation ___
 	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	preloadTemplates,
@@ -29,7 +30,7 @@ import {
 // #region ====== GreenSock Animation ====== ~
 
 // #endregion _______ GreenSock Animation _______
-gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools);
+gsap.registerPlugin(Dragger, InertiaPlugin, MotionPathPlugin);
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 // @ts-expect-error Cheating by directly accessing protected member for debug purposes.
@@ -72,7 +73,6 @@ Hooks.once("ready", async () => {
 		XDie,
 		gsap,
 		MotionPathPlugin,
-		GSDevTools,
 		pause: () => {
 			gsap.ticker.sleep();
 			gsap.globalTimeline.pause();
@@ -94,8 +94,10 @@ Hooks.once("ready", async () => {
 	DB.groupEnd();
 	DB.log("... Readying Complete.");
 
+	// DBFUNCS.InitializeDisplay([]);
+
 	DB.groupDisplay("Initializing Roll Generation");
-	DBFUNCS.BuildTestContext();
+	TESTS.XArmSnapping();
 	return;
 	const MAINROLL = await FACTORIES.XRoll.Make(XROOT.XROOT, {id: "MAIN"}, {
 		"x": 500, "y": 400, "height": 300, "width": 300, "--bg-color": "cyan"

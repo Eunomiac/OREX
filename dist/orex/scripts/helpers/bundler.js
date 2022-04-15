@@ -13,10 +13,10 @@ import { default as XPad } from "../xclasses/xpad.js";
 export const U = { ...baseU, getTemplatePath };
 export { default as C } from "./config.js";
 // ░░░░░░░ Debugging ░░░░░░░
-import { default as DB } from "./debugger.js";
+import { default as DB, XDisplay } from "./debugger.js";
 export { TESTS, DBFUNCS } from "./debugger.js";
 // ░░░░░░░ GSAP Animation ░░░░░░░
-export { default as gsap, Draggable as Dragger, InertiaPlugin, MotionPathPlugin, GSDevTools, RoughEase } from "/scripts/greensock/esm/all.js";
+export { default as gsap, Draggable as Dragger, InertiaPlugin, MotionPathPlugin, RoughEase } from "/scripts/greensock/esm/all.js";
 export { default as preloadTemplates } from "./templates.js";
 // ████████ XItems ████████
 export { DB, XElem, XItem, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XOrbitType, XDie, XMod, XTermType, XGhost, XMutator, XInfo, XPad };
@@ -64,7 +64,7 @@ const FACTORIES = {
         xPercent: 0,
         yPercent: 0
     }),
-    XOrbit: classBuilder(XOrbit)
+    XOrbit: classBuilder(XOrbit),
 };
 export { FACTORIES };
 // ████████ ENUMS: TypeScript Enums ████████

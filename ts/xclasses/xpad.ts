@@ -3,14 +3,6 @@ import {
 	// #region ▮▮▮▮▮▮▮[Constants]▮▮▮▮▮▮▮ ~
 	C,
 	// #endregion ▮▮▮▮[Constants]▮▮▮▮
-	// #region ====== GreenSock Animation ====== ~
-	gsap,
-	Dragger,
-	InertiaPlugin,
-	MotionPathPlugin,
-	GSDevTools,
-	RoughEase,
-	// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮

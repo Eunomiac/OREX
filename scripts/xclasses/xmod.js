@@ -1,6 +1,6 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
-// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
+// #endregion ▮▮▮▮[Constants]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 U, XItem } from "../helpers/bundler.js";
 class XMod extends XItem {

@@ -1,6 +1,5 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
-// #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 U, XItem } from "../helpers/bundler.js";
 export var XTermType;
@@ -43,6 +42,11 @@ export default class XDie extends XItem {
     get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value]; }
     get isRolled() { return this.value > 0; }
     roll() { this.value = U.randInt(1, 10); }
+    async initialize(onRenderOptions = {}) {
+        await super.initialize(onRenderOptions);
+        this.value$.html(this.face);
+        return this;
+    }
     constructor(xParent, xOptions, onRenderOptions = {}) {
         const dieSize = xOptions.size ?? onRenderOptions.size ?? onRenderOptions.height ?? onRenderOptions.width ?? 40;
         onRenderOptions = {

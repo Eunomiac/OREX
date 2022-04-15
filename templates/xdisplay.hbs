@@ -1,0 +1,10 @@
+{{log "DISPLAYING X-DISPLAY HANDLEBARS"}}
+{{log this}}
+<div id="{{id}}" class="x-elem {{classes}}">
+	{{#each watchItems as |item|}}
+	<div class="x-watch-item" {{~#if item.colSpan}} style="grid-column-start: span {{item.colSpan}};"{{/if}}>
+		<label {{~#if item.labelStyles}} style="{{item.labelStyles}}"{{/if}}>{{{item.label}}}:</label>
+		<span id="{{item.id}}" class="x-watch-value" {{~#if item.resultStyles}} style="{{item.resultStyles}}"{{/if}}>{{{item.initialDisplay}}}</span>
+	</div>
+	{{/each}}
+</div>

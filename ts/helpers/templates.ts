@@ -24,6 +24,9 @@ const templatePaths = {
 	},
 	CHAT: {
 		xRoll: getTemplatePath("chat/xroll")
+	},
+	DEBUG: {
+		xDisplay: getTemplatePath("xdisplay")
 	}
 };
 
