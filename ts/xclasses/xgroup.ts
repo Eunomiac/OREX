@@ -76,14 +76,14 @@ export default class XGroup extends XItem {
 		}
 		return xKids;
 	}
-	override async initialize(renderOptions: Partial<gsap.CSSProperties> = {}): Promise<typeof this> {
-		await super.initialize(renderOptions);
-		return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize({})))
-			.then(
-				() => Promise.resolve(this),
-				() => Promise.reject()
-			);
-	}
+	// override async initialize(renderOptions: Partial<gsap.CSSProperties> = {}): Promise<typeof this> {
+	// 	await super.initialize(renderOptions);
+	// 	return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize({})))
+	// 		.then(
+	// 			() => Promise.resolve(this),
+	// 			() => Promise.reject()
+	// 		);
+	// }
 	async addXItem<T extends XItem>(xItem: T): Promise<T> {
 		this.adopt(xItem);
 		return xItem;
@@ -130,6 +130,10 @@ export class XROOT extends XGroup {
 // #endregion 🟩🟩🟩 XROOT 🟩🟩🟩
 
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
+
+export interface XArmOptions extends XItemOptions {
+	heldItemSize: number;
+}
 export class XArm extends XGroup {
 	static override REGISTRY: Map<string, XArm> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-arm"]}) }
@@ -137,54 +141,116 @@ export class XArm extends XGroup {
 
 	xItem!: XItem;
 
-	grabItem(isTweening = false): XItem {
-		this.snapToXItem();
-		this.adopt(this.xItem);
-		this.xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
-		if (this.isInitialized() && isTweening) {
-			this.to({
-				width: this.targetWidth,
-				rotation: this.targetRotation,
-				duration: 10,
-				ease: "power3.inOut"
+	grabItem(xItem: XItem, isInitializing = false): XItem {
+		if (xItem instanceof XItem) {
+			this.xItem = xItem;
+			this.#heldItemSize = xItem.size ?? xItem.width;
+			this.set({
+				"--held-item-width": `${this.#heldItemSize}px`,
+				...this.getRotWidthToItem(xItem)
+				// "outline": "2px dotted red"
+			});
+			this.adopt(xItem, false);
+			this.xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
+			if (!isInitializing) {
+				this.to({
+					width: this.homeWidth,
+					rotation: this.homeAngle,
+					duration: 10,
+					ease: "power3.inOut"
+				});
+			}
+			return this.xItem;
+		}
+		return xItem;
+	}
+
+	toHomeTween?: gsap.core.Tween;
+	tweenToHome(armNum: number, duration: number, isFadingIn = false): gsap.core.Tween | gsap.core.Timeline {
+		if (isFadingIn) {
+			return gsap.timeline({delay: armNum * 0.5})
+				.fromTo(
+					this.elem,
+					{
+						width: this.homeWidth * 10,
+						rotation: this.homeAngle - 50
+					},
+					{
+						width: this.homeWidth,
+						rotation: this.homeAngle,
+						duration,
+						ease: "bounce"
+					},
+					0
+				)
+				.fromTo(
+					this.xItem.elem,
+					{
+						opacity: 0,
+						scale: 5,
+						rotation: -1 * this.global.rotation
+					},
+					{
+						opacity: 1,
+						scale: 1,
+						duration: duration / 1.5,
+						ease: "power2",
+						callbackScope: this,
+						onUpdate() {
+							if (this.xItem.isFreezingRotate) {
+								this.xItem.set({rotation: -1 * this.global.rotation});
+							}
+						}
+					},
+					0
+				);
+		}
+		// First, if WIDTH is incorrect, assume you've just grabbed something and just return the toHomeTween unchanged.
+		if (U.pInt(this.width) !== U.pInt(this.homeWidth)) {
+			if (!this.toHomeTween?.isActive?.() || !this.toHomeTween?.vars?.width) {
+				this.toHomeTween = this.to({
+					width: this.homeWidth,
+					rotation: this.homeAngle,
+					duration,
+					ease: "power2"
+				});
+			}
+		} else {
+			this.toHomeTween = this.to({
+				rotation: this.homeAngle,
+				duration,
+				ease: "sine.inOut"
 			});
 		}
-		return this.xItem;
+		return this.toHomeTween;
 	}
 
-	async grabItemTest(xItem: XItem) {
-		gsap.globalTimeline.timeScale(0.02);
-		this.set({outline: "2px dotted black", opacity: 0.8});
-		await this.snapToXItem(xItem);
-		this.adopt(xItem);
-		xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
-		this.to({
-			width: this.targetWidth,
-			rotation: this.targetRotation,
-			duration: 10,
-			ease: "power3.inOut"
-		});
-	}
-
-	constructor(xParent: XOrbit, xOptions: Partial<XItemOptions> = {}, renderOptions: Partial<gsap.CSSProperties> = {}) {
-		renderOptions.transformOrigin = "right";
-		renderOptions.right = xParent.width / 2;
-		renderOptions.top = xParent.height / 2;
-		delete renderOptions.left;
-		xOptions.id ??= "arm";
-		super(xParent, xOptions as XItemOptions, renderOptions);
-	}
-
-	override async initialize(): Promise<this> {
-		await super.initialize();
-		this.set({
-			"--held-item-width": `${this.xItem.width}px`
-		});
+	override async render(): Promise<typeof this> {
+		await super.render();
+		this.set({height: 0, width: this.homeWidth, rotation: 0});
 		return this;
 	}
 
-	get targetWidth() { return this.xParent.orbitRadius }
-	get targetRotation() { return this.xParent.armAngles.get(this.id) }
+	#heldItemSize: number;
+	get heldItemSize() {
+		return this.xItem?.size ?? this.#heldItemSize;
+	}
+
+	constructor(xParent: XOrbit, {heldItemSize, ...xOptions}: XArmOptions, renderOptions: Partial<gsap.CSSProperties> = {}) {
+		renderOptions.transformOrigin = "right";
+		renderOptions.right = xParent.width / 2;
+		renderOptions.top = xParent.height / 2;
+		renderOptions.height = 0;
+		renderOptions.width = xParent.orbitRadius;
+		renderOptions.rotation = 0;
+		delete renderOptions.left;
+		xOptions.id ??= "arm";
+		super(xParent, xOptions, renderOptions);
+		this.#heldItemSize = heldItemSize;
+	}
+
+	get homeWidth() { return this.xParent.orbitRadius }
+	get homeAngle() { return this.xParent.armAngles.get(this) }
 
 	get positionOfHeldItem(): Point {
 		// if (!this.xItem.isInitialized()) { return this.xItem.pos }
@@ -218,12 +284,6 @@ export class XArm extends XGroup {
 			rotation: this.rotation + angleDelta
 		};
 	}
-
-	async snapToXItem(xItem: XItem = this.xItem) {
-		this.set(this.getRotWidthToItem(xItem));
-	}
-
-	get orbitWeight() { return this.xItem.size }
 }
 // #endregion ░░░░[XArm]░░░░
 
@@ -276,19 +336,19 @@ export class XOrbit extends XGroup {
 
 	get orbitRadius() { return this.radiusRatio * 0.5 * (this.xParent?.width ?? 0) }
 
-	#armAngles?: Map<string,number>;
+	#armAngles?: Map<XArm,number>;
 	get armAngles() {
 		if (!this.arms?.length) { return new Map() }
 		return this.#armAngles ?? this.updateArmAngles();
 	}
-	updateArmAngles(): Map<string,number> {
-		const totalArmWeight = this.arms.map((arm) => arm.orbitWeight).reduce((tot, val) => tot + val, 0);
+	updateArmAngles(): Map<XArm,number> {
+		const totalArmWeight = this.arms.map((arm) => arm.heldItemSize).reduce((tot, val) => tot + val, 0);
 		const anglePerWeight = 360 / totalArmWeight;
 		this.#armAngles = new Map();
 		let usedWeight = 0;
 		this.arms.forEach((arm) => {
-			usedWeight += arm.orbitWeight;
-			this.#armAngles!.set(arm.id, (usedWeight - (0.5 * arm.orbitWeight)) * anglePerWeight);
+			usedWeight += arm.heldItemSize;
+			this.#armAngles!.set(arm, (usedWeight - (0.5 * arm.heldItemSize)) * anglePerWeight);
 		});
 		return this.#armAngles;
 	}
@@ -340,7 +400,7 @@ export class XOrbit extends XGroup {
 	override async initialize(): Promise<this> {
 		await super.initialize();
 		this.startRotating();
-		await Promise.all(this.arms.map((xArm) => xArm.initialize()));
+		// await Promise.all(this.arms.map((xArm) => xArm.initialize()));
 		this.updateArms();
 		return Promise.resolve(this);
 	}
@@ -440,16 +500,17 @@ export class XOrbit extends XGroup {
 		}, 100);
 	}
 
+	override async adopt(xArm: XArm) {
+		super.adopt(xArm, false);
+		this.updateArmAngles();
+	}
 	override async addXItem<T extends XItem>(xItem: T, isUpdatingArms = true): Promise<T> {
 		const xArm = await FACTORIES.XArm.Make(this);
-		xArm.xItem = xItem;
-		xArm.grabItem();
+		await xArm.grabItem(xItem);
+		// await xArm.initialize();
 		this.updateArmAngles();
-		if (this.isInitialized()) {
-			await xArm.initialize();
-			if (isUpdatingArms) {
-				this.updateArms();
-			}
+		if (isUpdatingArms) {
+			this.updateArms();
 		}
 		return Promise.resolve(xItem);
 	}
@@ -501,19 +562,21 @@ export class XPool extends XGroup {
 		if (typeof radiusRatio === "number" && typeof rotationScaling === "number") {
 			xOrbit.initializeRadius({ratio: radiusRatio, scale: rotationScaling});
 		}
-		if (this.isInitialized()) {
-			await xOrbit.initialize();
-		}
+		// if (this.isInitialized()) {
+		// 	await xOrbit.initialize();
+		// }
 		return xOrbit;
 	}
 
 	override async addXItem<T extends XItem>(xItem: T, orbit: XOrbitType = XOrbitType.Main): Promise<T> {
-		let orbital = this.orbitals.get(orbit);
-		if (!orbital) {
-			orbital = await this.createOrbital(orbit);
+		if (xItem) {
+			let orbital = this.orbitals.get(orbit);
+			if (!orbital) {
+				orbital = await this.createOrbital(orbit);
+			}
+			xItem = await orbital.addXItem(xItem);
 		}
-		const addedItem = await orbital.addXItem(xItem);
-		return addedItem;
+		return xItem;
 	}
 	override async addXItems<T extends XItem>(xItemsByOrbit: Partial<Record<XOrbitType, T[]>> | T[]): Promise<T[]> {
 		if (Array.isArray(xItemsByOrbit)) {

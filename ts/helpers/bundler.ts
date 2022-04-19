@@ -17,7 +17,7 @@ export {default as C} from "./config.js";
 // #endregion ░░░░[Utilities & Constants]░░░░
 // #region ░░░░░░░ Debugging ░░░░░░░ ~
 import {default as DB, XDisplay} from "./debugger.js";
-import type {XDisplayOptions} from "./debugger.js";
+// import type {XDisplayOptions} from "./debugger.js";
 export {TESTS, DBFUNCS} from "./debugger.js";
 // #endregion ░░░░[Debugging]░░░░
 // #region ░░░░░░░ GSAP Animation ░░░░░░░ ~
@@ -48,57 +48,53 @@ import type {XModOptions} from "../xclasses/xmod.js";
 export type {int, float, posInt, posFloat, HTMLCode, List, Index, ConstructorOf, KnownKeys, Concrete,
 	Position, XAnim, Renderable, Tweenable, XItemOptions, XGroupOptions, XPoolOptions, XOrbitSpecs, XRollOptions,
 	XTerm, XTermOptions, XDieValue, XDieFace, XDieOptions, XModOptions};
+
+export interface lockedXItem<T extends XItem> extends XItem {
+	xParent: XGroup
+}
 // #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
 
 // #region ████████ FACTORIES: Abstract XItem Creation Factory ████████ ~
-abstract class XFactoryBase<ClassType extends typeof XItem, OptionsType extends XItemOptions, ParentClass extends typeof XGroup>{
+
+export type XInitFunc = (xItem: XItem) => void;
+export interface RenderOptions {
+	preRenderFuncs?: XInitFunc[];
+	postRenderFuncs?: XInitFunc[];
+	postRenderVars?: Partial<gsap.CSSProperties>;
+	postInitFuncs?: XInitFunc[];
+}
+abstract class XFactoryBase<ClassType extends typeof XItem, ParentClass extends typeof XGroup>{
 	async Make(
 		xParent: InstanceType<ParentClass>,
-		options: Partial<OptionsType> = {},
-		onRenderOptions: Partial<gsap.CSSProperties> = {},
-		postRenderFuncs: Array<(xItem: InstanceType<ClassType>) => void> = []
-	) {
-		const [xItem, defaultPostRenderFuncs] = this.factoryMethod(xParent, options, onRenderOptions, postRenderFuncs);
+		{
+			preRenderFuncs = [],
+			postRenderFuncs = [],
+			postRenderVars = {},
+			postInitFuncs = []
+		}: RenderOptions = {}
+	): Promise<lockedXItem<InstanceType<ClassType>>> {
+		const xItem = this.factoryMethod(xParent);
+		await Promise.all(preRenderFuncs.map(async (func) => func(xItem)));
 		await xItem.render();
-		xParent?.adopt(xItem);
+		await Promise.all(postRenderFuncs.map(async (func) => func(xItem)));
+		xItem.set(postRenderVars);
+		xParent.adopt(xItem);
 		try {
 			(xItem.constructor as ClassType).Register(xItem);
 		} catch (err) {
 			DB.display(`Error with ${xItem.constructor.name}'s 'Registry' static method.`, err);
 		}
-		xItem.set({...xItem.renderOptions, ...onRenderOptions});
-		await Promise.all([...defaultPostRenderFuncs, ...postRenderFuncs].map((func) => func(xItem)));
-		return xItem;
+		await xItem.initialize();
+		await Promise.all(postInitFuncs.map(async (func) => func(xItem)));
+		return xItem as lockedXItem<InstanceType<ClassType>>;
 	}
-	protected abstract factoryMethod(
-			xParent: InstanceType<ParentClass>,
-			options: Partial<OptionsType>,
-			onRenderOptions: Partial<gsap.CSSProperties>,
-			postRenderFuncs: Array<(xItem: InstanceType<ClassType>) => void>
-	): [InstanceType<ClassType>, Array<(xItem: InstanceType<ClassType>) => void>]
+	protected abstract factoryMethod(xParent: InstanceType<ParentClass>): InstanceType<ClassType>;
 }
 
-function classBuilder<
-		ClassType extends typeof XItem|typeof XGroup,
-		OptionsType extends XItemOptions,
-		ParentClass extends typeof XGroup
-	>(
-	ClassRef: ClassType,
-	defaultOptions: Partial<OptionsType> = {},
-	defaultRenderOptions: Partial<gsap.CSSProperties> = {},
-	defaultPostRenderFuncs: Array<(xItem: InstanceType<ClassType>) => void> = []
-) {
-	class ThisFactory extends XFactoryBase<ClassType,OptionsType,ParentClass> {
-		protected override factoryMethod(
-			xParent: InstanceType<ParentClass>,
-			options: OptionsType,
-			onRenderOptions: Partial<gsap.CSSProperties> = defaultRenderOptions,
-			postRenderFuncs: Array<(xItem: InstanceType<ClassType>) => void> = []
-		): [InstanceType<ClassType>, Array<(xItem: InstanceType<ClassType>) => void>] {
-			options = U.objMerge(defaultOptions, options) as OptionsType;
-			onRenderOptions = U.objMerge(defaultRenderOptions, onRenderOptions);
-			postRenderFuncs = [...defaultPostRenderFuncs, ...postRenderFuncs];
-			return [new ClassRef(xParent, options, onRenderOptions) as InstanceType<ClassType>, postRenderFuncs];
+function classBuilder<ClassType extends typeof XItem|typeof XGroup, ParentClass extends typeof XGroup>(ClassRef: ClassType, defaultRenderOptions: RenderOptions) {
+	class ThisFactory extends XFactoryBase<ClassType,ParentClass> {
+		protected override factoryMethod(xParent: InstanceType<ParentClass>): InstanceType<ClassType> {
+			return new ClassRef(xParent) as InstanceType<ClassType>;
 		}
 	}
 	return new ThisFactory();
@@ -109,10 +105,7 @@ const FACTORIES = {
 	XGroup: classBuilder<typeof XGroup, XGroupOptions, typeof XGroup>(XGroup),
 	XPool: classBuilder<typeof XPool, XPoolOptions, typeof XGroup>(XPool),
 	XRoll: classBuilder<typeof XRoll, XRollOptions, typeof XGroup>(XRoll),
-	XDie: classBuilder<typeof XDie, XDieOptions, typeof XGroup>(XDie, {id: "xdie"}, {
-		"--die-size": "40px",
-		"--die-color-fg": "black"
-	}),
+	XDie: classBuilder<typeof XDie, XDieOptions, typeof XGroup>(XDie, {id: "xdie"}),
 	XArm: classBuilder<typeof XArm, XItemOptions, typeof XOrbit>(XArm, {id: "-"}, {
 		transformOrigin: "0% 50%",
 		top: "50%",
@@ -122,7 +115,7 @@ const FACTORIES = {
 	}),
 	XOrbit: classBuilder<typeof XOrbit, XOrbitOptions, typeof XPool>(XOrbit),
 	/*DEVCODE*/
-	XDisplay: classBuilder<typeof XDisplay, XDisplayOptions, typeof XROOT>(XDisplay, {id: "DISPLAY"}, {
+	XDisplay: classBuilder<typeof XDisplay, XItemOptions, typeof XROOT>(XDisplay, {id: "DISPLAY"}, {
 		xPercent: 0,
 		yPercent: 0
 	})

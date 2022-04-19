@@ -30,13 +30,10 @@ export default class XElem {
             child.xParent?.disown(child);
             child.xParent = this.renderApp;
             this.renderApp.registerXKid(child);
-            // If both the renderApp and child are already initialized, assume retaining position.
-            if (this.renderApp.isInitialized() && child.isInitialized()) {
-                child.set({
-                    ...this.getLocalPosData(child),
-                    ...child.xOptions.isFreezingRotate ? { rotation: -1 * this.global.rotation } : {}
-                });
-            }
+            child.set({
+                ...this.getLocalPosData(child),
+                ...child.xOptions.isFreezingRotate ? { rotation: -1 * this.global.rotation } : {}
+            });
             child.elem$.appendTo(this.elem);
         }
     }
@@ -154,10 +151,7 @@ export default class XElem {
             };
             return true;
         }
-        return gsap.set(this.elem, {
-            ...vars,
-            ...this.renderApp.isInitialized() ? {} : { opacity: 0 }
-        });
+        return gsap.set(this.elem, vars);
     }
     to({ scalingDuration, ...vars }) {
         const tween = gsap.to(this.elem, vars);

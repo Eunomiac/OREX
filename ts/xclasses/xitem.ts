@@ -9,12 +9,13 @@ import {
 	XDie, XTerm, XMod
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XGroupOptions, Renderable, Tweenable, ConstructorOf} from"../helpers/bundler.js";
+import type {XGroupOptions, Renderable, Tweenable, ConstructorOf, XInitFunc, RenderOptions} from"../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 export interface XItemOptions extends Partial<ApplicationOptions> {
 	id: string;
 	keepID?: boolean;
 	isFreezingRotate?: boolean;
+	postRenderVars?: Partial<gsap.CSSProperties>;
 }
 
 const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = [
@@ -23,9 +24,6 @@ const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = 
 	}]
 ];
 
-export interface lockedXItem<T extends XItem> extends XItem {
-	xParent: XGroup
-}
 export default class XItem extends Application implements Renderable, Tweenable {
 	// #region ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & XItemOptions {
@@ -33,7 +31,17 @@ export default class XItem extends Application implements Renderable, Tweenable 
 			popOut: false,
 			classes: ["x-item"],
 			template: U.getTemplatePath("xitem"),
-			isFreezingRotate: false
+			isFreezingRotate: false,
+			postRenderVars: {
+				xPercent: -50,
+				yPercent: -50,
+				x: 0,
+				y: 0,
+				opacity: 0,
+				rotation: 0,
+				scale: 1,
+				transformOrigin: "50% 50%"
+			}
 		} as Partial<XItemOptions>);
 	}
 
@@ -80,54 +88,43 @@ export default class XItem extends Application implements Renderable, Tweenable 
 	xParent: XGroup | null; //~ null only in the single case of the top XItem, XROOT.XROOT
 	#xKids: Set<typeof this> = new Set();
 
-	readonly xOptions: XItemOptions;
-	defaultOnRenderOptions: Partial<gsap.CSSProperties> = {
-		xPercent: -50,
-		yPercent: -50,
-		x: 0,
-		y: 0,
-		opacity: 1,
-		rotation: 0,
-		scale: 1,
-		transformOrigin: "50% 50%"
+	#renderOptions: RenderOptions = {
+		preRenderFuncs: [],
+		postRenderFuncs: [],
+		postRenderVars: {},
+		postInitFuncs: []
 	};
-	onRenderOptions: Partial<gsap.CSSProperties> = {};
-	get renderOptions() {
-		return {
-			...this.defaultOnRenderOptions,
-			...this.onRenderOptions
-		};
+
+	get preRenderFuncs() { return this.#renderOptions.preRenderFuncs }
+	get postRenderFuncs() { return this.#renderOptions.postRenderFuncs }
+	get postRenderVars() { return U.objMerge(
+		(this.constructor as typeof XItem).defaultOptions.postRenderVars,
+		this.#renderOptions.postRenderVars
+	);
 	}
+	get postInitFuncs() { return this.#renderOptions.postInitFuncs }
 
 	constructor(
 		xParent: XGroup | null,
-		{
-			classes = [],
-			...xOptions
-		}: XItemOptions,
-		onRenderOptions: Partial<gsap.CSSProperties>
+		renderOptions: RenderOptions = {},
+		id = ""
 	) {
+		const options = {id: id ?? ""};
 		if (xParent) {
-			xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^XROOT-?/, "X-"));
+			options.id = U.getUID(`${xParent.id}-${options.id}`.replace(/^XROOT-?/, "X-"));
 		}
-		DB.display(`[#${xOptions.id}] Constructing START`);
-		super(xOptions);
-		this.options.classes.push(...classes);
-		this.onRenderOptions = onRenderOptions;
-		this.xOptions = {
-			...xOptions,
-			...this.options
-		};
-		if (xParent === null && xOptions.id === "XROOT") {
+		DB.display(`[#${options.id}] Constructing START`);
+		super(options);
+		this.#renderOptions = renderOptions;
+		if (xParent === null && id === "XROOT") {
 			this.xParent = null;
 		} else {
 			this.xParent = xParent ?? XROOT.XROOT;
 		}
 		this.xElem = new XElem(this);
-		DB.log(`[#${xOptions.id}] END Constructing`);
+		DB.log(`[#${options.id}] END Constructing`);
 	}
 	// #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
-
 
 	renderApp: XItem = this;
 	get tweens() { return this.xElem.tweens }
@@ -155,7 +152,7 @@ export default class XItem extends Application implements Renderable, Tweenable 
 	}
 
 	get isRendered() { return this.rendered }
-	isInitialized(): this is lockedXItem<typeof this> { return Boolean(this.#initializePromise) }
+	// isInitialized(): this is lockedXItem<typeof this> { return Boolean(this.#initializePromise) }
 	get x() { return this.xElem.x }
 	get y() { return this.xElem.y }
 	get pos() { return this.xElem.pos }
@@ -175,6 +172,7 @@ export default class XItem extends Application implements Renderable, Tweenable 
 	override async render(): Promise<typeof this> {
 		try {
 			await this._render(true, {});
+			// await this.initialize();
 			return Promise.resolve(this);
 		} catch (err) {
 			this._state = Application.RENDER_STATES.ERROR;
@@ -185,9 +183,12 @@ export default class XItem extends Application implements Renderable, Tweenable 
 			return Promise.reject(`An error occurred while rendering ${this.constructor.name} ${this.appId}`);
 		}
 	}
-
-	get adopt() { return this.xElem.adopt.bind(this.xElem) }
-	get disown() { return this.xElem.disown.bind(this.xElem) }
+	adopt(child: XItem, isRetainingPosition = true): void {
+		this.xElem.adopt(child, isRetainingPosition);
+	}
+	disown(child: XItem): void {
+		this.xElem.disown(child);
+	}
 
 	private _tickers: Set<() => void> = new Set();
 	addTicker(func: () => void): void {

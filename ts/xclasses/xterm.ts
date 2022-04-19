@@ -62,9 +62,7 @@ export default class XDie extends XItem implements XTerm {
 	set value(val: XDieValue) {
 		if (val && val > 0 && val <= 10) {
 			this.#value = val;
-			if (this.isInitialized()) {
-				this.value$.html(this.face);
-			}
+			this.value$.html(this.face);
 		}
 	}
 	get face(): XDieFace { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value] as XDieFace }
@@ -80,7 +78,7 @@ export default class XDie extends XItem implements XTerm {
 	}
 
 	constructor(xParent: XGroup, xOptions: XDieOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
-		const dieSize = xOptions.size ?? onRenderOptions.size ?? onRenderOptions.height ?? onRenderOptions.width ?? 40;
+		const dieSize = xOptions.size ?? /* onRenderOptions.size ?? onRenderOptions.height ?? onRenderOptions.width ?? */ 40;
 		onRenderOptions = {
 			"--die-size": `${dieSize}px`,
 			"--die-color-fg": xOptions.numColor ?? "black",
@@ -89,6 +87,8 @@ export default class XDie extends XItem implements XTerm {
 			"fontSize": "calc(1.2 * var(--die-size))",
 			"fontFamily": "Oswald",
 			"textAlign": "center",
+			"height": dieSize,
+			"width": dieSize,
 			...onRenderOptions
 		};
 		xOptions.type = xOptions.type ?? XTermType.BasicDie;
@@ -131,9 +131,7 @@ export class XMod extends XItem implements XTerm {
 	get value() { return (this._value = this._value ?? 0) }
 	set value(val: XDieValue) {
 		this._value = val;
-		if (this.isInitialized()) {
-			this.value$.html(`${val}`);
-		}
+		this.value$.html(`${val}`);
 	}
 
 	override onRenderOptions = {

@@ -45,8 +45,7 @@
     right: calc(100% - var(--held-item-width)); }
   #XROOT .x-die {
     height: var(--die-size);
-    width: var(--die-size);
-    opacity: 0; }
+    width: var(--die-size); }
     #XROOT .x-die svg {
       position: absolute;
       left: 0;
@@ -90,31 +89,16 @@
   height: auto;
   max-width: calc(2 * var(--sidebar-width));
   padding: 5px;
-  display: grid;
-  row-gap: 10px;
   background: rgba(0, 50, 0, 0.7);
   color: lime;
   border: 3px solid lime;
   border-radius: 10px;
   font-family: "Fira Code";
   white-space: nowrap; }
-  .x-display .x-watch-item {
-    width: -moz-fit-content;
-    width: fit-content;
-    display: flex;
-    flex-direction: row;
-    justify-content: stretch;
-    text-align: left;
-    font-size: 14px; }
-    .x-display .x-watch-item label, .x-display .x-watch-item span {
-      display: inline-block;
-      width: auto;
-      overflow: hidden;
-      white-space: nowrap; }
-    .x-display .x-watch-item label {
-      font-weight: bold;
-      font-size: 16px;
-      margin-right: 10px;
-      flex-basis: fit-content; }
-    .x-display .x-watch-item span.x-watch-value {
-      min-width: 40px; }
+  .x-display td, .x-display th {
+    min-width: 100px;
+    width: 100px;
+    max-width: 100px;
+    text-align: right; }
+  .x-display td {
+    text-align: right; }

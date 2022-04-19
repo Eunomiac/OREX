@@ -14,36 +14,36 @@ export const U = { ...baseU, getTemplatePath };
 export { default as C } from "./config.js";
 // ░░░░░░░ Debugging ░░░░░░░
 import { default as DB, XDisplay } from "./debugger.js";
+// import type {XDisplayOptions} from "./debugger.js";
 export { TESTS, DBFUNCS } from "./debugger.js";
 // ░░░░░░░ GSAP Animation ░░░░░░░
 export { default as gsap, Draggable as Dragger, InertiaPlugin, MotionPathPlugin, RoughEase } from "/scripts/greensock/esm/all.js";
 export { default as preloadTemplates } from "./templates.js";
 // ████████ XItems ████████
 export { DB, XElem, XItem, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XOrbitType, XDie, XMod, XTermType, XGhost, XMutator, XInfo, XPad };
-// ████████ FACTORIES: Abstract XItem Creation Factory ████████
 class XFactoryBase {
-    async Make(xParent, options = {}, onRenderOptions = {}, postRenderFuncs = []) {
-        const [xItem, defaultPostRenderFuncs] = this.factoryMethod(xParent, options, onRenderOptions, postRenderFuncs);
+    async Make(xParent, { preRenderFuncs = [], postRenderFuncs = [], postRenderVars = {}, postInitFuncs = [] } = {}) {
+        const xItem = this.factoryMethod(xParent);
+        await Promise.all(preRenderFuncs.map(async (func) => func(xItem)));
         await xItem.render();
-        xParent?.adopt(xItem);
+        await Promise.all(postRenderFuncs.map(async (func) => func(xItem)));
+        xItem.set(postRenderVars);
+        xParent.adopt(xItem);
         try {
             xItem.constructor.Register(xItem);
         }
         catch (err) {
             DB.display(`Error with ${xItem.constructor.name}'s 'Registry' static method.`, err);
         }
-        xItem.set({ ...xItem.renderOptions, ...onRenderOptions });
-        await Promise.all([...defaultPostRenderFuncs, ...postRenderFuncs].map((func) => func(xItem)));
+        await xItem.initialize();
+        await Promise.all(postInitFuncs.map(async (func) => func(xItem)));
         return xItem;
     }
 }
-function classBuilder(ClassRef, defaultOptions = {}, defaultRenderOptions = {}, defaultPostRenderFuncs = []) {
+function classBuilder(ClassRef, defaultRenderOptions) {
     class ThisFactory extends XFactoryBase {
-        factoryMethod(xParent, options, onRenderOptions = defaultRenderOptions, postRenderFuncs = []) {
-            options = U.objMerge(defaultOptions, options);
-            onRenderOptions = U.objMerge(defaultRenderOptions, onRenderOptions);
-            postRenderFuncs = [...defaultPostRenderFuncs, ...postRenderFuncs];
-            return [new ClassRef(xParent, options, onRenderOptions), postRenderFuncs];
+        factoryMethod(xParent) {
+            return new ClassRef(xParent);
         }
     }
     return new ThisFactory();
@@ -53,10 +53,7 @@ const FACTORIES = {
     XGroup: classBuilder(XGroup),
     XPool: classBuilder(XPool),
     XRoll: classBuilder(XRoll),
-    XDie: classBuilder(XDie, { id: "xdie" }, {
-        "--die-size": "40px",
-        "--die-color-fg": "black"
-    }),
+    XDie: classBuilder(XDie, { id: "xdie" }),
     XArm: classBuilder(XArm, { id: "-" }, {
         transformOrigin: "0% 50%",
         top: "50%",

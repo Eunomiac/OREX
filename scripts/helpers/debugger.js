@@ -190,6 +190,13 @@ Object.assign(DB, {
     ClearPings: () => XPing.KillAll()
 });
 export class XDisplay extends XItem {
+    static Display;
+    static Kill() {
+        if (XDisplay.Display?.displayFunc) {
+            gsap.ticker.remove(XDisplay.Display.displayFunc);
+        }
+        XDisplay.Display.elem$.remove();
+    }
     static REGISTRY = new Map();
     static get defaultOptions() {
         return U.objMerge(super.defaultOptions, {
@@ -200,49 +207,49 @@ export class XDisplay extends XItem {
     #watchData = new Map();
     #stepFuncs = new Map();
     get watchData() { return this.#watchData; }
-    constructor(xParent, { watchData, ...xOptions }, onRenderOptions = {}) {
+    constructor(xParent, xOptions, onRenderOptions = {}) {
         super(xParent ?? XROOT.XROOT, xOptions, onRenderOptions);
-        watchData.forEach((watchTerm) => this.#addWatchTerm(watchTerm));
     }
-    parseForDisplay = (val, maxLength) => {
-        if (maxLength) {
-            return U.pad(val, maxLength, "&nbsp;");
+    #watchItems = new Map();
+    addWatchItem(label, xItem) {
+        this.#watchItems.set(label, xItem);
+        this.elem$.find(".x-watch-item-labels").append(`<th>${label}</th>`);
+        for (const funcName of this.#watchFuncs.keys()) {
+            this.elem$.find(`.x-func-${funcName}`).append(`<td id="x-data-${label}-${funcName}"></td>`);
         }
-        else if (typeof val === "string") {
-            return val;
-        }
-        else {
-            return JSON.stringify(val);
-        }
-    };
-    #addWatchTerm({ maxLength, ...watchTerm }) {
-        const id = U.getUID(watchTerm.label.replace(/[\s"'\\]/g, "_"));
-        const { target, watch, ...cTerms } = watchTerm;
-        const contextTerm = { id, ...cTerms };
-        const self = this;
-        if (typeof watch === "string") {
-            this.#stepFuncs.set(id, () => self.parseForDisplay(target[watch], maxLength));
-        }
-        else if (typeof watch === "function") {
-            this.#stepFuncs.set(id, () => self.parseForDisplay(watch(), maxLength));
-        }
-        this.#watchData.set(id, contextTerm);
     }
+    #watchFuncs = new Map();
+    addWatchFunc(label, func) {
+        this.#watchFuncs.set(label, func);
+        this.elem$.append(`<tr class=".x-func-${label}"><th>${label}</th>${Array.from(this.#watchItems.keys()).map((itemId) => `<td id="x-data-${itemId}-${label}"></td>`)}</tr>`);
+    }
+    get itemLabels() { return Array.from(this.#watchItems.keys()); }
+    get watchLabels() { return Array.from(this.#watchFuncs.keys()); }
+    get numDataCols() { return this.#watchItems.size; }
+    get numDataRows() { return this.#watchFuncs.size; }
     getData() {
         const context = super.getData();
-        Object.assign(context, { watchItems: Array.from(this.watchData.values()) });
+        const watchData = {
+            colHeaders: ["", ...this.itemLabels],
+            rowLabels: this.watchLabels
+        };
+        Object.assign(context, watchData);
         return context;
     }
+    displayFunc;
     async initialize() {
         await super.initialize();
         const self = this;
-        function updateDisplay() {
-            self.#stepFuncs.forEach((func, id) => {
-                const test = $(`#${id}`).html(func());
+        this.displayFunc = function updateDisplay() {
+            self.#watchItems.forEach((item, itemId) => {
+                self.#watchFuncs.forEach((func, funcId) => {
+                    $(`#x-data-${itemId}-${funcId}`).text(func(item));
+                });
             });
-        }
-        gsap.ticker.add(updateDisplay);
+        };
+        gsap.ticker.add(this.displayFunc);
         DB.display("X-DISPLAY INITIALIZED", this);
+        XDisplay.Display = this;
         return this;
     }
 }
@@ -264,12 +271,15 @@ const getRollPos = (pos, size) => {
         return { x: 0, y: 0 };
     }
 };
+const DB_SETTINGS = {};
 const DBFUNCS = {
     GSDevTools,
-    InitializeDisplay: async (watchData) => {
+    DB_Set: (key, val) => {
+        DB_SETTINGS[key] = val;
+    },
+    InitializeDisplay: async () => {
         const xDisplay = await FACTORIES.XDisplay.Make(XROOT.XROOT, {
-            id: "DISPLAY",
-            watchData
+            id: "DISPLAY"
         });
         await xDisplay.initialize();
         return xDisplay;
@@ -284,7 +294,7 @@ const DBFUNCS = {
             "width": size,
             "--bg-color": color
         });
-        await xRoll.initialize();
+        // await xRoll.initialize();
         const xDice = Object.fromEntries(await Promise.all([
             XOrbitType.Main,
             XOrbitType.Inner,
@@ -300,7 +310,7 @@ const DBFUNCS = {
                 }, {}))]);
         })));
         DB.display("XROLL's XDICE", xDice);
-        await Promise.all(Object.values(xDice).flat().filter((xDie) => Boolean(xDie)).map((xDie) => xDie.initialize()));
+        // await Promise.all(Object.values(xDice).flat().filter((xDie) => Boolean(xDie)).map((xDie) => xDie.initialize()));
         await xRoll.addXItems(xDice);
         return xRoll;
     }
@@ -309,53 +319,66 @@ const DBFUNCS = {
 // #region 🟩🟩🟩 TEST CASES 🟩🟩🟩
 const TESTS = {
     XArmSnapping: async () => {
-        DB.groupTitle("XArm Snap Test Initializing ...");
-        DB.groupLog("Instantiating Roll");
-        const MainRoll = await FACTORIES.XRoll.Make(XROOT.XROOT, { id: "Roll" }, {
-            x: 500,
-            y: 400,
-            height: 200,
-            width: 200 /* ,
-            outline: "5px solid blue" */
-        });
-        DB.groupEnd();
-        DB.groupLog("Instantiating Dice");
-        const Die = await FACTORIES.XDie.Make(MainRoll, { id: "Roll-Die", type: XTermType.BasicDie, color: "white", numColor: "darkred", strokeColor: "darkred", value: 1 });
-        const RollDice = await Promise.all([
-            // "white",
-            "yellow",
-            "orange",
-            "crimson",
-            "lime",
-            "cyan"
-        ].map((color, i) => FACTORIES.XDie.Make(MainRoll, {
-            id: "Roll-Die",
-            type: XTermType.BasicDie,
-            color,
-            value: i + 2
-        })));
-        const FloatDie = await FACTORIES.XDie.Make(XROOT.XROOT, { id: "Float-Die", type: XTermType.BasicDie, color: "red" }, { x: 300, y: 200 });
-        const RandomDice = await Promise.all([
+        DB.display("XArm Snap Test Initializing ...");
+        DB.groupTitle("Creating 'TestDie' and 'FloatingDice'");
+        const TestIndex = 1;
+        const diePromises = await Promise.all([
+            { x: 300, y: 200 },
             { x: 200, y: 200 },
             { x: 400, y: 700 },
             { x: 800, y: 400 },
             { x: 800, y: 700 },
             { x: 50, y: 500 }
         ].map((dieParams, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
-            id: `RandomDie-${i}`,
+            id: i === TestIndex ? "TestDie" : `F-Die-${i}`,
             type: XTermType.BasicDie,
-            color: "blue",
-            numColor: "cyan",
-            strokeColor: "cyan",
-            value: i + 1
-        }, { x: dieParams.x, y: dieParams.y, opacity: 1, "--die-color-fg": "cyan" })));
+            color: i === TestIndex ? "darkgreen" : "blue",
+            strokeColor: i === TestIndex ? "lime" : "cyan",
+            numColor: i === TestIndex ? "lime" : "cyan",
+            value: i
+        }, {
+            ...dieParams
+        })));
+        const TestDie = diePromises[TestIndex];
+        const FloatingDice = [
+            ...diePromises.slice(0, TestIndex),
+            ...diePromises.slice(TestIndex + 1)
+        ];
+        DB.groupLog("Initializing 'TestDie' and 'FloatingDice'");
+        // await Promise.all([TestDie, ...FloatingDice].map((die) => die.initialize()));
         DB.groupEnd();
-        DB.groupLog("Initializing FloatDie");
-        await Promise.all([FloatDie, ...RandomDice].map((die) => die.initialize({ opacity: 1 })));
-        RandomDice.forEach((die) => die.set({ opacity: 1 }));
+        DB.groupLog("Creating 'MainRoll'");
+        const MainRoll = await FACTORIES.XRoll.Make(XROOT.XROOT, { id: "Roll" }, {
+            x: 500,
+            y: 400,
+            height: 200,
+            width: 200
+        });
         DB.groupEnd();
-        DB.groupLog("Initializing Roll");
-        await MainRoll.initialize();
+        DB.groupLog("Creating MainRoll Dice");
+        const Die = await FACTORIES.XDie.Make(XROOT.XROOT, {
+            id: "Roll-Die",
+            type: XTermType.BasicDie,
+            color: "white",
+            numColor: "darkred",
+            strokeColor: "darkred",
+            value: 1
+        });
+        const RollDice = await Promise.all([
+            "yellow",
+            "orange",
+            "crimson",
+            "lime",
+            "cyan"
+        ].map((color, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
+            id: "Roll-Die",
+            type: XTermType.BasicDie,
+            color,
+            value: i + 2
+        })));
+        DB.groupEnd();
+        DB.groupLog("Initializing MainRoll");
+        // await MainRoll.initialize();
         DB.groupEnd();
         DB.groupLog("Adding Dice");
         await MainRoll.addXItems({ [XOrbitType.Main]: [Die, ...RollDice] });
@@ -365,46 +388,82 @@ const TESTS = {
         const [Arm] = Orbit.arms;
         DB.log("XArm", Arm);
         DB.groupEnd();
-        const dbDisplay = await FACTORIES.XDisplay.Make(XROOT.XROOT, { watchData: [
-                { label: "Widths ", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${xArm.xItem.xOptions.color};">[${i + 1}]</span> ${U.pad(U.pInt(xArm.width), 5, "&nbsp;")}`).join("\t") },
-                { label: "Weights", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${xArm.xItem.xOptions.color};">[${i + 1}]</span> ${U.pad(U.pInt(xArm.orbitWeight), 5, "&nbsp;")}`).join("\t") },
-                { label: "Local °", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${xArm.xItem.xOptions.color};">[${i + 1}]</span> ${U.pad(U.pInt(xArm.rotation), 5, "&nbsp;")}`).join("\t") },
-                { label: "ORBIT °", target: Orbit, watch: () => `Local: ${U.signNum(U.pInt(Orbit.rotation))}, Global: ${U.signNum(U.pInt(Orbit.global.rotation))}` },
-                { label: "Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${xArm.xItem.xOptions.color};">[${i + 1}]</span> ${U.pad(U.pInt(xArm.global.rotation), 5, "&nbsp;")}`).join("\t") }
-            ] });
-        dbDisplay.initialize();
-        const T = {
-            Die,
-            FloatDie,
-            Arm,
-            Orbit,
-            MainRoll
-        };
-        const getPosData = () => {
-            const posData = {};
-            ["MainRoll", "Orbit", "Arm", "Die", "FloatDie"].forEach((xName) => {
-                // @ts-expect-error Debugging.
-                const xItem = T[xName];
-                const xParent = xItem.xParent;
-                const parent = MotionPathPlugin.convertCoordinates(xItem.elem, xParent.elem, xItem.xElem.origin);
-                const global = MotionPathPlugin.convertCoordinates(xItem.elem, XROOT.XROOT.elem, xItem.xElem.origin);
-                posData[xName] = {
-                    local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
-                    origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
-                    parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
-                    global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
-                };
-            });
-            console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
-        };
-        Object.assign(globalThis, T, { getPosData, RandomDice, dbDisplay });
+        const dbDisplay = XDisplay.Display;
+        [Die, ...RollDice].forEach((xDie) => {
+            const xArm = xDie.xParent;
+            dbDisplay.addWatchItem(`${xDie.value}`, xArm);
+        });
+        TestDie.set({ "--die-color-bg": "red" });
+        XDisplay.Kill();
+        /* dbDisplay.addWatchFunc("Widths", (xItem) => `${U.pInt(xItem.width)}`);
+        dbDisplay.addWatchFunc("Local_o", (xItem) => `${U.pInt(xItem.rotation)}`);
+        dbDisplay.addWatchFunc("Globalo", (xItem) => `${U.pInt(xItem.global.rotation)}`);
+        // dbDisplay.addWatchFunc("4-RelPos", (xItem) => {
+        // 	const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
+        // 	return `[${U.pInt(x)}, ${U.pInt(y)}]`;
+        // });
+        dbDisplay.addWatchFunc("4-RelAng", (xItem) => {
+            const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
+            return `${U.pInt(U.getAngle({x: 0, y: 0}, {x, y}, undefined, [-180, 180]))}`;
+        });
+        dbDisplay.addWatchFunc("4-AdjCurAng", (xItem) => `${U.pInt(U.cycleAngle(xItem.global.rotation - 180, [-180, 180]))}`);
+        dbDisplay.addWatchFunc("4-AngDelt", (xItem) => {
+            const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
+            const angleToFloat = U.pInt(U.getAngle({x: 0, y: 0}, {x, y}, undefined, [-180, 180]));
+            return `${U.pInt(U.getAngleDelta(U.cycleAngle(xItem.global.rotation - 180, [-180, 180]), angleToFloat, [-180, 180]))}`;
+        }); */
+        // dbDisplay.addWatchFunc("gRWT-4", (xItem) => `${U.pInt(xItem.rotation)}>${U.pInt((xItem as XArm).getRotWidthToItem(TestDie).rotation)}`);
+        // const dbDisplay = await FACTORIES.XDisplay.Make(XROOT.XROOT, {watchData: [
+        // 	// {label: "Widths ", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span> ${U.pad(U.pInt(xArm.width),5, "&nbsp;")}`).join("\t")},
+        // 	{label: "Weights", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.heldItemSize),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+        // 	{label: "Local °", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+        // 	// {label: "ORBIT °", target: Orbit, watch: () => `Local: ${U.signNum(U.pInt(Orbit.rotation))}, Global: ${U.signNum(U.pInt(Orbit.global.rotation))}`},
+        // 	{label: "Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.global.rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+        // 	// For each arm and FloatingDie[3] (value = "4"):
+        // 	{label: "F-Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.getRotWidthToItem(FloatingDice[3]).rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+        // ]});
+        // dbDisplay.initialize();
+        // const getPosData = () => {
+        // 	const posData: Record<string, any> = {};
+        // 	[ainRoll",Orbit", "Arm"].forEach((xName) => {
+        // 		// @ts-expect-error Debugging.
+        // 		const xItem = T[xName] as XItem;
+        // 		const xParent = xItem.xParent as XItem;
+        // 		const parent = MotionPathPlugin.convertCoordinates(
+        // 			xItem.elem,
+        // 			xParent.elem,
+        // 			xItem.xElem.origin
+        // 		);
+        // 		const global = MotionPathPlugin.convertCoordinates(
+        // 			xItem.elem,
+        // 			XROOT.XROOT.elem,
+        // 			xItem.xElem.origin
+        // 		);
+        // 		posData[xName] = {
+        // 			local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
+        // 			origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
+        // 			parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
+        // 			global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
+        // 		};
+        // 	});
+        // 	console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
+        // };
+        Object.assign(globalThis, {
+            ROLL: MainRoll,
+            DICE: Object.fromEntries(FloatingDice.map((die) => [`${die.value}`, die])),
+            TestDie,
+            ROLLDICE: [Die, ...RollDice],
+            Orbit, getPosData, dbDisplay
+        });
         DB.log("Setup Complete.");
         DB.groupDisplay("Starting Timeouts...");
         await U.sleep(U.randInt(1, 5));
         DB.groupEnd();
         DB.groupEnd();
-        DB.log("Initial Position Data");
-        getPosData();
+        // await U.sleep(10);
+        // DB.log("Slowing Timeline");
+        // gsap.globalTimeline.timeScale(0.01);
+        // getPosData();
     }
 };
 // #region ====== TESTS ARCHIVE ====== ~
@@ -414,7 +473,7 @@ const TESTS_ARCHIVE = {
             id: "translate-box",
             classes: ["translate-box"]
         }, { xPercent: 0, yPercent: 0 });
-        await TranslateBox.initialize();
+        // await TranslateBox.initialize();
         TranslateBox.to({
             x: "+=500",
             duration: 5,
@@ -429,7 +488,7 @@ const TESTS_ARCHIVE = {
             xPercent: 0,
             yPercent: 0
         });
-        await ScaleBox.initialize();
+        // await ScaleBox.initialize();
         ScaleBox.to({
             scale: 2,
             duration: 15,
@@ -444,7 +503,7 @@ const TESTS_ARCHIVE = {
             xPercent: 0,
             yPercent: 0
         });
-        await ExtraScaleBox.initialize();
+        // await ExtraScaleBox.initialize();
         ExtraScaleBox.to({
             scale: 3,
             duration: 5,
@@ -459,7 +518,7 @@ const TESTS_ARCHIVE = {
             xPercent: 0,
             yPercent: 0
         });
-        await RotateBox.initialize();
+        // await RotateBox.initialize();
         RotateBox.to({
             rotation: "+=360",
             duration: 2,
@@ -473,14 +532,14 @@ const TESTS_ARCHIVE = {
             xPercent: 0,
             yPercent: 0
         });
-        await CounterRotateBox.initialize();
+        // await CounterRotateBox.initialize();
         CounterRotateBox.to({
             rotation: "-=360",
             duration: 2,
             ease: "power4.inOut",
             repeat: -1
         });
-        await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
+        // await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
         const TestDie = await FACTORIES.XGroup.Make(CounterRotateBox, { id: "test-die" }, { height: 40, width: 40, background: "lime" });
         const dieMarkers = await Promise.all([
             { x: 0.5, y: 0, background: "yellow" },
@@ -496,7 +555,7 @@ const TESTS_ARCHIVE = {
             y: y * 50,
             background
         })));
-        await Promise.all(dieMarkers.map((marker) => marker.initialize()));
+        // await Promise.all(dieMarkers.map((marker) => marker.initialize()));
         const xMarkers = await Promise.all(["yellow", "cyan", "magenta"]
             .map((background, i) => FACTORIES.XItem.Make(XROOT.XROOT, {
             id: `x-marker-${i + 1}`,
@@ -508,7 +567,7 @@ const TESTS_ARCHIVE = {
             y: 500 + (40 * i),
             background
         })));
-        await Promise.all(xMarkers.map((marker) => marker.initialize()));
+        // await Promise.all(xMarkers.map((marker) => marker.initialize()));
         xMarkers.forEach((marker, i) => marker.set(dieMarkers[i].pos));
         DB.log("Test Die Objs =>", dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, TestDie);
     }

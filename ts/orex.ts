@@ -95,6 +95,22 @@ Hooks.once("ready", async () => {
 	DB.log("... Readying Complete.");
 
 	// DBFUNCS.InitializeDisplay([]);
+	DB.groupInfo("Rendering Debug Display to DOM");
+	const DBDISPLAY = await DBFUNCS.InitializeDisplay();
+	/*
+	// {label: "Widths ", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span> ${U.pad(U.pInt(xArm.width),5, "&nbsp;")}`).join("\t")},
+	{ label: "Weights", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i + 1}]</span>${U.pad(U.pInt(xArm.heldItemSize), 3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t") },
+	{ label: "Local °", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i + 1}]</span>${U.pad(U.pInt(xArm.rotation), 3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t") },
+	// {label: "ORBIT °", target: Orbit, watch: () => `Local: ${U.signNum(U.pInt(Orbit.rotation))}, Global: ${U.signNum(U.pInt(Orbit.global.rotation))}`},
+	{ label: "Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i + 1}]</span>${U.pad(U.pInt(xArm.global.rotation), 3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t") },
+	// For each arm and FloatingDie[3] (value = "4"):
+	{ label: "F-Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i + 1}]</span>${U.pad(U.pInt(xArm.getRotWidthToItem(FloatingDice[3]).rotation), 3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t") },
+
+		]
+}); */
+
+
+	DB.groupEnd();
 
 	DB.groupDisplay("Initializing Roll Generation");
 	TESTS.XArmSnapping();
