@@ -5,6 +5,7 @@ gsap,
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 U, DB, XElem, XROOT, XGroup } from "../helpers/bundler.js";
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 const LISTENERS = [
     ["mousemove", (event) => {
             XItem.LogMouseMove(event.pageX, event.pageY);
@@ -69,7 +70,6 @@ export default class XItem extends Application {
     // #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
     xElem;
     xParent; //~ null only in the single case of the top XItem, XROOT.XROOT
-    #xKids = new Set();
     #renderOptions = {
         preRenderFuncs: [],
         postRenderFuncs: [],
@@ -125,16 +125,7 @@ export default class XItem extends Application {
     }
     get isRendered() { return this.rendered; }
     // isInitialized(): this is lockedXItem<typeof this> { return Boolean(this.#initializePromise) }
-    get x() { return this.xElem.x; }
-    get y() { return this.xElem.y; }
-    get pos() { return this.xElem.pos; }
-    get rotation() { return this.xElem.rotation; }
-    get scale() { return this.xElem.scale; }
-    get origin() { return this.xElem.origin; }
-    get global() { return this.xElem.global; }
-    get height() { return this.xElem.height; }
-    get width() { return this.xElem.width; }
-    get size() { return this.xElem.size; }
+    A;
     isFreezingRotate = false;
     get getDistanceTo() { return this.xElem.getDistanceTo.bind(this.xElem); }
     get getGlobalAngleTo() { return this.xElem.getGlobalAngleTo.bind(this.xElem); }
@@ -152,12 +143,6 @@ export default class XItem extends Application {
             });
             return Promise.reject(`An error occurred while rendering ${this.constructor.name} ${this.appId}`);
         }
-    }
-    adopt(child, isRetainingPosition = true) {
-        this.xElem.adopt(child, isRetainingPosition);
-    }
-    disown(child) {
-        this.xElem.disown(child);
     }
     _tickers = new Set();
     addTicker(func) {

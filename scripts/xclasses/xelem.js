@@ -7,41 +7,34 @@ gsap, MotionPathPlugin,
 U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮ XItems ▮▮▮▮▮▮▮
-XItem, XROOT, XGroup
-// #endregion ▮▮▮▮[XItems]▮▮▮▮
- } from "../helpers/bundler.js";
-// #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
+XItem, XROOT } from "../helpers/bundler.js";
+// #endregion ___ Options ___
+// #region ░░░░░░░[Interfaces]░░░░ Class Interfaces ░░░░░░░ ~
+class Renderable {
+    _isRendered = false;
+}
+class Tweenable {
+    _isTweening = false;
+}
+class TestItem extends Renderable, Tweenable {
+    _is;
+}
+// #endregion ░░░░[Interfaces]░░░░
 // #region 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 export default class XElem {
     // #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
-    id;
     renderApp;
+    get id() { return this.renderApp.id; }
     get elem() { return this.renderApp.element[0]; }
     get elem$() { return $(this.elem); }
     constructor(renderApp) {
         this.renderApp = renderApp;
-        this.id = this.renderApp.id;
     }
     // #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
+    adoptXItem(child) {
+        this.elem$.append(child.elem);
+    }
     // #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
-    get xParent() { return this.renderApp.xParent; }
-    adopt(child, isRetainingPosition = true) {
-        if (this.renderApp instanceof XGroup) {
-            child.xParent?.disown(child);
-            child.xParent = this.renderApp;
-            this.renderApp.registerXKid(child);
-            child.set({
-                ...this.getLocalPosData(child),
-                ...child.xOptions.isFreezingRotate ? { rotation: -1 * this.global.rotation } : {}
-            });
-            child.elem$.appendTo(this.elem);
-        }
-    }
-    disown(child) {
-        if (this.renderApp instanceof XGroup) {
-            this.renderApp.unregisterXKid(child);
-        }
-    }
     tweenTimeScale(tweenID, timeScale = 1, duration = 1) {
         const tween = this.tweens[tweenID];
         return gsap.to(tween, {
@@ -126,7 +119,7 @@ export default class XElem {
     /*~ Figure out a way to have to / from / fromTo methods on all XItems that:
             - will adjust animation timescale based on a maximum time to maximum distance ratio(and minspeed ratio ?)
             - if timescale is small enough, just uses.set() ~*/
-    scaleTween(tween, { scalingDuration, ...vars }, fromVal) {
+    scaleTween(tween, { durScaling: scalingDuration, ...vars }, fromVal) {
         const duration = tween.duration();
         const { scaleTarget, maxDelta, minDur = 0 } = scalingDuration ?? {};
         if (typeof scaleTarget === "string" && typeof maxDelta === "number") {
@@ -153,17 +146,17 @@ export default class XElem {
         }
         return gsap.set(this.elem, vars);
     }
-    to({ scalingDuration, ...vars }) {
+    to({ durScaling: scalingDuration, ...vars }) {
         const tween = gsap.to(this.elem, vars);
         if (vars.id) {
             this.tweens[vars.id] = tween;
         }
         if (scalingDuration) {
-            this.scaleTween(tween, { scalingDuration, ...vars });
+            this.scaleTween(tween, { durScaling: scalingDuration, ...vars });
         }
         return tween;
     }
-    from({ scalingDuration, ...vars }) {
+    from({ durScaling: scalingDuration, ...vars }) {
         const tween = gsap.from(this.elem, vars);
         if (vars.id) {
             this.tweens[vars.id] = tween;
@@ -172,7 +165,7 @@ export default class XElem {
             const fromVal = vars[scalingDuration.scaleTarget];
             if (typeof U.get(this.elem, scalingDuration.scaleTarget) === "number") {
                 this.scaleTween(tween, {
-                    scalingDuration,
+                    durScaling: scalingDuration,
                     ...vars,
                     [scalingDuration.scaleTarget]: U.get(this.elem, scalingDuration.scaleTarget)
                 }, fromVal);
@@ -180,14 +173,14 @@ export default class XElem {
         }
         return tween;
     }
-    fromTo(fromVars, { scalingDuration, ...toVars }) {
+    fromTo(fromVars, { durScaling: scalingDuration, ...toVars }) {
         const tween = gsap.fromTo(this.elem, fromVars, toVars);
         if (toVars.id) {
             this.tweens[toVars.id] = tween;
         }
         if (scalingDuration && scalingDuration.scaleTarget) {
             const fromVal = fromVars[scalingDuration.scaleTarget] ?? U.get(this.elem, scalingDuration.scaleTarget);
-            this.scaleTween(tween, { scalingDuration, ...toVars }, typeof fromVal === "number" ? fromVal : U.pInt(U.get(this.elem, scalingDuration.scaleTarget)));
+            this.scaleTween(tween, { durScaling: scalingDuration, ...toVars }, typeof fromVal === "number" ? fromVal : U.pInt(U.get(this.elem, scalingDuration.scaleTarget)));
         }
         return tween;
     }

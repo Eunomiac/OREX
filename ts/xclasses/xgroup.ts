@@ -4,17 +4,17 @@ import {
 	C, U, DB,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-	XItem, XTerm,
+	XItem, CanParent, IsTweenable,
+	XTerm,
 	XTermType,
 	XDie,
 	XMod,
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[Enums]▮▮▮▮▮▮▮
-	Dir,
+	Dir
 	// #endregion ▮▮▮▮[Enums]▮▮▮▮
-	FACTORIES
 } from "../helpers/bundler.js";
-import type {XItemOptions, XDieValue} from "../helpers/bundler.js";
+import type {XOptions, XDieValue} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 /*DEVCODE*/
 // #region ▮▮▮▮▮▮▮ [SCHEMA] Breakdown of Classes & Subclasses ▮▮▮▮▮▮▮ ~
@@ -44,7 +44,7 @@ import type {XItemOptions, XDieValue} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮[SCHEMA]▮▮▮▮
 /*!DEVCODE*/
 // #region 🟩🟩🟩 XGroup: Any XItem That Can Contain Child XItems 🟩🟩🟩 ~
-export interface XGroupOptions extends XItemOptions { }
+// export interface XGroupOptions extends XItemOptions { }
 export default class XGroup extends XItem {
 	/*
 	static override async Make(xParent: XG, xOptions: Partial<XGOptions>, onRenderOptions: Partial<gsap.CSSProperties>): Promise<XG> {
@@ -60,22 +60,7 @@ export default class XGroup extends XItem {
 	static override REGISTRY: Map<string, XItem> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-group"]}) }
 
-	#xKids: Set<XItem> = new Set();
-	get xKids(): Set<XItem> { return this.#xKids }
-	get hasKids() { return this.xKids.size > 0 }
-	registerXKid(xKid: XItem) { this.xKids.add(xKid) }
-	unregisterXKid(xKid: XItem) { this.xKids.delete(xKid) }
-	getXKids<X extends XItem>(classRef: ConstructorOf<X>, isGettingAll = false): X[] {
-		const xKids: X[] = Array.from(this.xKids.values())
-			.flat()
-			.filter(U.FILTERS.IsInstance(classRef)) as X[];
-		if (isGettingAll) {
-			xKids.push(...xKids
-				.map((xKid) => (xKid instanceof XGroup ? xKid.getXKids(classRef, true) : []))
-				.flat());
-		}
-		return xKids;
-	}
+
 	// override async initialize(renderOptions: Partial<gsap.CSSProperties> = {}): Promise<typeof this> {
 	// 	await super.initialize(renderOptions);
 	// 	return Promise.allSettled(this.getXKids(XItem).map((xItem) => xItem.initialize({})))
@@ -84,57 +69,24 @@ export default class XGroup extends XItem {
 	// 			() => Promise.reject()
 	// 		);
 	// }
-	async addXItem<T extends XItem>(xItem: T): Promise<T> {
-		this.adopt(xItem);
-		return xItem;
-	}
-	async addXItems<T extends XItem>(xItems: T[]): Promise<T[]> {
-		return Promise.allSettled(xItems.map((xItem) => this.addXItem(xItem)))
-			.then(
-				() => Promise.resolve(xItems),
-				() => Promise.reject()
-			);
-	}
 
-	constructor(xParent: XGroup | null, xOptions: XGroupOptions, renderOptions: Partial<gsap.CSSProperties> = {}) {
-		super(xParent, xOptions, renderOptions);
+
+	constructor(options: XOptions.Group) {
+		super(options);
 	}
 }
 // #endregion ▄▄▄▄▄ XGroup ▄▄▄▄▄
 
 // #region 🟩🟩🟩 XROOT: Base Container for All XItems - Only XItem that Doesn't Need an XParent 🟩🟩🟩 ~
-export class XROOT extends XGroup {
-	static async Make(): Promise<XROOT> {
-		XROOT.XROOT?.kill();
-		XROOT.#XROOT = new XROOT();
-		await XROOT.#XROOT.render();
-		await XROOT.#XROOT.initialize();
-		return XROOT.#XROOT;
-	}
-	static override REGISTRY: Map<string, XROOT> = new Map();
-	static override get defaultOptions(): ApplicationOptions & XGroupOptions {
-		return {
-			...XItem.defaultOptions,
-			classes: ["XROOT"]
-		};
-	}
 
-	static #XROOT: XROOT;
-	static get XROOT() { return XROOT.#XROOT }
-	static async InitializeXROOT(): Promise<XROOT> { return XROOT.Make() }
-	declare xParent: null;
-	constructor() {
-		super(null, {id: "XROOT"}, {xPercent: 0, yPercent: 0});
-	}
-}
 // #endregion 🟩🟩🟩 XROOT 🟩🟩🟩
 
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
 
-export interface XArmOptions extends XItemOptions {
-	heldItemSize: number;
-}
-export class XArm extends XGroup {
+// export interface XArmOptions extends XItemOptions {
+// 	heldItemSize: number;
+// }
+export class XArm extends IsTweenable(XGroup) {
 	static override REGISTRY: Map<string, XArm> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-arm"]}) }
 	declare xParent: XOrbit;
@@ -298,8 +250,10 @@ export enum XOrbitType {
 	Inner = "Inner",
 	Outer = "Outer"
 }
-export interface XOrbitOptions extends XGroupOptions, XOrbitSpecs { }
-export class XOrbit extends XGroup {
+// export interface XOrbitOptions extends XGroupOptions, XOrbitSpecs { }
+
+const tweean = IsTweenable(XGroup);
+export class XOrbit extends IsTweenable(XGroup) {
 
 	static override REGISTRY: Map<string, XOrbit> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-orbit"]}) }
@@ -382,7 +336,7 @@ export class XOrbit extends XGroup {
 			callbackScope: this,
 			onUpdate() {
 				this.xTerms.forEach((xItem: XItem & XTerm) => {
-					if (xItem.xOptions.isFreezingRotate && xItem.xParent instanceof XArm) {
+					if (xItem.options.isFreezingRotate && xItem.xParent instanceof XArm) {
 						xItem.set({rotation: -1 * xItem.xParent.global.rotation});
 					}
 				});
@@ -391,10 +345,10 @@ export class XOrbit extends XGroup {
 	}
 	protected updateArmsThrottle?: NodeJS.Timeout;
 	public pauseRotating() {
-		this.xElem.tweens.rotationTween?.pause();
+		this.tweens.rotationTween?.pause();
 	}
 	public playRotating() {
-		this.xElem.tweens.rotationTween?.play();
+		this.tweens.rotationTween?.play();
 	}
 
 	override async initialize(): Promise<this> {
@@ -524,10 +478,10 @@ export class XOrbit extends XGroup {
 // #endregion ▄▄▄▄▄ XOrbit ▄▄▄▄▄
 
 // #region 🟥🟥🟥 XPool: An XGroup Containing Drag-&-Droppable XTerms Contained in XOrbits 🟥🟥🟥 ~
-export interface XPoolOptions extends XGroupOptions {
-	orbitals?: Partial<Record<XOrbitType, XOrbitSpecs>>;
-}
-export class XPool extends XGroup {
+// export interface XPoolOptions extends XGroupOptions {
+// 	orbitals?: Partial<Record<XOrbitType, XOrbitSpecs>>;
+// }
+export class XPool extends IsTweenable(XGroup) {
 	static override REGISTRY: Map<string, XPool> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-pool"]}) }
 	declare xParent: XGroup;
@@ -605,7 +559,7 @@ export class XPool extends XGroup {
 // #endregion ▄▄▄▄▄ XPool ▄▄▄▄▄
 
 // #region 🟥🟥🟥 XRoll: An XPool That Can Be Rolled, Its Child XTerms Evaluated Into a Roll Result 🟥🟥🟥 ~
-export interface XRollOptions extends XPoolOptions { }
+// export interface XRollOptions extends XPoolOptions { }
 export class XRoll extends XPool {
 	static override REGISTRY: Map<string, XRoll> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-roll"]}) }
@@ -677,7 +631,7 @@ export class XRoll extends XPool {
 // #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄
 
 // #region 🟥🟥🟥 XSource: An XPool containing XItems that players can grab and use 🟥🟥🟥 ~
-export interface XSourceOptions extends XPoolOptions { }
+// export interface XSourceOptions extends XPoolOptions { }
 export class XSource extends XPool {
 	static override REGISTRY: Map<string, XSource> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-source"]}) }

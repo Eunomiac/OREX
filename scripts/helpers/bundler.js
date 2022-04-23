@@ -14,7 +14,7 @@ export const U = { ...baseU, getTemplatePath };
 export { default as C } from "./config.js";
 // #endregion ░░░░[Utilities & Constants]░░░░
 // #region ░░░░░░░ Debugging ░░░░░░░ ~
-import { default as DB, XDisplay } from "./debugger.js";
+import { default as DB } from "./debugger.js";
 // import type {XDisplayOptions} from "./debugger.js";
 export { TESTS, DBFUNCS } from "./debugger.js";
 // #endregion ░░░░[Debugging]░░░░
@@ -24,56 +24,7 @@ export { default as preloadTemplates } from "./templates.js";
 // #endregion ░░░░[GSAP Animation]░░░░
 // #region ████████ XItems ████████
 export { DB, XElem, XItem, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XOrbitType, XDie, XMod, XTermType, XGhost, XMutator, XInfo, XPad };
-class XFactoryBase {
-    async Make(xParent, { preRenderFuncs = [], postRenderFuncs = [], postRenderVars = {}, postInitFuncs = [] } = {}) {
-        const xItem = this.factoryMethod(xParent);
-        await Promise.all(preRenderFuncs.map(async (func) => func(xItem)));
-        await xItem.render();
-        await Promise.all(postRenderFuncs.map(async (func) => func(xItem)));
-        xItem.set(postRenderVars);
-        xParent.adopt(xItem);
-        try {
-            xItem.constructor.Register(xItem);
-        }
-        catch (err) {
-            DB.display(`Error with ${xItem.constructor.name}'s 'Registry' static method.`, err);
-        }
-        await xItem.initialize();
-        await Promise.all(postInitFuncs.map(async (func) => func(xItem)));
-        return xItem;
-    }
-}
-function classBuilder(ClassRef, defaultRenderOptions) {
-    class ThisFactory extends XFactoryBase {
-        factoryMethod(xParent) {
-            return new ClassRef(xParent);
-        }
-    }
-    return new ThisFactory();
-}
-const FACTORIES = {
-    XItem: classBuilder(XItem),
-    XGroup: classBuilder(XGroup),
-    XPool: classBuilder(XPool),
-    XRoll: classBuilder(XRoll),
-    XDie: classBuilder(XDie, { id: "xdie" }),
-    XArm: classBuilder(XArm, { id: "-" }, {
-        transformOrigin: "0% 50%",
-        top: "50%",
-        left: "50%",
-        xPercent: 0,
-        yPercent: 0
-    }),
-    XOrbit: classBuilder(XOrbit),
-    /*DEVCODE*/
-    XDisplay: classBuilder(XDisplay, { id: "DISPLAY" }, {
-        xPercent: 0,
-        yPercent: 0
-    })
-    /*!DEVCODE*/
-};
-export { FACTORIES };
-// #endregion ▄▄▄▄▄ FACTORIES ▄▄▄▄▄
+// #endregion ▄▄▄▄▄ TYPES ▄▄▄▄▄
 // #region ████████ ENUMS: TypeScript Enums ████████
 export { Dir } from "./utilities.js";
 // #endregion ▄▄▄▄▄ ENUMS ▄▄▄▄▄
