@@ -10,7 +10,7 @@ U,
 XItem, XROOT, XGroup
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "../helpers/bundler.js";
-// #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 // #region 🟩🟩🟩 XElem: Contains & Controls a DOM Element Linked to an XItem 🟩🟩🟩
 export default class XElem {
     // #region ████████ CONSTRUCTOR & Essential Fields ████████ ~

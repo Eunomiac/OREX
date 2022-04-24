@@ -5,6 +5,7 @@ gsap,
 // #endregion ▮▮▮▮[External Libraries]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 U, DB, XElem, XROOT, XGroup } from "../helpers/bundler.js";
+// #endregion ▄▄▄▄▄ Type Definitions ▄▄▄▄▄
 const LISTENERS = [
     ["mousemove", (event) => {
             XItem.LogMouseMove(event.pageX, event.pageY);
@@ -33,7 +34,7 @@ export default class XItem extends Application {
     static REGISTRY = new Map();
     // #endregion ▮▮▮▮[Subclass Static Overrides]▮▮▮▮
     // #region ▮▮▮▮▮▮▮[Static Registration] Registration & Retrieval of XItem Instances ▮▮▮▮▮▮▮ ~
-    static get Structor() { return this.constructor; }
+    // protected static get Structor() { return this.constructor as typeof XItem }
     static Register(xItem) {
         this.REGISTRY.set(xItem.id, xItem);
     }

@@ -145,26 +145,7 @@ const GMID = (): string | false => game?.user?.find((user) => user.isGM)?.id ?? 
 // #region ████████ TYPESCRIPT: Type Data & Other TypeScript-Related Utilities ████████ ~
 
 // #region ░░░░░░░[Types]░░░░ Typescript Type Definitions ░░░░░░░ ~
-type int = number;
-type float = number;
-type posInt = number;
-type posFloat = number;
-type HTMLCode = string;
-type jQueryTextTerm = string | number | boolean | ((this: Element, index: number, text: string) => string | number | boolean);
 
-type keyFunc = (key: number | string, val?: unknown) => unknown;
-type valFunc = (val: unknown, key?: number | string) => unknown;
-type testFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => boolean;
-type mapFunc<Type extends keyFunc | valFunc> = (...args: Parameters<Type>) => unknown;
-type List<Type> = Record<number | string | symbol, Type>
-type Index<Type> = List<Type> | Type[];
-type ConstructorOf<X> = new (...args: any[]) => X;
-type RemoveIndex<T> = {
-	[Prop in keyof T as string extends Prop ? never : number extends Prop ? never : Prop]: T[Prop]
-};
-type Concrete<T> = { [Prop in keyof T]-?: T[Prop] }
-type KnownKeys<T> = keyof RemoveIndex<T>;
-type checkTestRef = ((...args: any[]) => any) | testFunc<keyFunc> | testFunc<valFunc> | RegExp | number | string;
 // #endregion ░░░░[Types]░░░░
 
 // #region ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░ ~
@@ -642,7 +623,7 @@ const subGroup = (array: unknown[], groupSize: posInt) => {
 
 // #region ████████ OBJECTS: Manipulation of Simple Key/Val Objects ████████ ~
 
-const checkVal = ({k, v}: { k?: unknown, v?: unknown }, checkTest: checkTestRef) => {
+const checkVal = ({k, v}: { k?: unknown, v?: unknown }, checkTest: checkTest) => {
 	if (typeof checkTest === "function") {
 		if (isDefined(v)) { return checkTest(v, k) }
 		return checkTest(k);
@@ -678,7 +659,7 @@ const remove = (obj: Index<unknown>, checkTest: testFunc<keyFunc | valFunc>) => 
 	}
 	return false;
 };
-const replace = (obj: Index<unknown>, checkTest: checkTestRef, repVal: unknown) => {
+const replace = (obj: Index<unknown>, checkTest: checkTest, repVal: unknown) => {
 	// As remove, except instead replaces the element with the provided value.
 	// Returns true/false to indicate whether the replace action succeeded.
 	let repKey;
@@ -939,6 +920,5 @@ export default {
 	// ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
 	sleep
 };
-export type {int, float, posInt, posFloat, HTMLCode, jQueryTextTerm, List, Index, ConstructorOf, KnownKeys, Concrete};
 export {Dir};
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄
