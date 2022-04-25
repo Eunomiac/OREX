@@ -134,6 +134,8 @@ const UUIDLOG = [];
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
+// ████████ TYPESCRIPT: Type Data & Other TypeScript-Related Utilities ████████
+// ░░░░░░░[Types]░░░░ Typescript Type Definitions ░░░░░░░
 // ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░
 var Dir;
 (function (Dir) {
@@ -907,4 +909,3 @@ unhyphenate, pluralize, oxfordize, ellipsize, pad,
     // ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
     sleep
 };
-export { Dir };

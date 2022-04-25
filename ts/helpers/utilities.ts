@@ -920,5 +920,4 @@ export default {
 	// ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
 	sleep
 };
-export {Dir};
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

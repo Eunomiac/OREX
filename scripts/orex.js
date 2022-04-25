@@ -9,11 +9,10 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin,
 preloadTemplates, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XROOT, XElem, XItem, XArm, XOrbit, XGroup, XPool, XRoll, XDie, 
+XROOT, XItem, XArm, XOrbit, XGroup, XPool, XRoll, XDie, 
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
-DB, TESTS, DBFUNCS, FACTORIES
-// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
+DB, DBFUNCS
 /*!DEVCODE*/
 // #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
  } from "./helpers/bundler.js";
@@ -54,7 +53,7 @@ Hooks.once("ready", async () => {
     DB.groupInfo("Preparing Debug Controls...");
     const DBCONTROLS = {
         U,
-        XElem, XItem, XROOT,
+        XItem, XROOT,
         XGroup, XPool, XRoll, XArm, XOrbit,
         XDie,
         gsap,
@@ -71,7 +70,7 @@ Hooks.once("ready", async () => {
     };
     DB.groupEnd();
     DB.groupInfo("Declaring Debug Console Globals... ");
-    Object.entries({ ...DBCONTROLS, ...TESTS, ...DBFUNCS }).forEach(([key, val]) => { Object.assign(globalThis, { [key]: val }); });
+    Object.entries({ ...DBCONTROLS, ...DBFUNCS }).forEach(([key, val]) => { Object.assign(globalThis, { [key]: val }); });
     DB.groupEnd();
     DB.log("ORE-X READY");
     DB.groupDisplay("Finishing Readying...");
@@ -94,15 +93,6 @@ Hooks.once("ready", async () => {
         ]
 }); */
     DB.groupEnd();
-    DB.groupDisplay("Initializing Roll Generation");
-    TESTS.XArmSnapping();
     return;
-    const MAINROLL = await FACTORIES.XRoll.Make(XROOT.XROOT, { id: "MAIN" }, {
-        "x": 500, "y": 400, "height": 300, "width": 300, "--bg-color": "cyan"
-    });
-    Object.assign(globalThis, { MAINROLL });
-    await MAINROLL.initialize({
-        "x": 500, "y": 400, "size": 300, "--bg-color": "cyan"
-    });
     /*!DEVCODE*/
 });

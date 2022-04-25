@@ -21,8 +21,7 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 
 	// #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
-	DB, TESTS, DBFUNCS, XTermType
-	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
+	DB, DBFUNCS
 	/*!DEVCODE*/
 	// #endregion ▮▮▮▮[Debugging & Tests]▮▮▮▮
 
@@ -85,7 +84,7 @@ Hooks.once("ready", async () => {
 	};
 	DB.groupEnd();
 	DB.groupInfo("Declaring Debug Console Globals... ");
-	Object.entries({...DBCONTROLS, ...TESTS, ...DBFUNCS}).forEach(([key, val]) => { Object.assign(globalThis, {[key]: val}) });
+	Object.entries({...DBCONTROLS, ...DBFUNCS}).forEach(([key, val]) => { Object.assign(globalThis, {[key]: val}) });
 	DB.groupEnd();
 	DB.log("ORE-X READY");
 	DB.groupDisplay("Finishing Readying...");
@@ -111,9 +110,6 @@ Hooks.once("ready", async () => {
 
 
 	DB.groupEnd();
-
-	DB.groupDisplay("Initializing Roll Generation");
-	TESTS.XArmSnapping();
 	return;
 
 /*!DEVCODE*/

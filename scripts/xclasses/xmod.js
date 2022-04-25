@@ -2,7 +2,11 @@
 import { 
 // #endregion ▮▮▮▮[Constants]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, XItem } from "../helpers/bundler.js";
+U, 
+// #endregion ▮▮▮▮[Utility]▮▮▮▮
+// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
+XItem } from "../helpers/bundler.js";
+// #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 class XMod extends XItem {
     type;
     static get defaultOptions() {
@@ -10,9 +14,10 @@ class XMod extends XItem {
             classes: ["x-mod"]
         });
     }
-    constructor(xParent, xOptions, onRenderOptions) {
-        super(xParent, xOptions, onRenderOptions);
-        this.type = xOptions.type;
+    constructor(xOptions) {
+        xOptions.type ??= XTermType.Modifier;
+        super(xOptions);
+        this.type = this.options.type;
     }
     ApplyEffect(xRoll) {
         return xRoll;

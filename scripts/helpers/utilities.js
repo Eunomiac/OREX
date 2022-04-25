@@ -135,6 +135,9 @@ const UUIDLOG = [];
 // #region ████████ GETTERS: Basic Data Lookup & Retrieval ████████ ~
 // @ts-expect-error Leauge of foundry developers is wrong about user not being on game.
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
+// #endregion ▄▄▄▄▄ GETTERS ▄▄▄▄▄
+// #region ████████ TYPESCRIPT: Type Data & Other TypeScript-Related Utilities ████████ ~
+// #region ░░░░░░░[Types]░░░░ Typescript Type Definitions ░░░░░░░ ~
 // #endregion ░░░░[Types]░░░░
 // #region ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░ ~
 var Dir;
@@ -935,5 +938,4 @@ export default {
     // ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
     sleep
 };
-export { Dir };
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄

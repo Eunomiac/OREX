@@ -13,15 +13,11 @@ import {
 	C, U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	FACTORIES,
 	XROOT, XItem,
 	XGroup, XPool,
-	XDie,
-	XTermType, XOrbitType, XRoll
+	XDie, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "./bundler.js";
-import type {XArm, XOrbit, Index, XOrbitSpecs, XItemOptions, XDieValue} from "./bundler.js";
-import type {jQueryTextTerm} from "./utilities.js";
 gsap.registerPlugin(GSDevTools);
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
@@ -118,7 +114,7 @@ const DB: Record<string, any> = {
 
 // #region ████████ XPing: Rendering Position Pings to DOM ████████ ~
 class XPing {
-	static async Make(point: Point, label: string, context = XROOT.XROOT as XGroup, color = "random") {
+	static async Make(point: Point, label: string, context = XROOT.XROOT, color = "random") {
 		color = color === "random" ? U.randElem(Object.keys(C.colors)) : color;
 		const xPing = new XPing(
 			point,
@@ -150,22 +146,27 @@ class XPing {
 	label: string;
 	color: string;
 	point: Point;
-	context: XItem | XROOT;
+	context: XParent;
 
-	constructor(point: Point, label: string, context = XROOT.XROOT as XGroup, color = "random") {
+	constructor(point: Point, label: string, context:XParent = XROOT.XROOT, color = "random") {
 		this.color = color === "random" ? U.randElem(Object.keys(C.colors)) : color;
-		this.xItem = new XItem(context, {id: XPing.newPingID, classes: ["x-ping"]}, {
-			height: 100,
-			width: 100,
-			x: point.x,
-			y: point.y,
-			background: `radial-gradient(red 5%, ${this.color} 10%, transparent 60%, yellow 62%, transparent 64%)`,
-			textAlign: "center",
-			lineHeight: "50px",
-			fontSize: "24px",
-			fontFamily: "Oswald",
-			color: "white",
-			textShadow: "0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black"
+		this.xItem = new XItem({
+			id: XPing.newPingID,
+			classes: ["x-ping"],
+			xParent: context,
+			vars: {
+				height: 100,
+				width: 100,
+				x: point.x,
+				y: point.y,
+				background: `radial-gradient(red 5%, ${this.color} 10%, transparent 60%, yellow 62%, transparent 64%)`,
+				textAlign: "center",
+				lineHeight: "50px",
+				fontSize: "24px",
+				fontFamily: "Oswald",
+				color: "white",
+				textShadow: "0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black, 0 0 3px black"
+			}
 		});
 		this.label = label;
 		this.point = point;
@@ -173,7 +174,7 @@ class XPing {
 	}
 
 	async initialize() {
-		await this.xItem.initialize();
+		await this.xItem.render();
 		this.xItem.elem$.html(this.label);
 		XPing.Register(this);
 		XLogger("base", {background: this.color}, `▶${U.uCase(this.label)} at {x: ${U.roundNum(this.point.x, 1)}, y: ${U.roundNum(this.point.y, 1)}}`, this);
@@ -199,12 +200,12 @@ const getPosData = (xItems: XItem[]) => {
 		const parent = MotionPathPlugin.convertCoordinates(
 			xItem.elem,
 			xParent.elem,
-			xItem.xElem.origin
+			xItem.origin
 		);
 		const global = MotionPathPlugin.convertCoordinates(
 			xItem.elem,
 			XROOT.XROOT.elem,
-			xItem.xElem.origin
+			xItem.origin
 		);
 		let xName = xItem.id.replace(/_.*$/u, "");
 		if (xName in posData) {
@@ -212,7 +213,7 @@ const getPosData = (xItems: XItem[]) => {
 		}
 		posData[xName] = {
 			local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
-			origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
+			origin: `{x: ${U.roundNum(xItem.origin.x)}, y: ${U.roundNum(xItem.origin.y)}}`,
 			parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
 			global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
 		};
@@ -261,8 +262,9 @@ export class XDisplay extends XItem {
 	#watchData: Map<WatchTerm["id"],Omit<WatchTerm,"stepFunc">> = new Map();
 	#stepFuncs: Map<WatchTerm["id"],StepFunc> = new Map();
 	get watchData() { return this.#watchData }
-	constructor(xParent: XROOT, xOptions: XItemOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
-		super(xParent ?? XROOT.XROOT, xOptions, onRenderOptions);
+	constructor(xOptions: Partial<XOptions.Item>) {
+		xOptions.xParent = XROOT.XROOT;
+		super(xOptions);
 	}
 
 	#watchItems: Map<string,XItem> = new Map();
@@ -298,8 +300,8 @@ export class XDisplay extends XItem {
 
 	displayFunc?:WatchFunc;
 
-	override async initialize(): Promise<typeof this> {
-		await super.initialize();
+	override async render(): Promise<this> {
+		await super.render();
 		const self = this;
 		this.displayFunc = function updateDisplay() {
 			self.#watchItems.forEach((item, itemId) => {
@@ -313,8 +315,6 @@ export class XDisplay extends XItem {
 		XDisplay.Display = this;
 		return this;
 	}
-
-
 }
 // #endregion ▄▄▄▄▄ XDisplay ▄▄▄▄▄
 
@@ -341,324 +341,294 @@ const DBFUNCS = {
 		DB_SETTINGS[key] = val;
 	},
 	InitializeDisplay: async (): Promise<XDisplay> => {
-		const xDisplay = await FACTORIES.XDisplay.Make(XROOT.XROOT, {
-			id: "DISPLAY"
+		const xDisplay = new XDisplay({
+			id: "DISPLAY",
+			xParent: XROOT.XROOT
 		});
-		await xDisplay.initialize();
+		await xDisplay.render();
 		return xDisplay;
-	},
-	makeRoll: async (
-		dice: Partial<[number, number, number]>,
-		{pos = 0, color = "cyan", size = 200}: {pos?: 0|1|2|3|4, color?: string, size?: number} = {}
-	) => {
-		const rollPos = getRollPos(pos, size);
-		const xRoll = await FACTORIES.XRoll.Make(XROOT.XROOT, {
-			id: "ROLL"
-		}, {
-			...rollPos,
-			"height": size,
-			"width": size,
-			"--bg-color": color
-		});
-		// await xRoll.initialize();
-		const xDice: Record<XOrbitType, XDie[]> = Object.fromEntries(await Promise.all([
-			XOrbitType.Main,
-			XOrbitType.Inner,
-			XOrbitType.Outer
-		].map((orbitType: XOrbitType) => {
-			const numDice = dice.shift();
-			if (!numDice) { return Promise.resolve([]) }
-			return Promise.all([orbitType, [...new Array(numDice)].map(() => FACTORIES.XDie.Make(xRoll, {
-				id: "xDie",
-				type: XTermType.BasicDie
-			}, {}))]);
-		})));
-		DB.display("XROLL's XDICE", xDice);
-		// await Promise.all(Object.values(xDice).flat().filter((xDie) => Boolean(xDie)).map((xDie) => xDie.initialize()));
-		await xRoll.addXItems(xDice);
-		return xRoll;
 	}
 };
 // #endregion ▄▄▄▄▄ DBFUNCS ▄▄▄▄▄
 
 // #region 🟩🟩🟩 TEST CASES 🟩🟩🟩
-const TESTS = {
-	XArmSnapping: async () => {
-		DB.display("XArm Snap Test Initializing ...");
+// const TESTS = {
+// 	XArmSnapping: async () => {
+// 		DB.display("XArm Snap Test Initializing ...");
 
-		DB.groupTitle("Creating 'TestDie' and 'FloatingDice'");
-		const TestIndex = 1;
-		const diePromises = await Promise.all([
-			{x: 300, y: 200},
-			{x: 200, y: 200},
-			{x: 400, y: 700},
-			{x: 800, y: 400},
-			{x: 800, y: 700},
-			{x: 50, y: 500}
-		].map((dieParams, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
-			id: i === TestIndex ? "TestDie" : `F-Die-${i}`,
-			type: XTermType.BasicDie,
-			color: i === TestIndex ? "darkgreen" : "blue",
-			strokeColor: i === TestIndex ? "lime" : "cyan",
-			numColor: i === TestIndex ? "lime" : "cyan",
-			value: i as XDieValue
-		}, {
-			...dieParams
-		})));
+// 		DB.groupTitle("Creating 'TestDie' and 'FloatingDice'");
+// 		const TestIndex = 1;
+// 		const diePromises = await Promise.all([
+// 			{x: 300, y: 200},
+// 			{x: 200, y: 200},
+// 			{x: 400, y: 700},
+// 			{x: 800, y: 400},
+// 			{x: 800, y: 700},
+// 			{x: 50, y: 500}
+// 		].map((dieParams, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
+// 			id: i === TestIndex ? "TestDie" : `F-Die-${i}`,
+// 			type: XTermType.BasicDie,
+// 			color: i === TestIndex ? "darkgreen" : "blue",
+// 			strokeColor: i === TestIndex ? "lime" : "cyan",
+// 			numColor: i === TestIndex ? "lime" : "cyan",
+// 			value: i as XDieValue
+// 		}, {
+// 			...dieParams
+// 		})));
 
-		const TestDie = diePromises[TestIndex];
-		const FloatingDice = [
-			...diePromises.slice(0, TestIndex),
-			...diePromises.slice(TestIndex + 1)
-		];
+// 		const TestDie = diePromises[TestIndex];
+// 		const FloatingDice = [
+// 			...diePromises.slice(0, TestIndex),
+// 			...diePromises.slice(TestIndex + 1)
+// 		];
 
-		DB.groupLog("Initializing 'TestDie' and 'FloatingDice'");
-		// await Promise.all([TestDie, ...FloatingDice].map((die) => die.initialize()));
-		DB.groupEnd();
+// 		DB.groupLog("Initializing 'TestDie' and 'FloatingDice'");
+// 		// await Promise.all([TestDie, ...FloatingDice].map((die) => die.initialize()));
+// 		DB.groupEnd();
 
-		DB.groupLog("Creating 'MainRoll'");
-		const MainRoll = await FACTORIES.XRoll.Make(
-			XROOT.XROOT,
-			{id: "Roll"},
-			{
-				x: 500,
-				y: 400,
-				height: 200,
-				width: 200
-			}
-		);
-		DB.groupEnd();
-		DB.groupLog("Creating MainRoll Dice");
-		const Die = await FACTORIES.XDie.Make(XROOT.XROOT, {
-			id: "Roll-Die",
-			type: XTermType.BasicDie,
-			color: "white",
-			numColor: "darkred",
-			strokeColor: "darkred",
-			value: 1
-		});
-		const RollDice = await Promise.all([
-			"yellow",
-			"orange",
-			"crimson",
-			"lime",
-			"cyan"
-		].map((color, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
-			id: "Roll-Die",
-			type: XTermType.BasicDie,
-			color,
-			value: i+2 as XDieValue
-		})));
-		DB.groupEnd();
-		DB.groupLog("Initializing MainRoll");
-		// await MainRoll.initialize();
-		DB.groupEnd();
+// 		DB.groupLog("Creating 'MainRoll'");
+// 		const MainRoll = await FACTORIES.XRoll.Make(
+// 			XROOT.XROOT,
+// 			{id: "Roll"},
+// 			{
+// 				x: 500,
+// 				y: 400,
+// 				height: 200,
+// 				width: 200
+// 			}
+// 		);
+// 		DB.groupEnd();
+// 		DB.groupLog("Creating MainRoll Dice");
+// 		const Die = await FACTORIES.XDie.Make(XROOT.XROOT, {
+// 			id: "Roll-Die",
+// 			type: XTermType.BasicDie,
+// 			color: "white",
+// 			numColor: "darkred",
+// 			strokeColor: "darkred",
+// 			value: 1
+// 		});
+// 		const RollDice = await Promise.all([
+// 			"yellow",
+// 			"orange",
+// 			"crimson",
+// 			"lime",
+// 			"cyan"
+// 		].map((color, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
+// 			id: "Roll-Die",
+// 			type: XTermType.BasicDie,
+// 			color,
+// 			value: i+2 as XDieValue
+// 		})));
+// 		DB.groupEnd();
+// 		DB.groupLog("Initializing MainRoll");
+// 		// await MainRoll.initialize();
+// 		DB.groupEnd();
 
-		DB.groupLog("Adding Dice");
-		await MainRoll.addXItems({[XOrbitType.Main]: [Die, ...RollDice]});
-		DB.groupEnd();
-		DB.groupDisplay("Fetching Arm");
-		const Orbit = MainRoll.orbitals.get(XOrbitType.Main)!;
-		const [Arm] = Orbit.arms;
-		DB.log("XArm", Arm);
-		DB.groupEnd();
-		const dbDisplay = XDisplay.Display;
-		[Die, ...RollDice].forEach((xDie) => {
-			const xArm = xDie.xParent;
-			dbDisplay.addWatchItem(`${xDie.value}`, xArm);
-		});
-		TestDie.set({"--die-color-bg": "red"});
+// 		DB.groupLog("Adding Dice");
+// 		await MainRoll.addXItems({[XOrbitType.Main]: [Die, ...RollDice]});
+// 		DB.groupEnd();
+// 		DB.groupDisplay("Fetching Arm");
+// 		const Orbit = MainRoll.orbitals.get(XOrbitType.Main)!;
+// 		const [Arm] = Orbit.arms;
+// 		DB.log("XArm", Arm);
+// 		DB.groupEnd();
+// 		const dbDisplay = XDisplay.Display;
+// 		[Die, ...RollDice].forEach((xDie) => {
+// 			const xArm = xDie.xParent;
+// 			dbDisplay.addWatchItem(`${xDie.value}`, xArm);
+// 		});
+// 		TestDie.set({"--die-color-bg": "red"});
 
-		XDisplay.Kill();
-		/* dbDisplay.addWatchFunc("Widths", (xItem) => `${U.pInt(xItem.width)}`);
-		dbDisplay.addWatchFunc("Local_o", (xItem) => `${U.pInt(xItem.rotation)}`);
-		dbDisplay.addWatchFunc("Globalo", (xItem) => `${U.pInt(xItem.global.rotation)}`);
-		// dbDisplay.addWatchFunc("4-RelPos", (xItem) => {
-		// 	const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
-		// 	return `[${U.pInt(x)}, ${U.pInt(y)}]`;
-		// });
-		dbDisplay.addWatchFunc("4-RelAng", (xItem) => {
-			const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
-			return `${U.pInt(U.getAngle({x: 0, y: 0}, {x, y}, undefined, [-180, 180]))}`;
-		});
-		dbDisplay.addWatchFunc("4-AdjCurAng", (xItem) => `${U.pInt(U.cycleAngle(xItem.global.rotation - 180, [-180, 180]))}`);
-		dbDisplay.addWatchFunc("4-AngDelt", (xItem) => {
-			const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
-			const angleToFloat = U.pInt(U.getAngle({x: 0, y: 0}, {x, y}, undefined, [-180, 180]));
-			return `${U.pInt(U.getAngleDelta(U.cycleAngle(xItem.global.rotation - 180, [-180, 180]), angleToFloat, [-180, 180]))}`;
-		}); */
-		// dbDisplay.addWatchFunc("gRWT-4", (xItem) => `${U.pInt(xItem.rotation)}>${U.pInt((xItem as XArm).getRotWidthToItem(TestDie).rotation)}`);
+// 		XDisplay.Kill();
+// 		/* dbDisplay.addWatchFunc("Widths", (xItem) => `${U.pInt(xItem.width)}`);
+// 		dbDisplay.addWatchFunc("Local_o", (xItem) => `${U.pInt(xItem.rotation)}`);
+// 		dbDisplay.addWatchFunc("Globalo", (xItem) => `${U.pInt(xItem.global.rotation)}`);
+// 		// dbDisplay.addWatchFunc("4-RelPos", (xItem) => {
+// 		// 	const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
+// 		// 	return `[${U.pInt(x)}, ${U.pInt(y)}]`;
+// 		// });
+// 		dbDisplay.addWatchFunc("4-RelAng", (xItem) => {
+// 			const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
+// 			return `${U.pInt(U.getAngle({x: 0, y: 0}, {x, y}, undefined, [-180, 180]))}`;
+// 		});
+// 		dbDisplay.addWatchFunc("4-AdjCurAng", (xItem) => `${U.pInt(U.cycleAngle(xItem.global.rotation - 180, [-180, 180]))}`);
+// 		dbDisplay.addWatchFunc("4-AngDelt", (xItem) => {
+// 			const {x, y} = MotionPathPlugin.getRelativePosition(xItem.xParent!.elem, TestDie.elem, [0.5, 0.5], [0.5, 0.5]);
+// 			const angleToFloat = U.pInt(U.getAngle({x: 0, y: 0}, {x, y}, undefined, [-180, 180]));
+// 			return `${U.pInt(U.getAngleDelta(U.cycleAngle(xItem.global.rotation - 180, [-180, 180]), angleToFloat, [-180, 180]))}`;
+// 		}); */
+// 		// dbDisplay.addWatchFunc("gRWT-4", (xItem) => `${U.pInt(xItem.rotation)}>${U.pInt((xItem as XArm).getRotWidthToItem(TestDie).rotation)}`);
 
-		// const dbDisplay = await FACTORIES.XDisplay.Make(XROOT.XROOT, {watchData: [
-		// 	// {label: "Widths ", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span> ${U.pad(U.pInt(xArm.width),5, "&nbsp;")}`).join("\t")},
-		// 	{label: "Weights", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.heldItemSize),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
-		// 	{label: "Local °", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
-		// 	// {label: "ORBIT °", target: Orbit, watch: () => `Local: ${U.signNum(U.pInt(Orbit.rotation))}, Global: ${U.signNum(U.pInt(Orbit.global.rotation))}`},
-		// 	{label: "Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.global.rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
-		// 	// For each arm and FloatingDie[3] (value = "4"):
-		// 	{label: "F-Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.getRotWidthToItem(FloatingDice[3]).rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+// 		// const dbDisplay = await FACTORIES.XDisplay.Make(XROOT.XROOT, {watchData: [
+// 		// 	// {label: "Widths ", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span> ${U.pad(U.pInt(xArm.width),5, "&nbsp;")}`).join("\t")},
+// 		// 	{label: "Weights", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.heldItemSize),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+// 		// 	{label: "Local °", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+// 		// 	// {label: "ORBIT °", target: Orbit, watch: () => `Local: ${U.signNum(U.pInt(Orbit.rotation))}, Global: ${U.signNum(U.pInt(Orbit.global.rotation))}`},
+// 		// 	{label: "Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.global.rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
+// 		// 	// For each arm and FloatingDie[3] (value = "4"):
+// 		// 	{label: "F-Global°", target: Orbit, watch: () => Orbit.arms.map((xArm, i) => `<span style="color: ${(xArm.xItem as XDie).xOptions.color};">[${i+1}]</span>${U.pad(U.pInt(xArm.getRotWidthToItem(FloatingDice[3]).rotation),3, "&nbsp;")}&nbsp;&nbsp;&nbsp;`).join("\t")},
 
-		// ]});
-		// dbDisplay.initialize();
-		// const getPosData = () => {
-		// 	const posData: Record<string, any> = {};
-		// 	[ainRoll",Orbit", "Arm"].forEach((xName) => {
-		// 		// @ts-expect-error Debugging.
-		// 		const xItem = T[xName] as XItem;
-		// 		const xParent = xItem.xParent as XItem;
-		// 		const parent = MotionPathPlugin.convertCoordinates(
-		// 			xItem.elem,
-		// 			xParent.elem,
-		// 			xItem.xElem.origin
-		// 		);
-		// 		const global = MotionPathPlugin.convertCoordinates(
-		// 			xItem.elem,
-		// 			XROOT.XROOT.elem,
-		// 			xItem.xElem.origin
-		// 		);
-		// 		posData[xName] = {
-		// 			local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
-		// 			origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
-		// 			parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
-		// 			global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
-		// 		};
-		// 	});
-		// 	console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
-		// };
+// 		// ]});
+// 		// dbDisplay.initialize();
+// 		// const getPosData = () => {
+// 		// 	const posData: Record<string, any> = {};
+// 		// 	[ainRoll",Orbit", "Arm"].forEach((xName) => {
+// 		// 		// @ts-expect-error Debugging.
+// 		// 		const xItem = T[xName] as XItem;
+// 		// 		const xParent = xItem.xParent as XItem;
+// 		// 		const parent = MotionPathPlugin.convertCoordinates(
+// 		// 			xItem.elem,
+// 		// 			xParent.elem,
+// 		// 			xItem.xElem.origin
+// 		// 		);
+// 		// 		const global = MotionPathPlugin.convertCoordinates(
+// 		// 			xItem.elem,
+// 		// 			XROOT.XROOT.elem,
+// 		// 			xItem.xElem.origin
+// 		// 		);
+// 		// 		posData[xName] = {
+// 		// 			local: `{x: ${U.roundNum(xItem.pos.x)}, y: ${U.roundNum(xItem.pos.y)}, rot: ${U.roundNum(xItem.rotation)}}`,
+// 		// 			origin: `{x: ${U.roundNum(xItem.xElem.origin.x)}, y: ${U.roundNum(xItem.xElem.origin.y)}}`,
+// 		// 			parent: `{x: ${U.roundNum(parent.x)}, y: ${U.roundNum(parent.y)}}`,
+// 		// 			global: `{x: ${U.roundNum(global.x)}, y: ${U.roundNum(global.y)}, rot: ${U.roundNum(xItem.global.rotation)}}`
+// 		// 		};
+// 		// 	});
+// 		// 	console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
+// 		// };
 
 
-		Object.assign(globalThis, {
-			ROLL: MainRoll,
-			DICE: Object.fromEntries(FloatingDice.map((die) => [`${die.value}`, die])),
-			TestDie,
-			ROLLDICE: [Die, ...RollDice],
-			Orbit, getPosData, dbDisplay});
+// 		Object.assign(globalThis, {
+// 			ROLL: MainRoll,
+// 			DICE: Object.fromEntries(FloatingDice.map((die) => [`${die.value}`, die])),
+// 			TestDie,
+// 			ROLLDICE: [Die, ...RollDice],
+// 			Orbit, getPosData, dbDisplay});
 
-		DB.log("Setup Complete.");
-		DB.groupDisplay("Starting Timeouts...");
-		await U.sleep(U.randInt(1, 5));
-		DB.groupEnd();
-		DB.groupEnd();
-		// await U.sleep(10);
-		// DB.log("Slowing Timeline");
-		// gsap.globalTimeline.timeScale(0.01);
-		// getPosData();
-	}
-};
+// 		DB.log("Setup Complete.");
+// 		DB.groupDisplay("Starting Timeouts...");
+// 		await U.sleep(U.randInt(1, 5));
+// 		DB.groupEnd();
+// 		DB.groupEnd();
+// 		// await U.sleep(10);
+// 		// DB.log("Slowing Timeline");
+// 		// gsap.globalTimeline.timeScale(0.01);
+// 		// getPosData();
+// 	}
+// };
 // #region ====== TESTS ARCHIVE ====== ~
-const TESTS_ARCHIVE = {
-	nestedPositionTest: async () => {
-		const TranslateBox = await FACTORIES.XPool.Make(XROOT.XROOT, {
-			id: "translate-box",
-			classes: ["translate-box"]
-		}, {xPercent: 0, yPercent: 0});
-		// await TranslateBox.initialize();
-		TranslateBox.to({
-			x: "+=500",
-			duration: 5,
-			ease: "power3.inOut",
-			repeat: -1,
-			yoyo: true
-		});
-		const ScaleBox = await FACTORIES.XGroup.Make(TranslateBox, {
-			id: "scale-box-1",
-			classes: ["scale-box"]
-		}, {
-			xPercent: 0,
-			yPercent: 0
-		});
-		// await ScaleBox.initialize();
-		ScaleBox.to({
-			scale: 2,
-			duration: 15,
-			ease: "sine.inOut",
-			repeat: -1,
-			yoyo: true
-		});
-		const ExtraScaleBox = await FACTORIES.XGroup.Make(ScaleBox, {
-			id: "scale-box-2",
-			classes: ["extra-scale-box"]
-		}, {
-			xPercent: 0,
-			yPercent: 0
-		});
-		// await ExtraScaleBox.initialize();
-		ExtraScaleBox.to({
-			scale: 3,
-			duration: 5,
-			ease: "sine.inOut",
-			repeat: -1,
-			yoyo: true
-		});
-		const RotateBox = await FACTORIES.XGroup.Make(ExtraScaleBox, {
-			id: "rotate-box-1",
-			classes: ["rotate-box"]
-		}, {
-			xPercent: 0,
-			yPercent: 0
-		});
-		// await RotateBox.initialize();
-		RotateBox.to({
-			rotation: "+=360",
-			duration: 2,
-			ease: "none",
-			repeat: -1
-		});
-		const CounterRotateBox = await FACTORIES.XGroup.Make(RotateBox, {
-			id: "rotate-box-2",
-			classes: ["rotate-box"]
-		}, {
-			xPercent: 0,
-			yPercent: 0
-		});
-		// await CounterRotateBox.initialize();
-		CounterRotateBox.to({
-			rotation: "-=360",
-			duration: 2,
-			ease: "power4.inOut",
-			repeat: -1
-		});
-		// await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
+// const TESTS_ARCHIVE = {
+// 	nestedPositionTest: async () => {
+// 		const TranslateBox = await FACTORIES.XPool.Make(XROOT.XROOT, {
+// 			id: "translate-box",
+// 			classes: ["translate-box"]
+// 		}, {xPercent: 0, yPercent: 0});
+// 		// await TranslateBox.initialize();
+// 		TranslateBox.to({
+// 			x: "+=500",
+// 			duration: 5,
+// 			ease: "power3.inOut",
+// 			repeat: -1,
+// 			yoyo: true
+// 		});
+// 		const ScaleBox = await FACTORIES.XGroup.Make(TranslateBox, {
+// 			id: "scale-box-1",
+// 			classes: ["scale-box"]
+// 		}, {
+// 			xPercent: 0,
+// 			yPercent: 0
+// 		});
+// 		// await ScaleBox.initialize();
+// 		ScaleBox.to({
+// 			scale: 2,
+// 			duration: 15,
+// 			ease: "sine.inOut",
+// 			repeat: -1,
+// 			yoyo: true
+// 		});
+// 		const ExtraScaleBox = await FACTORIES.XGroup.Make(ScaleBox, {
+// 			id: "scale-box-2",
+// 			classes: ["extra-scale-box"]
+// 		}, {
+// 			xPercent: 0,
+// 			yPercent: 0
+// 		});
+// 		// await ExtraScaleBox.initialize();
+// 		ExtraScaleBox.to({
+// 			scale: 3,
+// 			duration: 5,
+// 			ease: "sine.inOut",
+// 			repeat: -1,
+// 			yoyo: true
+// 		});
+// 		const RotateBox = await FACTORIES.XGroup.Make(ExtraScaleBox, {
+// 			id: "rotate-box-1",
+// 			classes: ["rotate-box"]
+// 		}, {
+// 			xPercent: 0,
+// 			yPercent: 0
+// 		});
+// 		// await RotateBox.initialize();
+// 		RotateBox.to({
+// 			rotation: "+=360",
+// 			duration: 2,
+// 			ease: "none",
+// 			repeat: -1
+// 		});
+// 		const CounterRotateBox = await FACTORIES.XGroup.Make(RotateBox, {
+// 			id: "rotate-box-2",
+// 			classes: ["rotate-box"]
+// 		}, {
+// 			xPercent: 0,
+// 			yPercent: 0
+// 		});
+// 		// await CounterRotateBox.initialize();
+// 		CounterRotateBox.to({
+// 			rotation: "-=360",
+// 			duration: 2,
+// 			ease: "power4.inOut",
+// 			repeat: -1
+// 		});
+// 		// await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
 
-		const TestDie = await FACTORIES.XGroup.Make(CounterRotateBox, {id: "test-die"}, {height: 40, width: 40, background: "lime"});
+// 		const TestDie = await FACTORIES.XGroup.Make(CounterRotateBox, {id: "test-die"}, {height: 40, width: 40, background: "lime"});
 
-		const dieMarkers = await Promise.all([
-			{x: 0.5, y: 0, background: "yellow"},
-			{x: 0, y: 1, background: "cyan"},
-			{x: 1, y: 1, background: "magenta"}
-		].map(({x, y, background}, i) => FACTORIES.XItem.Make(TestDie, {
-			id: `die-marker-${i + 1}`,
-			classes: ["x-marker"]
-		}, {
-			height: 10,
-			width: 10,
-			x: x * 50,
-			y: y * 50,
-			background
-		})));
+// 		const dieMarkers = await Promise.all([
+// 			{x: 0.5, y: 0, background: "yellow"},
+// 			{x: 0, y: 1, background: "cyan"},
+// 			{x: 1, y: 1, background: "magenta"}
+// 		].map(({x, y, background}, i) => FACTORIES.XItem.Make(TestDie, {
+// 			id: `die-marker-${i + 1}`,
+// 			classes: ["x-marker"]
+// 		}, {
+// 			height: 10,
+// 			width: 10,
+// 			x: x * 50,
+// 			y: y * 50,
+// 			background
+// 		})));
 
-		// await Promise.all(dieMarkers.map((marker) => marker.initialize()));
+// 		// await Promise.all(dieMarkers.map((marker) => marker.initialize()));
 
-		const xMarkers = await Promise.all(["yellow", "cyan", "magenta"]
-			.map((background, i) => FACTORIES.XItem.Make(XROOT.XROOT, {
-				id: `x-marker-${i + 1}`,
-				classes: ["x-marker"]
-			}, {
-				height: 10,
-				width: 10,
-				x: 100 + (20 * i),
-				y: 500 + (40 * i),
-				background
-			})));
+// 		const xMarkers = await Promise.all(["yellow", "cyan", "magenta"]
+// 			.map((background, i) => FACTORIES.XItem.Make(XROOT.XROOT, {
+// 				id: `x-marker-${i + 1}`,
+// 				classes: ["x-marker"]
+// 			}, {
+// 				height: 10,
+// 				width: 10,
+// 				x: 100 + (20 * i),
+// 				y: 500 + (40 * i),
+// 				background
+// 			})));
 
-		// await Promise.all(xMarkers.map((marker) => marker.initialize()));
+// 		// await Promise.all(xMarkers.map((marker) => marker.initialize()));
 
-		xMarkers.forEach((marker, i) => marker.set(dieMarkers[i].pos));
+// 		xMarkers.forEach((marker, i) => marker.set(dieMarkers[i].pos));
 
-		DB.log("Test Die Objs =>", dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, TestDie);
-	}
-};
+// 		DB.log("Test Die Objs =>", dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, TestDie);
+// 	}
+// };
 // #endregion ___ TESTS ARCHIVE ___
 // #endregion 🟩🟩🟩 TEST CASES 🟩🟩🟩
 
-export {DB as default, TESTS, DBFUNCS};
+export {DB as default, DBFUNCS};

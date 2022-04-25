@@ -5,16 +5,12 @@ import {
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
 	XBaseContainer,
-	XItem, XTerm,
-	XTermType,
+	XROOT,
+	XItem,
 	XDie,
-	XMod,
+	XMod
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
-	// #region ▮▮▮▮▮▮▮[Enums]▮▮▮▮▮▮▮
-	Dir
-	// #endregion ▮▮▮▮[Enums]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XDieValue} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 /*DEVCODE*/
 // #region ▮▮▮▮▮▮▮ [SCHEMA] Breakdown of Classes & Subclasses ▮▮▮▮▮▮▮ ~
@@ -45,134 +41,175 @@ import type {XDieValue} from "../helpers/bundler.js";
 /*!DEVCODE*/
 // #region 🟩🟩🟩 XGroup: Any XItem That Can Contain Child XItems 🟩🟩🟩 ~
 export default class XGroup extends XBaseContainer {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions() {
+		const defaultXOptions: XOptions.Group = {
+			id: "??-XGroup-??",
+			classes: ["x-group"],
+			xParent: XROOT.XROOT,
+			isFreezingRotate: false,
+			vars: {}
+		};
 		return U.objMerge(
-			super.defaultOptions,
-			{
-				classes: ["x-group"],
-				isFreezingRotate: false
-			}
-		) as XOptions.Group;
+			super.defaultOptions as Required<XOptions.Group>,
+			defaultXOptions
+		);
 	}
-
 	static override REGISTRY: Map<string, XGroup> = new Map();
+	declare options: Required<XOptions.Group>;
 	declare xParent: XParent;
-	declare options: XOptions.Group;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 }
 // #endregion ▄▄▄▄▄ XGroup ▄▄▄▄▄
 
 
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
 
+const MAXWIDTHTWEENDURATION = 3;
+const MAXANGLETWEENDURATION = 6;
+const MINWIDTHTOTWEEN = 10;
+const MINANGLETOTWEEN = 5;
+const ARMFADEINDURATION = 3;
 export class XArm extends XGroup {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions() {
+		const defaultXOptions: Omit<XOptions.Arm, "xParent"|"heldItem"> = {
+			id: "XArm",
+			classes: ["x-arm"],
+			template: U.getTemplatePath("xarm"),
+			isFreezingRotate: false,
+			vars: {}
+		};
 		return U.objMerge(
-			super.defaultOptions,
-			{
-				classes: ["x-arm"],
-				heldItemSize: 0
-			}
-		) as XOptions.Arm;
+			super.defaultOptions as Required<XOptions.Arm>,
+			defaultXOptions
+		);
 	}
-
 	static override REGISTRY: Map<string, XArm> = new Map();
+	declare options: Required<XOptions.Arm>;
 	declare xParent: XOrbit;
-	declare options: XOptions.Arm;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
-	xItem!: XItem;
+	// get armNum() { return this.xParent.getArmNumber(this) }
 
-	grabItem(xItem: XItem, isInitializing = false): XItem {
-		if (xItem instanceof XItem) {
-			this.xItem = xItem;
-			this.#heldItemSize = xItem.size ?? xItem.width;
-			this.set({
-				"--held-item-width": `${this.#heldItemSize}px`,
-				...this.getRotWidthToItem(xItem)
-			});
-			this.adopt(xItem);
-			this.xItem.set({x: 0, y: 0, rotation: -1 * this.global.rotation});
-			if (!isInitializing) {
-				this.to({
+	#isFadingIn = false;
+	tweenFadeIn(delay = 0): void {
+		if (this.#isFadingIn) { return }
+		this.#isFadingIn = true;
+		const self = this;
+		gsap.timeline({delay})
+			.fromTo(
+				this.elem,
+				{
+					width: this.homeWidth * 10,
+					rotation: this.homeAngle - 50
+				},
+				{
 					width: this.homeWidth,
 					rotation: this.homeAngle,
-					duration: 10,
-					ease: "power3.inOut"
-				});
-			}
-			return this.xItem;
-		}
-		return xItem;
+					duration: ARMFADEINDURATION,
+					ease: "bounce",
+					onComplete() {
+						self.#isFadingIn = false;
+						self.tweenToHomeWidth();
+						self.tweenToHomeAngle();
+					}
+				},
+				0
+			)
+			.fromTo(
+				this.heldItem.elem,
+				{
+					opacity: 0,
+					scale: 5,
+					rotation: -1 * this.global.rotation
+				},
+				{
+					opacity: 1,
+					scale: 1,
+					duration: ARMFADEINDURATION / 1.5,
+					ease: "power2"
+				},
+				0
+			);
 	}
-
-	toHomeTween?: gsap.core.Tween;
-	tweenToHome(armNum: number, duration: number, isFadingIn = false): Anim {
-		if (isFadingIn) {
-			return gsap.timeline({delay: armNum * 0.5})
-				.fromTo(
+	#toHomeWidthTween?: gsap.core.Timeline;
+	get toHomeWidthTween(): gsap.core.Timeline {
+		const self = this;
+		return (this.#toHomeWidthTween = this.#toHomeWidthTween
+			?? gsap.timeline({paused: true})
+				.to(
 					this.elem,
 					{
-						width: this.homeWidth * 10,
-						rotation: this.homeAngle - 50
-					},
-					{
-						width: this.homeWidth,
-						rotation: this.homeAngle,
-						duration,
-						ease: "bounce"
-					},
-					0
-				)
-				.fromTo(
-					this.xItem.elem,
-					{
-						opacity: 0,
-						scale: 5,
-						rotation: -1 * this.global.rotation
-					},
-					{
-						opacity: 1,
-						scale: 1,
-						duration: duration / 1.5,
+						width() { return this.homeWidth },
+						duration: MAXWIDTHTWEENDURATION,
 						ease: "power2",
-						callbackScope: this,
-						onUpdate() {
-							if (this.xItem.isFreezingRotate) {
-								this.xItem.set({rotation: -1 * this.global.rotation});
-							}
-						}
-					},
-					0
-				);
+						onComplete() { self.tweenToHomeWidth() }
+					}
+				));
+	}
+	tweenToHomeWidth() {
+		if (this.#isFadingIn) { return }
+		this.toHomeWidthTween.invalidate();
+		this.toHomeWidthTween.restart();
+		this.toHomeWidthTween.pause();
+		const deltaWidth = Math.abs(this.homeWidth - this.width);
+		if (deltaWidth <= MINWIDTHTOTWEEN) {
+			this.set({width: this.homeWidth});
 		}
-		// First, if WIDTH is incorrect, assume you've just grabbed something and just return the toHomeTween unchanged.
-		if (U.pInt(this.width) !== U.pInt(this.homeWidth)) {
-			if (!this.toHomeTween?.isActive?.() || !this.toHomeTween?.vars?.width) {
-				this.toHomeTween = this.to({
-					width: this.homeWidth,
-					rotation: this.homeAngle,
-					duration,
-					ease: "power2"
-				});
-			}
-		} else {
-			this.toHomeTween = this.to({
-				rotation: this.homeAngle,
-				duration,
-				ease: "sine.inOut"
-			});
+		const timeScale = 1 / gsap.utils.clamp(0.25, 1, deltaWidth / this.homeWidth);
+		this.toHomeWidthTween.timeScale(timeScale);
+		this.toHomeWidthTween.play();
+	}
+
+	#toHomeAngleTween?: gsap.core.Timeline;
+	get toHomeAngleTween(): gsap.core.Timeline {
+		const self = this;
+		return (this.#toHomeAngleTween = this.#toHomeAngleTween
+			?? gsap.timeline({paused: true})
+				.to(
+					this.elem,
+					{
+						rotation() { return this.homeAngle },
+						duration: MAXANGLETWEENDURATION,
+						ease: "sine.inOut",
+						onComplete() { self.tweenToHomeAngle() }
+					}
+				)
+		);
+	}
+	tweenToHomeAngle() {
+		if (this.#isFadingIn) { return }
+		this.toHomeAngleTween.invalidate();
+		this.toHomeAngleTween.restart();
+		this.toHomeAngleTween.pause();
+		const deltaAngle = Math.abs(this.homeAngle - this.rotation);
+		if (deltaAngle <= MINANGLETOTWEEN) {
+			this.set({rotation: this.homeAngle});
 		}
-		return this.toHomeTween;
+		const timeScale = 1 / gsap.utils.clamp(0.05, 1, deltaAngle / 360);
+		this.toHomeAngleTween.timeScale(timeScale);
+		this.toHomeAngleTween.play();
 	}
 
 	override async render(): Promise<typeof this> {
 		await super.render();
-		this.set({height: 0, width: this.homeWidth, rotation: 0});
+		this.adopt(this.heldItem);
+		if (this.heldItem.isVisible) {
+			this.snapToHeldItem();
+			this.tweenToHomeWidth();
+			this.tweenToHomeAngle();
+		} else {
+			this.tweenFadeIn();
+		}
+		// this.set({height: 0, width: this.homeWidth, rotation: 0});
 		return this;
 	}
 
-	#heldItemSize: number;
+	#heldItem: XItem;
+	get heldItem() { return this.#heldItem }
 	get heldItemSize() {
-		return this.xItem?.size ?? this.#heldItemSize;
+		return this.heldItem.size;
 	}
 
 	constructor(xOptions: Partial<XOptions.Arm>) {
@@ -184,57 +221,63 @@ export class XArm extends XGroup {
 		xOptions.vars.width = xOptions.xParent.orbitRadius;
 		xOptions.vars.rotation = 0;
 		delete xOptions.vars.left;
-		xOptions.id ??= "arm";
 		super(xOptions);
-		this.#heldItemSize = xOptions.heldItemSize ?? 0;
+		this.#heldItem = xOptions.heldItem;
 	}
 
 	get homeWidth() { return this.xParent.orbitRadius }
-	get homeAngle() { return this.xParent.armAngles.get(this) }
+	get homeAngle() { return this.xParent.getArmAngle(this) ?? gsap.utils.random(-180, 180) }
 
 	get positionOfHeldItem(): Point {
-		// if (!this.xItem.isInitialized()) { return this.xItem.pos }
-		return MotionPathPlugin.getRelativePosition(this.xParent.elem, this.xItem.elem, [0.5, 0.5], [0.5, 0.5]);
+		return MotionPathPlugin.getRelativePosition(this.xParent.elem, this.heldItem.elem, [0.5, 0.5], [0.5, 0.5]);
 	}
 	get distanceToHeldItem() {
-		// if (!this.xItem.isInitialized()) { return this.xParent.orbitRadius }
 		return U.getDistance({x: 0, y: 0}, this.positionOfHeldItem);
 	}
 	get angleToHeldItem() {
-		return U.getAngleDelta(this.global.rotation, U.getAngle({x: 0, y: 0}, this.positionOfHeldItem));
+		return U.getAngleDelta(
+			U.cycleAngle(this.global.rotation - 180, [-180, 180]),
+			U.getAngle({x: 0, y: 0}, this.positionOfHeldItem, undefined, [-180, 180]),
+			[-180, 180]
+		);
 	}
 
-	get rotWidthToGrab() {
-		return this.getRotWidthToItem(this.xItem);
-	}
-
-	getRotWidthToItem(xItem: XItem) {
-		const {x: xDist, y: yDist} = MotionPathPlugin.getRelativePosition(this.xParent.elem, xItem.elem, [0.5, 0.5], [0.5, 0.5]);
-		// Total Distance
-		const distToFloat = U.getDistance({x: 0, y: 0}, {x: xDist, y: yDist});
-		// Angle from Arm origin to target die
-		const angleToFloat = U.getAngle({x: 0, y: 0}, {x: xDist, y: yDist}, undefined, [-180, 180]);
-		// Get global Arm rotation
-		const curAngle = U.cycleAngle(this.global.rotation - 180, [-180, 180]);
-		// Get rotation delta
-		const angleDelta = U.getAngleDelta(curAngle, angleToFloat, [-180, 180]);
-		// Adjust local arm rotation angle and width to match
-		return {
-			width: distToFloat,
-			rotation: this.rotation + angleDelta
-		};
+	snapToHeldItem() {
+		const heldItemSetParams: XStyleVars = {x: 0, y: 0};
+		if (this.heldItem.isFreezingRotate) {
+			heldItemSetParams.rotation = -1 * this.global.rotation;
+		}
+		this.heldItem.set(heldItemSetParams);
+		this.set({
+			width: this.distanceToHeldItem,
+			rotation: this.rotation + this.angleToHeldItem
+		});
 	}
 }
 // #endregion ░░░░[XArm]░░░░
 
 // #region 🟥🟥🟥 XOrbit: A Single Orbital Containing XItems & Parented to an XPool 🟥🟥🟥 ~
-export interface XOrbitOptions extends XOptions.Group, XOrbitSpecs { }
 export class XOrbit extends XGroup {
-
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override get defaultOptions() {
+		const defaultXOptions: Omit<XOptions.Orbit, "xParent"> = {
+			id: "??-XGroup-??",
+			name: XOrbitType.Main,
+			classes: ["x-orbit"],
+			isFreezingRotate: false,
+			radiusRatio: 1,
+			rotationScaling: 1,
+			vars: {}
+		};
+		return U.objMerge(
+			super.defaultOptions as Required<XOptions.Orbit>,
+			defaultXOptions
+		);
+	}
 	static override REGISTRY: Map<string, XOrbit> = new Map();
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-orbit"]}) }
+	declare options: Required<XOptions.Orbit>;
 	declare xParent: XPool;
-	declare options: XOptions.Orbit;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
 	#radiusRatio: number;
 	get radiusRatio() { return this.#radiusRatio }
@@ -248,27 +291,17 @@ export class XOrbit extends XGroup {
 	#rotationAngle: "+=360" | "-=360" = "+=360";
 	#rotationDuration: number = 10 * C.xGroupOrbitalDefaults[XOrbitType.Main].radiusRatio * C.xGroupOrbitalDefaults[XOrbitType.Main].rotationScaling;
 
-	initializeRadius({ratio, scale}: {ratio?: number, scale?: number} = {}) {
-		ratio ??= C.xGroupOrbitalDefaults[this.orbitType].radiusRatio;
-		scale ??= C.xGroupOrbitalDefaults[this.orbitType].rotationScaling;
-		this.#radiusRatio = ratio;
-		this.#rotationScaling = scale;
-		this.#rotationAngle = scale > 0 ? "+=360" : "-=360";
-		this.#rotationDuration = 10 * ratio * scale;
-	}
-
 	#orbitType: XOrbitType;
 	get orbitType() { return this.#orbitType }
 	get arms$() { return $(`#${this.id} > .x-arm`) }
-	get arms() { return Array.from(this.xKids) as XArm[] }
-	get xItems$() { return $(`#${this.id} > .x-arm > .x-item`)}
-	get xItems(): XItem[] { return this.arms.map((xArm) => xArm.xItem) }
+	get arms() { return this.xKids as XArm[] }
+	get xItems(): XItem[] { return this.arms.map((xArm) => xArm.heldItem) }
 	get xTerms(): Array<XItem & XTerm> { return this.xItems.filter((xItem) => xItem instanceof XDie || xItem instanceof XMod) as Array<XItem & XTerm> }
 
 	get orbitRadius() { return this.radiusRatio * 0.5 * (this.xParent?.width ?? 0) }
 
 	#armAngles?: Map<XArm,number>;
-	get armAngles() {
+	get armAngles(): Map<XArm, number> {
 		if (!this.arms?.length) { return new Map() }
 		return this.#armAngles ?? this.updateArmAngles();
 	}
@@ -284,9 +317,10 @@ export class XOrbit extends XGroup {
 		return this.#armAngles;
 	}
 
-	constructor(xOptions: XOptions.Orbit) {
-		xOptions.radiusRatio ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].radiusRatio;
-		xOptions.rotationScaling ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].rotationScaling;
+	constructor(xOptions: Partial<XOptions.Orbit>) {
+		xOptions.name ??= XOrbitType.Main;
+		xOptions.radiusRatio ??= C.xGroupOrbitalDefaults[xOptions.name].radiusRatio;
+		xOptions.rotationScaling ??= C.xGroupOrbitalDefaults[xOptions.name].rotationScaling;
 		xOptions.vars = {
 			height: xOptions.xParent.height,
 			width: xOptions.xParent.width,
@@ -330,101 +364,124 @@ export class XOrbit extends XGroup {
 		this.tweens.rotationTween?.play();
 	}
 
-
-	#isArmed = false;
-	protected updateArms(duration = 3, widthOverride?: number) {
-		if (this.updateArmsThrottle) {
-			clearTimeout(this.updateArmsThrottle);
+	// public getArmNumber(xArm: XArm) {
+	// 	return this.arms.findIndex((arm) => arm.id === xArm.id);
+	// }
+	public getArmAngle(xArm: XArm) {
+		if (!this.armAngles.has(xArm)) {
+			this.updateArmAngles();
 		}
-		this.updateArmsThrottle = setTimeout(() => {
-			DB.log("Update Arms RUNNING!", {targets: this.arms$, isArmed: this.#isArmed});
-			const self = this;
-			const updateTimeline = gsap.timeline({
-				stagger: {
-					amount: 0.5,
-					from: "start"
-				}});
-			if (!this.#isArmed) {
-				updateTimeline
-					.set(
-						this.arms$,
-						{
-							width: (widthOverride ?? this.orbitRadius) * 10,
-							rotation(i) { return Array.from(self.armAngles.values())[i] - 50 }
-						},
-						0
-					)
-					.to(
-						this.xItems$,
-						{
-							scale: 5,
-							duration: 0,
-							ease: "none",
-							immediateRender: true
-						},
-						0
-					)
-					.to(
-						this.xItems$,
-						{
-							id: "XItems_fadeDownAndIn",
-							opacity: 1,
-							scale: 1,
-							duration: duration / 1.5,
-							ease: "power2",
-							callbackScope: this,
-							onUpdate() {
-								this.xTerms.forEach((xItem: XItem & XTerm) => {
-									if (xItem.options.isFreezingRotate) {
-										xItem.set({rotation: -1 * xItem.xParent.global.rotation});
-									}
-								});
-							}
-						},
-						0
-					)
-					.from(
-						this.tweens.rotationTween,
-						{
-							id: "XOrbitTween_fromRotationTimeScale",
-							timeScale: 15,
-							duration,
-							ease: "power2"
-						},
-						0
-					);
-				this.#isArmed = true;
-			}
-			updateTimeline
-				.to(
-					this.arms$,
-					{
-						id: "XArms_toOrbitRadius",
-						width: widthOverride ?? this.orbitRadius,
-						ease: "back.out(0.9)",
-						duration
-					},
-					"<"
-				)
-				.to(this.arms$, {
-					id: "XArms_toArmAngles",
-					rotation(i) { return Array.from(self.armAngles.values())[i] },
-					ease: "power2.out",
-					duration
-				}, "<");
-			// GSDevTools.create({
-			// 	animation: updateTimeline,
-			// 	css: {
-			// 		width: "80%",
-			// 		bottom: "100px",
-			// 		left: "10px"
-			// 	},
-			// 	// globalSync: true
-			// 	// timeScale: 0.1,
-			// 	// paused: true
-			// });
-		}, 100);
+		return this.armAngles.get(xArm);
 	}
+
+	protected fadeInArms() {
+		this.updateArmAngles();
+		let armNum = 0;
+		for (const xArm of this.armAngles.keys()) {
+			xArm.tweenFadeIn(armNum * 0.5);
+			armNum++;
+		}
+	}
+
+	protected updateArms() {
+		this.updateArmAngles();
+		this.arms.forEach((xArm) => {
+			xArm.tweenToHomeWidth();
+			xArm.tweenToHomeAngle();
+		});
+	}
+	// if (this.updateArmsThrottle) {
+	// 	clearTimeout(this.updateArmsThrottle);
+	// }
+	// this.updateArmsThrottle = setTimeout(() => {
+	// 	DB.log("Update Arms RUNNING!", {targets: this.arms$, isArmed: this.#isArmed});
+	// 	const self = this;
+	// 	const updateTimeline = gsap.timeline({
+	// 		stagger: {
+	// 			amount: 0.5,
+	// 			from: "start"
+	// 		}});
+	// 	if (!this.#isArmed) {
+	// 		updateTimeline
+	// 			.set(
+	// 				this.arms$,
+	// 				{
+	// 					width: (widthOverride ?? this.orbitRadius) * 10,
+	// 					rotation(i) { return Array.from(self.armAngles.values())[i] - 50 }
+	// 				},
+	// 				0
+	// 			)
+	// 			.to(
+	// 				this.xItems$,
+	// 				{
+	// 					scale: 5,
+	// 					duration: 0,
+	// 					ease: "none",
+	// 					immediateRender: true
+	// 				},
+	// 				0
+	// 			)
+	// 			.to(
+	// 				this.xItems$,
+	// 				{
+	// 					id: "XItems_fadeDownAndIn",
+	// 					opacity: 1,
+	// 					scale: 1,
+	// 					duration: duration / 1.5,
+	// 					ease: "power2",
+	// 					callbackScope: this,
+	// 					onUpdate() {
+	// 						this.xTerms.forEach((xItem: XItem & XTerm) => {
+	// 							if (xItem.options.isFreezingRotate) {
+	// 								xItem.set({rotation: -1 * xItem.xParent.global.rotation});
+	// 							}
+	// 						});
+	// 					}
+	// 				},
+	// 				0
+	// 			)
+	// 			.from(
+	// 				this.tweens.rotationTween,
+	// 				{
+	// 					id: "XOrbitTween_fromRotationTimeScale",
+	// 					timeScale: 15,
+	// 					duration,
+	// 					ease: "power2"
+	// 				},
+	// 				0
+	// 			);
+	// 		this.#isArmed = true;
+	// 	}
+	// 	updateTimeline
+	// 		.to(
+	// 			this.arms$,
+	// 			{
+	// 				id: "XArms_toOrbitRadius",
+	// 				width: widthOverride ?? this.orbitRadius,
+	// 				ease: "back.out(0.9)",
+	// 				duration
+	// 			},
+	// 			"<"
+	// 		)
+	// 		.to(this.arms$, {
+	// 			id: "XArms_toArmAngles",
+	// 			rotation(i) { return Array.from(self.armAngles.values())[i] },
+	// 			ease: "power2.out",
+	// 			duration
+	// 		}, "<");
+	// 	// GSDevTools.create({
+	// 	// 	animation: updateTimeline,
+	// 	// 	css: {
+	// 	// 		width: "80%",
+	// 	// 		bottom: "100px",
+	// 	// 		left: "10px"
+	// 	// 	},
+	// 	// 	// globalSync: true
+	// 	// 	// timeScale: 0.1,
+	// 	// 	// paused: true
+	// 	// });
+	// }, 100);
+	// }
 
 	override async adopt<T extends XItem>(xItem: T): Promise<T & XKid>
 	override async adopt<T extends XItem>(xItem: T[]): Promise<Array<T & XKid>> {
@@ -455,15 +512,28 @@ export class XOrbit extends XGroup {
 // #endregion ▄▄▄▄▄ XOrbit ▄▄▄▄▄
 
 // #region 🟥🟥🟥 XPool: An XGroup Containing Drag-&-Droppable XTerms Contained in XOrbits 🟥🟥🟥 ~
-export interface XPoolOptions extends XOptions.Group {
-}
 export class XPool extends XGroup {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override get defaultOptions() {
+		const defaultXOptions: Omit<XOptions.Pool, "xParent"> = {
+			id: "??-XPool-??",
+			classes: ["x-pool"],
+			isFreezingRotate: false,
+			orbitals: {
+				[XOrbitType.Main]: C.xGroupOrbitalDefaults[XOrbitType.Main]
+			},
+			vars: {}
+		};
+		return U.objMerge(
+			super.defaultOptions as Required<XOptions.Pool>,
+			defaultXOptions
+		);
+	}
 	static override REGISTRY: Map<string, XPool> = new Map();
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-pool"]}) }
-	declare xParent: XGroup;
-	declare options: XOptions.Pool;
+	declare options: Required<XOptions.Pool>;
+	declare xParent: XParent;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
-	#core: XItem[] = [];
 	#orbitals: Map<XOrbitType, XOrbit> = new Map();
 	#orbitalSpecs: Map<XOrbitType, XOrbitSpecs> = new Map();
 
@@ -471,15 +541,13 @@ export class XPool extends XGroup {
 	get xOrbits(): XOrbit[] { return Array.from(this.orbitals.values()) }
 
 	constructor(xOptions: Partial<XOptions.Pool>) {
-	// constructor(xParent: XGroup, {orbitals, ...xOptions}: XPoolOptions, onRenderOptions: Partial<gsap.CSSProperties>) {
-		xOptions.orbitals ??= Object.fromEntries(Object.entries(U.objClone(C.xGroupOrbitalDefaults)).map(([name, data]) => ([name, {name, ...data}])));
 		super(xOptions);
-		for (const [orbitName, orbitSpecs] of Object.entries(xOptions.orbitals) as Array<[XOrbitType, XOrbitSpecs]>) {
-			this.#orbitalSpecs.set(orbitName, orbitSpecs);
+		for (const [orbitName, orbitSpecs] of Object.entries(this.options.orbitals)) {
+			this.#orbitalSpecs.set(orbitName as XOrbitType, orbitSpecs);
 		}
 	}
 
-	override async adopt
+	// override async adopt;
 
 	// override async addXItem<T extends XItem>(xItem: T, orbit: XOrbitType = XOrbitType.Main): Promise<T> {
 	// 	if (xItem) {
@@ -515,22 +583,10 @@ export class XPool extends XGroup {
 
 	async createOrbital(name: XOrbitType): Promise<XOrbit> {
 		if (this.#orbitals.has(name)) { return this.#orbitals.get(name)! }
-		const xOrbit = await FACTORIES.XOrbit.Make(this, {id: name, ...this.#orbitalSpecs.get(name)}, {
-			height: this.height,
-			width: this.width,
-			left: 0.5 * this.width,
-			top: 0.5 * this.height,
-			xPercent: -50,
-			yPercent: -50
-		});
+		const xOrbit = new XOrbit({id: name, ...this.#orbitalSpecs.get(name)});
+		this.adopt(xOrbit);
 		this.#orbitals.set(name, xOrbit);
-		const {radiusRatio, rotationScaling} = this.#orbitalSpecs.get(name) ?? {};
-		if (typeof radiusRatio === "number" && typeof rotationScaling === "number") {
-			xOrbit.initializeRadius({ratio: radiusRatio, scale: rotationScaling});
-		}
-		// if (this.isInitialized()) {
-		// 	await xOrbit.initialize();
-		// }
+		await xOrbit.render();
 		return xOrbit;
 	}
 	public pauseRotating() { this.xOrbits.forEach((xOrbit) => xOrbit.pauseRotating()) }
@@ -539,11 +595,27 @@ export class XPool extends XGroup {
 // #endregion ▄▄▄▄▄ XPool ▄▄▄▄▄
 
 // #region 🟥🟥🟥 XRoll: An XPool That Can Be Rolled, Its Child XTerms Evaluated Into a Roll Result 🟥🟥🟥 ~
-export interface XRollOptions extends XPoolOptions { }
 export class XRoll extends XPool {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override get defaultOptions() {
+		const defaultXOptions: Omit<XOptions.Roll, "xParent"> = {
+			id: "??-XRoll-??",
+			classes: ["x-roll"],
+			isFreezingRotate: false,
+			orbitals: {
+				[XOrbitType.Main]: C.xGroupOrbitalDefaults[XOrbitType.Main]
+			},
+			vars: {}
+		};
+		return U.objMerge(
+			super.defaultOptions as Required<XOptions.Roll>,
+			defaultXOptions
+		);
+	}
 	static override REGISTRY: Map<string, XRoll> = new Map();
-	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-roll"]}) }
-	declare xParent: XGroup;
+	declare options: Required<XOptions.Roll>;
+	declare xParent: XParent;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
 	#hasRolled = false;
 	get hasRolled() { return this.#hasRolled }
@@ -557,8 +629,8 @@ export class XRoll extends XPool {
 	get dice$() { return $(`#${this.id} .x-die`) }
 	get diceVals$() { return $(`#${this.id} .x-die .die-val`) }
 
-	constructor(xParent: XGroup, xOptions: XRollOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
-		super(xParent, xOptions, onRenderOptions);
+	constructor(xOptions: Partial<XOptions.Roll>) {
+		super(xOptions);
 	}
 
 	// Rolls all XDie in the XRoll.
@@ -611,14 +683,13 @@ export class XRoll extends XPool {
 // #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄
 
 // #region 🟥🟥🟥 XSource: An XPool containing XItems that players can grab and use 🟥🟥🟥 ~
-export interface XSourceOptions extends XPoolOptions { }
 export class XSource extends XPool {
 	static override REGISTRY: Map<string, XSource> = new Map();
 	static override get defaultOptions() { return U.objMerge(super.defaultOptions, {classes: ["x-source"]}) }
 	declare xParent: XGroup;
 
-	constructor(xParent: XGroup, xOptions: XSourceOptions, onRenderOptions: Partial<gsap.CSSProperties> = {}) {
-		super(xParent, xOptions, onRenderOptions);
+	constructor(xOptions: Partial<XOptions.Source>) {
+		super(xOptions);
 	}
 }
 // #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄

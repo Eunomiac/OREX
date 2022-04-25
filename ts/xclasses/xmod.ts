@@ -7,16 +7,10 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XElem, XItem, XGroup, XPool, XRoll,
-	XTermType
+	XItem, XGroup, XPool, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
-import type {XTerm, XTermOptions} from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
-
-export interface XModOptions extends XTermOptions {
-	value?: number;
-}
 
 class XMod extends XItem implements XTerm {
 	type: XTermType;
@@ -26,10 +20,12 @@ class XMod extends XItem implements XTerm {
 		});
 	}
 	declare xParent: XGroup;
+	declare options: Required<XOptions.Mod>;
 
-	constructor(xParent: XPool, xOptions: XModOptions, onRenderOptions: Partial<gsap.CSSProperties>) {
-		super(xParent, xOptions, onRenderOptions);
-		this.type = xOptions.type;
+	constructor(xOptions: Partial<XOptions.Mod>) {
+		xOptions.type ??= XTermType.Modifier;
+		super(xOptions);
+		this.type = this.options.type;
 	}
 
 	ApplyEffect(xRoll: XRoll) {

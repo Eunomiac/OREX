@@ -4,7 +4,7 @@ import {getTemplatePath} from "./templates.js";
 
 import {default as XItem, XBaseContainer, XROOT} from "../xclasses/xitem.js";
 import {default as XGroup, XPool, XRoll, XArm, XOrbit} from "../xclasses/xgroup.js";
-import {default as XDie, XMod, XTermType} from "../xclasses/xterm.js";
+import {default as XDie, XMod} from "../xclasses/xterm.js";
 import {XGhost, XMutator, XInfo} from "../xclasses/xmod.js";
 import {default as XPad} from "../xclasses/xpad.js";
 // #endregion ▮▮▮▮[IMPORTS]▮▮▮▮
@@ -17,7 +17,7 @@ export {default as C} from "./config.js";
 // #region ░░░░░░░ Debugging ░░░░░░░ ~
 import {default as DB, XDisplay} from "./debugger.js";
 // import type {XDisplayOptions} from "./debugger.js";
-export {TESTS, DBFUNCS} from "./debugger.js";
+export {DBFUNCS} from "./debugger.js";
 // #endregion ░░░░[Debugging]░░░░
 // #region ░░░░░░░ GSAP Animation ░░░░░░░ ~
 export {
@@ -31,7 +31,7 @@ export {default as preloadTemplates} from "./templates.js";
 // #endregion ░░░░[GSAP Animation]░░░░
 
 // #region ████████ XItems ████████
-export {DB, XItem, XBaseContainer, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XDie, XMod, XTermType, XGhost, XMutator, XInfo, XPad};
+export {DB, XItem, XBaseContainer, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XDie, XMod, XGhost, XMutator, XInfo, XPad};
 // export {default as XAnimVars, XGSAP, isTimeline} from "./animations.js";
 // #endregion ▄▄▄▄▄ XItems ▄▄▄▄▄
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄
@@ -40,13 +40,6 @@ export {DB, XItem, XBaseContainer, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XD
 
 // import type {Position, XAnim, Renderable, Tweenable} from "../xclasses/xelem.js";
 // import XOptions from "../xclasses/xitem.js";
-import type {XPoolOptions, XRollOptions} from "../xclasses/xgroup.js";
-import type {XTerm, XTermOptions, XDieValue, XDieFace, XDieOptions} from "../xclasses/xterm.js";
-import type {XModOptions} from "../xclasses/xmod.js";
-
-export type {XPoolOptions, XRollOptions,
-	XTerm, XTermOptions, XDieValue, XDieFace, XDieOptions, XModOptions};
-
 // export interface lockedXItem<T extends XItem> extends XItem {
 // 	xParent: XGroup
 // }
@@ -117,7 +110,3 @@ export type {XPoolOptions, XRollOptions,
 // };
 // export {FACTORIES};
 // // #endregion ▄▄▄▄▄ FACTORIES ▄▄▄▄▄
-
-// #region ████████ ENUMS: TypeScript Enums ████████
-export {Dir} from "./utilities.js";
-// #endregion ▄▄▄▄▄ ENUMS ▄▄▄▄▄

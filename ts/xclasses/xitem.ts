@@ -6,7 +6,7 @@ import {
 	// #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
 	U, DB,
 	XGroup, XPool, XRoll,
-	XDie, XTerm, XMod
+	XDie, XMod
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
@@ -18,29 +18,34 @@ const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = 
 ];
 
 class XBaseItem extends Application implements DOMRenderer, Tweenable {
-	// #region ▮▮▮▮▮▮▮[Subclass Static Overrides] Methods Subclasses will Have to Override ▮▮▮▮▮▮▮ ~
+	// #region ▮▮▮▮▮▮▮[Virtual Properties] Fields & Methods Subclasses Will Have to Override ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions() {
-		return U.objMerge(
-			super.defaultOptions as XOptions.Base,
-			{
-				popOut: false,
-				template: U.getTemplatePath("xitem"),
-				xParent: XROOT.XROOT,
-				vars: {
-					xPercent: -50,
-					yPercent: -50,
-					x: 0,
-					y: 0,
-					opacity: 0,
-					rotation: 0,
-					scale: 1,
-					transformOrigin: "50% 50%"
-				}
+		const defaultXOptions: XOptions.Base = {
+			id: "???-XBaseItem-???",
+			popOut: false,
+			classes: [],
+			template: U.getTemplatePath("xitem"),
+			xParent: XROOT.XROOT,
+			vars: {
+				xPercent: -50,
+				yPercent: -50,
+				x: 0,
+				y: 0,
+				opacity: 0,
+				rotation: 0,
+				scale: 1,
+				transformOrigin: "50% 50%"
 			}
+		};
+		return U.objMerge(
+			super.defaultOptions as Required<XOptions.Base>,
+			defaultXOptions
 		);
 	}
-	static REGISTRY: Map<string, XItem> = new Map();
-	// #endregion ▮▮▮▮[Subclass Static Overrides]▮▮▮▮
+	static REGISTRY: Map<string, XBaseItem> = new Map();
+	declare options: Required<XOptions.Base>;
+	xParent: XParent | null; //~ null only in the single case of the top XItem, XROOT.XROOT
+	// #endregion ▮▮▮▮[Virtual Properties]▮▮▮▮
 
 	// #region ▮▮▮▮▮▮▮[Static Registration] Registration & Retrieval of XItem Instances ▮▮▮▮▮▮▮ ~
 	static Register(xItem: XItem) { this.REGISTRY.set(xItem.id, xItem) }
@@ -50,30 +55,17 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 	static GetFromElement(elem: HTMLElement) { return this.REGISTRY.get(elem.id) }
 	// #endregion ▮▮▮▮[Static Registration]▮▮▮▮
 
-
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
-	xParent: XParent | null; //~ null only in the single case of the top XItem, XROOT.XROOT
-
-	#renderVars: XStyleVars = {};
-	get renderVars() {
-		return U.objMerge(
-			(this.constructor as typeof XItem).defaultOptions.vars,
-			this.#renderVars
-		);
-	}
-
 	constructor(xOptions: Partial<XOptions.Base> = {}) {
-		const {xParent, vars = {}} = xOptions;
-		if (xParent) {
-			xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`.replace(/^XROOT-?/, "X-"));
+		if (xOptions.xParent) {
+			xOptions.id = U.getUID(`${xOptions.xParent.id}-${xOptions.id}`.replace(/^XROOT-?/, "X-"));
 		}
 		DB.display(`[#${xOptions.id}] Constructing START`);
 		super(xOptions);
-		this.#renderVars = vars;
-		if (xParent === null && xOptions.id === "XROOT") {
+		if (this instanceof XROOT) {
 			this.xParent = null;
 		} else {
-			this.xParent = xParent ?? XROOT.XROOT;
+			this.xParent = xOptions.xParent ?? XROOT.XROOT;
 		}
 		DB.log(`[#${xOptions.id}] END Constructing`);
 	}
@@ -167,16 +159,18 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 	// #endregion ░░░░[Relative Positions]░░░░
 	// #endregion ▄▄▄▄▄ Positioning ▄▄▄▄▄
 	// #region ████████ Rendering: Initial Rendering to DOM ████████ ~
-	_vars: XStyleVars = {};
-	get vars() { return this._vars }
+	get vars() { return this.options.vars }
 
 	get isVisible() { return U.get(this.elem, "opacity") > 0 }
 
-	#renderPromise?: Promise<this>
+	#renderPromise?: Promise<this>;
 	override async render(): Promise<this> {
 		return (this.#renderPromise = this.#renderPromise
 			?? this._render(true, {})
 				.then(() => {
+					if (this.xParent) {
+						$(this.elem).appendTo(this.xParent.elem);
+					}
 					this.set(this.vars);
 					return this;
 				}));
@@ -295,6 +289,9 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 }
 
 export class XBaseContainer extends XBaseItem implements XParent {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override REGISTRY: Map<string, XBaseContainer> = new Map();
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
 	// #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
 	async adopt<T extends XItem>(children: T): Promise<T & XKid>
@@ -308,7 +305,7 @@ export class XBaseContainer extends XBaseItem implements XParent {
 				if (!child.rendered) { return child }
 				child.set({
 					...this.getLocalPosData(child),
-					...child.vars.isFreezingRotate
+					...child.isFreezingRotate
 						? {rotation: -1 * this.global.rotation}
 						: {}
 				});
@@ -352,21 +349,29 @@ export class XBaseContainer extends XBaseItem implements XParent {
 
 // #region 🟩🟩🟩 XROOT: Base Container for All XItems - Only XItem that Doesn't Need an XParent 🟩🟩🟩 ~
 export class XROOT extends XBaseContainer {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions() {
-		return U.objMerge(
-			super.defaultOptions,
-			{
-				id: "XROOT",
-				classes: ["XROOT"],
-				xParent: null,
-				vars: {
-					xPercent: 0,
-					yPercent: 0,
-					opacity: 1
-				}
+		const defaultXOptions: XOptions.ROOT = {
+			id: "XROOT",
+			classes: ["XROOT"],
+			template: U.getTemplatePath("xroot"),
+			xParent: null,
+			vars: {
+				xPercent: 0,
+				yPercent: 0,
+				opacity: 1
 			}
-		) as XOptions.ROOT;
+		};
+		return U.objMerge(
+			super.defaultOptions as Required<XOptions.ROOT>,
+			defaultXOptions
+		);
 	}
+	static override REGISTRY: Map<string, XROOT> = new Map();
+	declare options: Required<XOptions.ROOT>;
+	override xParent = null;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
 	static #XROOT: XROOT;
 	static get XROOT() { return XROOT.#XROOT }
 	static async InitializeXROOT() {
@@ -391,21 +396,29 @@ export class XROOT extends XBaseContainer {
 			});
 	}
 	// #endregion ▮▮▮▮[Mouse Tracking]▮▮▮▮
-	override xParent = null;
 }
 // #endregion 🟩🟩🟩 XROOT 🟩🟩🟩
 export default class XItem extends XBaseItem {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions() {
-		return U.objMerge(
-			super.defaultOptions,
-			{
-				classes: ["x-item"],
-				isFreezingRotate: false
+		const defaultXOptions: XOptions.Item = {
+			id: "??-XItem-??",
+			classes: ["x-item"],
+			xParent: XROOT.XROOT,
+			isFreezingRotate: false,
+			vars: {
+				xPercent: 0,
+				yPercent: 0,
+				opacity: 1
 			}
-		) as XOptions.Item;
+		};
+		return U.objMerge(
+			super.defaultOptions as Required<XOptions.Item>,
+			defaultXOptions
+		);
 	}
 	static override REGISTRY: Map<string, XItem> = new Map();
-
+	declare options: Required<XOptions.Item>;
 	declare xParent: XParent;
-	declare options: XOptions.Item;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 }
