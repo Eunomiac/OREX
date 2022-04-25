@@ -4,7 +4,7 @@ import {
 C, U, DB, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XBaseContainer, XROOT, XDie, XMod
+XBaseContainer, XOrbitType, XROOT, XDie, XMod
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮

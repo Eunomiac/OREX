@@ -7,7 +7,7 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XItem, XGroup, XPool, XRoll
+	XItem, XGroup, XPool, XRoll, XTermType
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮

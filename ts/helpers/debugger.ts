@@ -14,6 +14,7 @@ import {
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
 	XROOT, XItem,
+	XOrbitType, XTermType,
 	XGroup, XPool,
 	XDie, XRoll
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
@@ -319,24 +320,24 @@ export class XDisplay extends XItem {
 // #endregion ▄▄▄▄▄ XDisplay ▄▄▄▄▄
 
 // #region ████████ DBFUNCS: Miscellaneous Debugging Functions ████████ ~
-const getRollPos = (pos: 0|1|2|3|4, size: number): Point => {
-	if (XROOT.XROOT instanceof XItem) {
-		const {height, width} = XROOT.XROOT;
-		return [
-			{x: 0.5 * width, y: 0.5 * height},
-			{x: 0.75 * size, y: 0.75 * size},
-			{x: width - (0.75 * size), y: 0.75 * size},
-			{x: width - (0.75 * size), y: height - (0.75 * size)},
-			{x: 0.75 * size, y: height - (0.75 * size)}
-		][pos];
-	} else {
-		DB.error("Attempt to getRollPos() before XROOT.XROOT Rendered.");
-		return {x: 0, y: 0};
-	}
-};
 const DB_SETTINGS:Record<string,unknown> = {};
 const DBFUNCS = {
 	GSDevTools,
+	getRollPos: (pos: 0 | 1 | 2 | 3 | 4, size: number): Point => {
+		if (XROOT.XROOT instanceof XItem) {
+			const {height, width} = XROOT.XROOT;
+			return [
+				{x: 0.5 * width, y: 0.5 * height},
+				{x: 0.75 * size, y: 0.75 * size},
+				{x: width - (0.75 * size), y: 0.75 * size},
+				{x: width - (0.75 * size), y: height - (0.75 * size)},
+				{x: 0.75 * size, y: height - (0.75 * size)}
+			][pos];
+		} else {
+			DB.error("Attempt to getRollPos() before XROOT.XROOT Rendered.");
+			return {x: 0, y: 0};
+		}
+	},
 	DB_Set: (key: string, val: unknown) => {
 		DB_SETTINGS[key] = val;
 	},

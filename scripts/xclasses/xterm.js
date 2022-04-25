@@ -1,7 +1,9 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, XItem } from "../helpers/bundler.js";
+U, XItem, XTermType
+// #endregion ▮▮▮▮[XItems]▮▮▮▮
+ } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 export default class XDie extends XItem {
     // #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~

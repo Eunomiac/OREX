@@ -261,25 +261,25 @@ export class XDisplay extends XItem {
 }
 // #endregion ▄▄▄▄▄ XDisplay ▄▄▄▄▄
 // #region ████████ DBFUNCS: Miscellaneous Debugging Functions ████████ ~
-const getRollPos = (pos, size) => {
-    if (XROOT.XROOT instanceof XItem) {
-        const { height, width } = XROOT.XROOT;
-        return [
-            { x: 0.5 * width, y: 0.5 * height },
-            { x: 0.75 * size, y: 0.75 * size },
-            { x: width - (0.75 * size), y: 0.75 * size },
-            { x: width - (0.75 * size), y: height - (0.75 * size) },
-            { x: 0.75 * size, y: height - (0.75 * size) }
-        ][pos];
-    }
-    else {
-        DB.error("Attempt to getRollPos() before XROOT.XROOT Rendered.");
-        return { x: 0, y: 0 };
-    }
-};
 const DB_SETTINGS = {};
 const DBFUNCS = {
     GSDevTools,
+    getRollPos: (pos, size) => {
+        if (XROOT.XROOT instanceof XItem) {
+            const { height, width } = XROOT.XROOT;
+            return [
+                { x: 0.5 * width, y: 0.5 * height },
+                { x: 0.75 * size, y: 0.75 * size },
+                { x: width - (0.75 * size), y: 0.75 * size },
+                { x: width - (0.75 * size), y: height - (0.75 * size) },
+                { x: 0.75 * size, y: height - (0.75 * size) }
+            ][pos];
+        }
+        else {
+            DB.error("Attempt to getRollPos() before XROOT.XROOT Rendered.");
+            return { x: 0, y: 0 };
+        }
+    },
     DB_Set: (key, val) => {
         DB_SETTINGS[key] = val;
     },

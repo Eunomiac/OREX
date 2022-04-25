@@ -1,10 +1,10 @@
 
 export default {
     xGroupOrbitalDefaults: {
-        Core: { name: XOrbitType.Core, radiusRatio: 0, rotationScaling: 0 },
-        Main: { name: XOrbitType.Main, radiusRatio: 0.75, rotationScaling: 1 },
-        Inner: { name: XOrbitType.Inner, radiusRatio: 0.45, rotationScaling: 4 },
-        Outer: { name: XOrbitType.Outer, radiusRatio: 1.25, rotationScaling: 0.5 }
+        Core: { name: "Core", radiusRatio: 0, rotationScaling: 0 },
+        Main: { name: "Main", radiusRatio: 0.75, rotationScaling: 1 },
+        Inner: { name: "Inner", radiusRatio: 0.45, rotationScaling: 4 },
+        Outer: { name: "Outer", radiusRatio: 1.25, rotationScaling: 0.5 }
     },
     xDieStyles: {
         BasicDie: {

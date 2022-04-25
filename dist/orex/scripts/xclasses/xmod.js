@@ -4,7 +4,8 @@ import {
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XItem } from "../helpers/bundler.js";
+XItem, XTermType
+ } from "../helpers/bundler.js";
 class XMod extends XItem {
     type;
     static get defaultOptions() {

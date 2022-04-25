@@ -5,6 +5,7 @@ import {
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
 	XBaseContainer,
+	XOrbitType,
 	XROOT,
 	XItem,
 	XDie,
@@ -319,8 +320,8 @@ export class XOrbit extends XGroup {
 
 	constructor(xOptions: Partial<XOptions.Orbit>) {
 		xOptions.name ??= XOrbitType.Main;
-		xOptions.radiusRatio ??= C.xGroupOrbitalDefaults[xOptions.name].radiusRatio;
-		xOptions.rotationScaling ??= C.xGroupOrbitalDefaults[xOptions.name].rotationScaling;
+		xOptions.radiusRatio ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].radiusRatio;
+		xOptions.rotationScaling ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].rotationScaling;
 		xOptions.vars = {
 			height: xOptions.xParent.height,
 			width: xOptions.xParent.width,
@@ -543,7 +544,7 @@ export class XPool extends XGroup {
 	constructor(xOptions: Partial<XOptions.Pool>) {
 		super(xOptions);
 		for (const [orbitName, orbitSpecs] of Object.entries(this.options.orbitals)) {
-			this.#orbitalSpecs.set(orbitName as XOrbitType, orbitSpecs);
+			this.#orbitalSpecs.set(orbitName as XOrbitType, orbitSpecs as XOrbitSpecs);
 		}
 	}
 

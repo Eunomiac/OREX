@@ -75,20 +75,20 @@ type XOrbitSpecs = {
 	rotationScaling: number
 };
 
-enum XOrbitType {
-	Core = "Core",
-	Main = "Main",
-	Inner = "Inner",
-	Outer = "Outer"
-}
+// declare enum XOrbitType {
+// 	Core = "Core",
+// 	Main = "Main",
+// 	Inner = "Inner",
+// 	Outer = "Outer"
+// }
 
-enum XTermType {
-	// Can we extend XDieType here, somehow?
-	BasicDie, ExpertDie, MasterDie, GobbleDie,
-	BasicSet, MatchSet, RunSet, FullHouseSet,
-	Difficulty, Modifier, Trait, Styler,
-	Ignore
-}
+// declare enum XTermType {
+// 	// Can we extend XDieType here, somehow?
+// 	BasicDie, ExpertDie, MasterDie, GobbleDie,
+// 	BasicSet, MatchSet, RunSet, FullHouseSet,
+// 	Difficulty, Modifier, Trait, Styler,
+// 	Ignore
+// }
 
 type XDieFace = " " | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "X";
 type XDieValue = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;

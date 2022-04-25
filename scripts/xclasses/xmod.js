@@ -5,7 +5,9 @@ import {
 U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XItem } from "../helpers/bundler.js";
+XItem, XTermType
+// #endregion ▮▮▮▮[XItems]▮▮▮▮
+ } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 class XMod extends XItem {
     type;
