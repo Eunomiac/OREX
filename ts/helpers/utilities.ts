@@ -737,17 +737,17 @@ const objClone = <Type>(obj: Type, isStrictlySafe = false): Type => {
 	}
 	return obj;
 };
-function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true} = {}): Type {
+function objMerge<Tx,Ty>(target: Tx, source: Ty, {isMutatingOk = false, isStrictlySafe = false, isConcatenatingArrays = true} = {}): Tx & Ty {
 	/* Returns a deep merge of source into target. Does not mutate target unless isMutatingOk = true. */
 	target = isMutatingOk ? target : objClone(target, isStrictlySafe);
 	if (source instanceof Application) {
-		return <Type><unknown>source;
+		return source as unknown as Tx & Ty;
 	}
 	if (isUndefined(target)) {
-		return <Type>objClone(source);
+		return objClone(source) as Tx & Ty;
 	}
 	if (isUndefined(source)) {
-		return target;
+		return target as Tx & Ty;
 	}
 	if (isIndex(source)) {
 		for (const [key, val] of Object.entries(source)) { // @ts-expect-error TEMPORARY
@@ -767,7 +767,7 @@ function objMerge<Type>(target: Type, source: unknown, {isMutatingOk = false, is
 			}
 		}
 	}
-	return target;
+	return target as Tx & Ty;
 }
 const objExpand = (obj: List<unknown>): List<unknown> => {
 	const expObj = {};

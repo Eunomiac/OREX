@@ -19,10 +19,10 @@ const LISTENERS: Array<[keyof DocumentEventMap, (event: MouseEvent) => void]> = 
 
 class XBaseItem extends Application implements DOMRenderer, Tweenable {
 	// #region ▮▮▮▮▮▮▮[Virtual Properties] Fields & Methods Subclasses Will Have to Override ▮▮▮▮▮▮▮ ~
-	static override get defaultOptions() {
-		const defaultXOptions: XOptions.Base = {
-			id: "???-XBaseItem-???",
-			popOut: false,
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Base> {
+
+		const defaultXOptions: Required<XOptions.Base> = {
+			id: "XBASE_ITEM",
 			classes: [],
 			template: U.getTemplatePath("xitem"),
 			xParent: XROOT.XROOT,
@@ -38,18 +38,21 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 			}
 		};
 		return U.objMerge(
-			super.defaultOptions as Required<XOptions.Base>,
+			{
+				...super.defaultOptions,
+				popOut: false
+			},
 			defaultXOptions
 		);
 	}
 	static REGISTRY: Map<string, XBaseItem> = new Map();
-	declare options: Required<XOptions.Base>;
+	declare options: ApplicationOptions & Required<XOptions.Base>;
 	xParent: XParent | null; //~ null only in the single case of the top XItem, XROOT.XROOT
 	// #endregion ▮▮▮▮[Virtual Properties]▮▮▮▮
 
 	// #region ▮▮▮▮▮▮▮[Static Registration] Registration & Retrieval of XItem Instances ▮▮▮▮▮▮▮ ~
-	static Register(xItem: XItem) { this.REGISTRY.set(xItem.id, xItem) }
-	static Unregister(xItem: string | XItem | HTMLElement) { this.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id) }
+	static Register(xItem: XBaseItem) { this.REGISTRY.set(xItem.id, xItem) }
+	static Unregister(xItem: string | XBaseItem | HTMLElement) { this.REGISTRY.delete(typeof xItem === "string" ? xItem : xItem.id) }
 
 	static get All() { return Array.from(this.REGISTRY.values()) }
 	static GetFromElement(elem: HTMLElement) { return this.REGISTRY.get(elem.id) }
@@ -163,9 +166,9 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 
 	get isVisible() { return U.get(this.elem, "opacity") > 0 }
 
-	#renderPromise?: Promise<this>;
+	_renderPromise?: Promise<this>;
 	override async render(): Promise<this> {
-		return (this.#renderPromise = this.#renderPromise
+		return (this._renderPromise = this._renderPromise
 			?? this._render(true, {})
 				.then(() => {
 					if (this.xParent) {
@@ -293,40 +296,6 @@ export class XBaseContainer extends XBaseItem implements XParent {
 	static override REGISTRY: Map<string, XBaseContainer> = new Map();
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
-	// #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
-	async adopt<T extends XItem>(children: T): Promise<T & XKid>
-	async adopt<T extends XItem>(children: T[]): Promise<Array<T & XKid>>
-	async adopt<T extends XItem>(children: T | T[]): Promise<T & XKid | Array<T & XKid>> {
-		const promises = ([children].flat() as T[])
-			.map(async (child) => {
-				child.xParent?.disown(child as XKid);
-				child.xParent = this;
-				this.registerXKid(child as T & XKid);
-				if (!child.rendered) { return child }
-				child.set({
-					...this.getLocalPosData(child),
-					...child.isFreezingRotate
-						? {rotation: -1 * this.global.rotation}
-						: {}
-				});
-				child.elem$.appendTo(this.elem);
-				return child;
-			}) as Array<Promise<T & XKid>>;
-		if (promises.length === 1) {
-			return promises[0];
-		}
-		return Promise.all(promises);
-	}
-	disown(children: XKid & XItem | Array<XKid & XItem>): void {
-		[children].flat().forEach((xKid) => this.unregisterXKid(xKid));
-	}
-
-	override async kill() {
-		this.xKids.forEach((xKid) => xKid.kill());
-		super.kill();
-	}
-	// #endregion ▄▄▄▄▄ Parenting ▄▄▄▄▄
-
 	#xKids: Set<XKid & XItem> = new Set();
 	registerXKid(xKid: XKid & XItem) { this.#xKids.add(xKid) }
 	unregisterXKid(xKid: XKid & XItem) { this.#xKids.delete(xKid) }
@@ -345,13 +314,77 @@ export class XBaseContainer extends XBaseItem implements XParent {
 		return xKids;
 	}
 
+	// #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
+	adoptElem(elem: XItem|HTMLElement|JQuery<HTMLElement>) {
+		if (!this.rendered) { return }
+		let elem$;
+		if (elem instanceof XItem) {
+			if (!elem.rendered) { return }
+			({elem$} = elem);
+		} else if (elem instanceof HTMLElement) {
+			elem$ = $(elem);
+		}
+		(elem$ ?? $(elem)).appendTo(this.elem);
+	}
+
+	async adopt<T extends XItem>(children: T): Promise<T & XKid>
+	async adopt<T extends XItem>(children: T[]): Promise<Array<T & XKid>>
+	async adopt<T extends XItem>(children: T | T[]): Promise<T & XKid | Array<T & XKid>> {
+		const promises = ([children].flat() as T[])
+			.map(async (child) => {
+				if (!this.#xKids.has(child)) {
+					await child.xParent?.disown(child as XKid);
+					child.xParent = this;
+					this.registerXKid(child as T & XKid);
+				}
+				if (!this.rendered) { return child }
+				if (child.rendered) {
+					child.set({
+						...this.getLocalPosData(child),
+						...child.isFreezingRotate
+							? {rotation: -1 * this.global.rotation}
+							: {}
+					});
+				} else {
+					await child.render();
+				}
+				this.adoptElem(child);
+				return child;
+			});
+		if (promises.length === 1) {
+			return promises[0];
+		}
+		return Promise.all(promises);
+	}
+	async disown(children: XKid & XItem | Array<XKid & XItem>): Promise<void> {
+		[children].flat().forEach((xKid) => this.unregisterXKid(xKid));
+	}
+
+	override async kill() {
+		this.xKids.forEach((xKid) => xKid.kill());
+		super.kill();
+	}
+
+	override async render(): Promise<this> {
+		if (this._renderPromise) { return this._renderPromise }
+		const superPromise = super.render();
+		this._renderPromise = superPromise
+			.then(async () => {
+				await this.adopt(this.xKids as Array<XKid & XItem>);
+				return this;
+			});
+		return this._renderPromise;
+	}
+	// #endregion ▄▄▄▄▄ Rendering ▄▄▄▄▄
+	// #endregion ▄▄▄▄▄ Parenting ▄▄▄▄▄
 }
 
 // #region 🟩🟩🟩 XROOT: Base Container for All XItems - Only XItem that Doesn't Need an XParent 🟩🟩🟩 ~
 export class XROOT extends XBaseContainer {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
-	static override get defaultOptions() {
-		const defaultXOptions: XOptions.ROOT = {
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.ROOT> {
+
+		const defaultXOptions: Required<XOptions.ROOT> = {
 			id: "XROOT",
 			classes: ["XROOT"],
 			template: U.getTemplatePath("xroot"),
@@ -363,12 +396,12 @@ export class XROOT extends XBaseContainer {
 			}
 		};
 		return U.objMerge(
-			super.defaultOptions as Required<XOptions.ROOT>,
+			super.defaultOptions,
 			defaultXOptions
 		);
 	}
 	static override REGISTRY: Map<string, XROOT> = new Map();
-	declare options: Required<XOptions.ROOT>;
+	declare options: ApplicationOptions & Required<XOptions.ROOT>;
 	override xParent = null;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
@@ -376,7 +409,7 @@ export class XROOT extends XBaseContainer {
 	static get XROOT() { return XROOT.#XROOT }
 	static async InitializeXROOT() {
 		XROOT.XROOT?.kill();
-		XROOT.#XROOT = new XROOT();
+		XROOT.#XROOT = new XROOT({id: "XROOT"});
 		await XROOT.#XROOT.render();
 		return XROOT.#XROOT;
 	}
@@ -400,25 +433,24 @@ export class XROOT extends XBaseContainer {
 // #endregion 🟩🟩🟩 XROOT 🟩🟩🟩
 export default class XItem extends XBaseItem {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
-	static override get defaultOptions() {
-		const defaultXOptions: XOptions.Item = {
-			id: "??-XItem-??",
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Item> {
+
+		const defaultXOptions: Required<XOptions.Item> = {
+			id: "XITEM",
 			classes: ["x-item"],
+			template: U.getTemplatePath("xitem"),
 			xParent: XROOT.XROOT,
 			isFreezingRotate: false,
-			vars: {
-				xPercent: 0,
-				yPercent: 0,
-				opacity: 1
-			}
+			vars: {}
 		};
 		return U.objMerge(
-			super.defaultOptions as Required<XOptions.Item>,
+			super.defaultOptions,
 			defaultXOptions
 		);
 	}
+
 	static override REGISTRY: Map<string, XItem> = new Map();
-	declare options: Required<XOptions.Item>;
+	declare options: ApplicationOptions & Required<XOptions.Item>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 }

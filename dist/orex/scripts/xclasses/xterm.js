@@ -2,18 +2,22 @@
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { 
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U, XItem, XTermType
+U, 
+// ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
+XROOT, XItem, XTermType
  } from "../helpers/bundler.js";
 export default class XDie extends XItem {
     // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
     static get defaultOptions() {
         const defaultXOptions = {
-            id: "??-XDie-??",
+            id: U.getUID("XDIE"),
             classes: ["x-die"],
+            xParent: XROOT.XROOT,
             template: U.getTemplatePath("xdie"),
             isFreezingRotate: true,
             type: XTermType.BasicDie,
             value: 0,
+            dieSize: 40,
             dieColor: "white",
             strokeColor: "black",
             numColor: "black",
@@ -40,9 +44,16 @@ export default class XDie extends XItem {
     get isRolled() { return this.value > 0; }
     roll() { this.value = U.randInt(1, 10); }
     async render() {
-        await super.render();
-        this.value$.html(this.face);
-        return this;
+        if (this._renderPromise) {
+            return this._renderPromise;
+        }
+        const superPromise = super.render();
+        this._renderPromise = superPromise
+            .then(async () => {
+            this.value$.html(this.face);
+            return this;
+        });
+        return this._renderPromise;
     }
     constructor(xOptions) {
         xOptions.type ??= XTermType.BasicDie;
@@ -51,7 +62,7 @@ export default class XDie extends XItem {
         this.options.vars = {
             ...this.options.vars,
             ...{
-                "--die-size": `${this.size}px`,
+                "--die-size": `${this.options.dieSize}px`,
                 "--die-color-fg": this.options.numColor,
                 "--die-color-bg": this.options.dieColor,
                 "--die-color-stroke": this.options.strokeColor
@@ -71,8 +82,9 @@ export class XMod extends XItem {
     // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
     static get defaultOptions() {
         const defaultXOptions = {
-            id: "??-XMod-??",
+            id: U.getUID("XMOD"),
             classes: ["x-mod"],
+            xParent: XROOT.XROOT,
             template: U.getTemplatePath("xmod"),
             isFreezingRotate: true,
             type: XTermType.Modifier,

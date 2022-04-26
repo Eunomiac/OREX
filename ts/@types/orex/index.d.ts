@@ -96,11 +96,12 @@ type XDieType = XTermType.BasicDie | XTermType.ExpertDie | XTermType.MasterDie |
 type XModType = XTermType.Difficulty | XTermType.Modifier | XTermType.Trait;
 
 namespace XOptions {
-	interface Base extends Partial<ApplicationOptions> {
-		id: string,
-		classes: string[],
-		vars: XStyleVars,
-		xParent: XParent | null
+	interface Base {
+		id?: string,
+		classes?: string[],
+		template?: string,
+		vars?: XStyleVars,
+		xParent?: XParent | null
 	 }
 
 	interface ROOT extends Base {
@@ -111,7 +112,7 @@ namespace XOptions {
 
 	interface Item extends Base {
 		xParent: XContainer,
-		isFreezingRotate: boolean
+		isFreezingRotate?: boolean
 	}
 
 	interface Group extends Item { }
@@ -129,11 +130,14 @@ namespace XOptions {
 	}
 
 	interface Pool extends Group {
-		orbitals: Partial<Record<XOrbitType, XOrbitSpecs>>;
+		size: number,
+		orbitals?: Partial<Record<XOrbitType, XOrbitSpecs>>
 	}
 
 	interface Roll extends Pool {
-
+		color?: string,
+		size?: number,
+		position: Point
 	}
 
 	interface Source extends Pool { }
@@ -143,15 +147,16 @@ namespace XOptions {
 	}
 	interface Die extends Term {
 		type: XDieType,
-		value: XDieValue,
-		dieColor: string,
-		numColor: string,
-		strokeColor: string,
+		value?: XDieValue,
+		dieSize?: number,
+		dieColor?: string,
+		numColor?: string,
+		strokeColor?: string,
 	}
 
 	interface Mod extends Term {
 		type: XModType,
-		value: number
+		value?: number
 	}
 }
 

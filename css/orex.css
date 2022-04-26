@@ -10,31 +10,14 @@
   top: 0;
   left: 0;
   position: absolute;
+  pointer-events: none;
   /* .x-elem */
   /* .x-group */
   /* .x-die */ }
+  #XROOT > * {
+    pointer-events: none; }
   #XROOT .x-elem {
-    position: absolute;
-    transform-origin: 50% 50%; }
-  #XROOT .translate-box {
-    height: 500px;
-    width: 500px;
-    top: 450px;
-    left: 300px;
-    outline: 2px solid blue; }
-    #XROOT .translate-box .scale-box {
-      height: 300px;
-      width: 300px;
-      border-radius: 150px;
-      top: 0px;
-      left: 0px;
-      background: rgba(255, 255, 0, 0.2); }
-      #XROOT .translate-box .scale-box .rotate-box {
-        height: 100px;
-        width: 100px;
-        top: 0px;
-        left: 0px;
-        outline: 5px outset red; }
+    position: absolute; }
   #XROOT .x-pool {
     --bg-color: cyan;
     border-radius: 100%;

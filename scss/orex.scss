@@ -19,6 +19,11 @@ $isDebugging: true; // true;
 	top: 0;
 	left: 0;
 	position: absolute;
+	pointer-events: none;
+
+	> * {
+		pointer-events: none;
+	}
 
 	/* .x-elem */
 	@import "components/xelem";

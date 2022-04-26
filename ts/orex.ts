@@ -15,7 +15,7 @@ import {
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
 	XROOT,
 	XItem,
-	XArm, XOrbit,
+	XArm, XOrbit, XOrbitType,
 	XGroup, XPool, XRoll,
 	XDie,
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
@@ -92,8 +92,6 @@ Hooks.once("ready", async () => {
 	DB.groupEnd();
 	DB.groupEnd();
 	DB.log("... Readying Complete.");
-
-	// DBFUNCS.InitializeDisplay([]);
 	DB.groupInfo("Rendering Debug Display to DOM");
 	const DBDISPLAY = await DBFUNCS.InitializeDisplay();
 	/*
@@ -107,9 +105,26 @@ Hooks.once("ready", async () => {
 
 		]
 }); */
-
-
 	DB.groupEnd();
+
+	const ROLL = new XRoll({
+		id: "ROLL",
+		color: "lime",
+		size: 300,
+		position: {x: 400, y: 400},
+		vars: {opacity: 1}
+	});
+	await ROLL.render();
+	const DICE = [...new Array(6)].map(() => new XDie({}));
+	Object.assign(globalThis, {
+		ROLL,
+		DICE
+	});
+	ROLL.adopt(DICE, XOrbitType.Main);
+
+
+
+	// await Promise.all(DICE.map((die) => die.render()));
 	return;
 
 /*!DEVCODE*/

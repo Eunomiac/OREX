@@ -11,6 +11,13 @@ export default {
             color: "white"
         }
     },
+    xRollStyles: {
+        defaults: {
+            color: "cyan",
+            size: 200,
+            position: { x: 500, y: 500 }
+        }
+    },
     isDebugging: true,
     minFuzzyMatchScore: 0.8,
     colors: {

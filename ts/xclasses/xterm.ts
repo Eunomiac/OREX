@@ -11,15 +11,19 @@ import {
 
 
 export default class XDie extends XItem implements XTerm {
+
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
-	static override get defaultOptions() {
-		const defaultXOptions: Omit<XOptions.Die, "xParent"> = {
-			id: "??-XDie-??",
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Die> {
+
+		const defaultXOptions: Required<XOptions.Die> = {
+			id: U.getUID("XDIE"),
 			classes: ["x-die"],
+			xParent: XROOT.XROOT,
 			template: U.getTemplatePath("xdie"),
 			isFreezingRotate: true,
 			type: XTermType.BasicDie,
 			value: 0,
+			dieSize: 40,
 			dieColor: "white",
 			strokeColor: "black",
 			numColor: "black",
@@ -30,12 +34,12 @@ export default class XDie extends XItem implements XTerm {
 			}
 		};
 		return U.objMerge(
-			super.defaultOptions as Required<XOptions.Die>,
+			super.defaultOptions,
 			defaultXOptions
 		);
 	}
 	static override REGISTRY: Map<string, XDie> = new Map();
-	declare options: Required<XOptions.Die>;
+	declare options: ApplicationOptions & Required<XOptions.Die>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
@@ -58,9 +62,14 @@ export default class XDie extends XItem implements XTerm {
 	roll() { this.value = U.randInt(1, 10) as XDieValue }
 
 	override async render(): Promise<this> {
-		await super.render();
-		this.value$.html(this.face);
-		return this;
+		if (this._renderPromise) { return this._renderPromise }
+		const superPromise = super.render();
+		this._renderPromise = superPromise
+			.then(async () => {
+				this.value$.html(this.face);
+				return this;
+			});
+		return this._renderPromise;
 	}
 
 	constructor(xOptions: Partial<XOptions.Die>) {
@@ -70,7 +79,7 @@ export default class XDie extends XItem implements XTerm {
 		this.options.vars = {
 			...this.options.vars,
 			...{
-				"--die-size": `${this.size}px`,
+				"--die-size": `${this.options.dieSize}px`,
 				"--die-color-fg": this.options.numColor,
 				"--die-color-bg": this.options.dieColor,
 				"--die-color-stroke": this.options.strokeColor
@@ -92,11 +101,15 @@ export default class XDie extends XItem implements XTerm {
 
 
 export class XMod extends XItem implements XTerm {
+
+
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
-	static override get defaultOptions() {
-		const defaultXOptions: Omit<XOptions.Mod, "xParent"> = {
-			id: "??-XMod-??",
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Mod> {
+
+		const defaultXOptions: Required<XOptions.Mod> = {
+			id: U.getUID("XMOD"),
 			classes: ["x-mod"],
+			xParent: XROOT.XROOT,
 			template: U.getTemplatePath("xmod"),
 			isFreezingRotate: true,
 			type: XTermType.Modifier,
@@ -108,12 +121,12 @@ export class XMod extends XItem implements XTerm {
 			}
 		};
 		return U.objMerge(
-			super.defaultOptions as Required<XOptions.Mod>,
+			super.defaultOptions,
 			defaultXOptions
 		);
 	}
 	static override REGISTRY: Map<string, XMod> = new Map();
-	declare options: Required<XOptions.Mod>;
+	declare options: ApplicationOptions & Required<XOptions.Mod>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
