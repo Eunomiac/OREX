@@ -1,4 +1,5 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
+import {XTermType} from "../scripts/helpers/bundler.js";
 import {
 	// #region ▮▮▮▮▮▮▮ External Libraries ▮▮▮▮▮▮▮ ~
 	// #region ====== GreenSock Animation ====== ~
@@ -107,21 +108,24 @@ Hooks.once("ready", async () => {
 }); */
 	DB.groupEnd();
 
-	const ROLL = new XRoll({
+	const ROLL = new XRoll(XROOT.XROOT, {
 		id: "ROLL",
 		color: "lime",
 		size: 300,
 		position: {x: 400, y: 400},
 		vars: {opacity: 1}
 	});
+	const DICE = [...new Array(6)].map((_, i) => new XDie(ROLL, {type: XTermType.BasicDie, value: i + 1 as XDieValue}));
+	ROLL.adopt(DICE, XOrbitType.Main);
 	await ROLL.render();
-	const DICE = [...new Array(6)].map(() => new XDie({}));
+	const ORBIT = ROLL.orbitals.get(XOrbitType.Main);
+	const ARMS = DICE.map((die) => die.xParent);
 	Object.assign(globalThis, {
 		ROLL,
-		DICE
+		DICE,
+		ORBIT,
+		ARMS
 	});
-	ROLL.adopt(DICE, XOrbitType.Main);
-
 
 
 	// await Promise.all(DICE.map((die) => die.render()));

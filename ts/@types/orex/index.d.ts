@@ -100,30 +100,23 @@ namespace XOptions {
 		id?: string,
 		classes?: string[],
 		template?: string,
-		vars?: XStyleVars,
-		xParent?: XParent | null
+		isFreezingRotate?: boolean,
+		vars?: XStyleVars
 	 }
 
 	interface ROOT extends Base {
 		id: "XROOT",
-		classes: ["XROOT"],
-		xParent: null
+		classes: ["XROOT"]
 	}
 
 	interface Item extends Base {
-		xParent: XContainer,
-		isFreezingRotate?: boolean
 	}
 
 	interface Group extends Item { }
 
-	interface Arm extends Group {
-		xParent: XOrbit,
-		heldItem: XItem
-	}
+	interface Arm extends Group { }
 
 	interface Orbit extends Group {
-		xParent: XPool
 		name: XOrbitType,
 		radiusRatio: number,
 		rotationScaling: number
@@ -136,7 +129,6 @@ namespace XOptions {
 
 	interface Roll extends Pool {
 		color?: string,
-		size?: number,
 		position: Point
 	}
 
@@ -158,6 +150,13 @@ namespace XOptions {
 		type: XModType,
 		value?: number
 	}
+
+	interface Ghost extends Mod { }
+
+	interface Mutator extends Mod { }
+
+	interface Info extends Mod { }
+
 }
 
 

@@ -18,7 +18,6 @@ export default class XDie extends XItem implements XTerm {
 		const defaultXOptions: Required<XOptions.Die> = {
 			id: U.getUID("XDIE"),
 			classes: ["x-die"],
-			xParent: XROOT.XROOT,
 			template: U.getTemplatePath("xdie"),
 			isFreezingRotate: true,
 			type: XTermType.BasicDie,
@@ -43,9 +42,25 @@ export default class XDie extends XItem implements XTerm {
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
-	get type() { return this.options.type }
+	constructor(xParent: XParent, xOptions: XOptions.Die) {
+		super(xParent, xOptions);
+		this.options.vars = {
+			...this.options.vars,
+			...{
+				"height": this.options.dieSize,
+				"width": this.options.dieSize,
+				"--die-size": `${this.options.dieSize}px`,
+				"--die-color-fg": this.options.numColor,
+				"--die-color-bg": this.options.dieColor,
+				"--die-color-stroke": this.options.strokeColor
+			}
+		};
+		this.#type = this.options.type;
+		this.#value = this.options.value;
+	}
 
-	protected get value$() { return $(`#${this.id} .die-val`) }
+	#type: XDieType;
+	get type() { return this.#type }
 
 	#value: XDieValue = 0;
 	get value() { return this.#value }
@@ -55,6 +70,7 @@ export default class XDie extends XItem implements XTerm {
 			this.value$.html(this.face);
 		}
 	}
+	protected get value$() { return $(`#${this.id} .die-val`) }
 	get face(): XDieFace { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value] as XDieFace }
 
 	get isRolled() { return this.value > 0 }
@@ -72,20 +88,6 @@ export default class XDie extends XItem implements XTerm {
 		return this._renderPromise;
 	}
 
-	constructor(xOptions: Partial<XOptions.Die>) {
-		xOptions.type ??= XTermType.BasicDie;
-		xOptions.isFreezingRotate ??= true;
-		super(xOptions);
-		this.options.vars = {
-			...this.options.vars,
-			...{
-				"--die-size": `${this.options.dieSize}px`,
-				"--die-color-fg": this.options.numColor,
-				"--die-color-bg": this.options.dieColor,
-				"--die-color-stroke": this.options.strokeColor
-			}
-		};
-	}
 
 	override getData() {
 		const context = super.getData();
@@ -101,15 +103,12 @@ export default class XDie extends XItem implements XTerm {
 
 
 export class XMod extends XItem implements XTerm {
-
-
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Mod> {
 
 		const defaultXOptions: Required<XOptions.Mod> = {
 			id: U.getUID("XMOD"),
 			classes: ["x-mod"],
-			xParent: XROOT.XROOT,
 			template: U.getTemplatePath("xmod"),
 			isFreezingRotate: true,
 			type: XTermType.Modifier,
@@ -130,6 +129,10 @@ export class XMod extends XItem implements XTerm {
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
+	constructor(xParent: XParent, xOptions: XOptions.Mod) {
+		super(xParent, xOptions);
+	}
+
 	private _value: XDieValue = 0;
 	protected get value$() { return $(`#${this.id} .die-val`) }
 
@@ -140,9 +143,6 @@ export class XMod extends XItem implements XTerm {
 		this.value$.html(`${val}`);
 	}
 
-	constructor(xOptions: Partial<XOptions.Mod>) {
-		super(xOptions);
-	}
 
 	override getData() {
 		const context = super.getData();
@@ -153,5 +153,89 @@ export class XMod extends XItem implements XTerm {
 		});
 
 		return context;
+	}
+}
+export class XGhost extends XMod {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Ghost> {
+
+		const defaultXOptions: Required<XOptions.Ghost> = {
+			id: U.getUID("XGHOST"),
+			classes: ["x-ghost"],
+			template: U.getTemplatePath("xmod"),
+			isFreezingRotate: true,
+			type: XTermType.Modifier,
+			value: 0,
+			vars: {}
+		};
+		return U.objMerge(
+			super.defaultOptions,
+			defaultXOptions
+		);
+	}
+	static override REGISTRY: Map<string, XGhost> = new Map();
+	declare options: ApplicationOptions & Required<XOptions.Ghost>;
+	declare xParent: XParent;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
+	constructor(xParent: XParent, xOptions: XOptions.Ghost) {
+		super(xParent, xOptions);
+	}
+
+}
+
+export class XMutator extends XMod {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Mutator> {
+
+		const defaultXOptions: Required<XOptions.Mutator> = {
+			id: U.getUID("XMUTATOR"),
+			classes: ["x-mutator"],
+			template: U.getTemplatePath("xmod"),
+			isFreezingRotate: true,
+			type: XTermType.Modifier,
+			value: 0,
+			vars: {}
+		};
+		return U.objMerge(
+			super.defaultOptions,
+			defaultXOptions
+		);
+	}
+	static override REGISTRY: Map<string, XMutator> = new Map();
+	declare options: ApplicationOptions & Required<XOptions.Mutator>;
+	declare xParent: XParent;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
+	constructor(xParent: XParent, xOptions: XOptions.Mutator) {
+		super(xParent, xOptions);
+	}
+}
+
+export class XInfo extends XMod {
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Info> {
+
+		const defaultXOptions: Required<XOptions.Info> = {
+			id: U.getUID("XINFO"),
+			classes: ["x-info"],
+			template: U.getTemplatePath("xmod"),
+			isFreezingRotate: true,
+			type: XTermType.Modifier,
+			value: 0,
+			vars: {}
+		};
+		return U.objMerge(
+			super.defaultOptions,
+			defaultXOptions
+		);
+	}
+	static override REGISTRY: Map<string, XInfo> = new Map();
+	declare options: ApplicationOptions & Required<XOptions.Info>;
+	declare xParent: XParent;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
+	constructor(xParent: XParent, xOptions: XOptions.Info) {
+		super(xParent, xOptions);
 	}
 }

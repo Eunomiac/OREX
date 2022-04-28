@@ -25,7 +25,7 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 			id: "XBASE_ITEM",
 			classes: [],
 			template: U.getTemplatePath("xitem"),
-			xParent: XROOT.XROOT,
+			isFreezingRotate: false,
 			vars: {
 				xPercent: -50,
 				yPercent: -50,
@@ -59,18 +59,20 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 	// #endregion ▮▮▮▮[Static Registration]▮▮▮▮
 
 	// #region ████████ CONSTRUCTOR & Essential Fields ████████ ~
-	constructor(xOptions: Partial<XOptions.Base> = {}) {
-		if (xOptions.xParent) {
-			xOptions.id = U.getUID(`${xOptions.xParent.id}-${xOptions.id}`.replace(/^XROOT-?/, "X-"));
+	constructor(xParent: XParent | null, xOptions: Partial<XOptions.Base> = {}) {
+		xOptions.id ??= "X";
+		if (xParent) {
+			xOptions.id = U.getUID(`${xParent.id}-${xOptions.id}`);
 		}
 		DB.display(`[#${xOptions.id}] Constructing START`);
 		super(xOptions);
 		if (this instanceof XROOT) {
 			this.xParent = null;
 		} else {
-			this.xParent = xOptions.xParent ?? XROOT.XROOT;
+			this.xParent = xParent ?? XROOT.XROOT;
 		}
-		DB.log(`[#${xOptions.id}] END Constructing`);
+		this.isFreezingRotate = this.options.isFreezingRotate ?? false;
+		DB.log(`[#${this.id}] END Constructing`);
 	}
 	// #endregion ▄▄▄▄▄ CONSTRUCTOR ▄▄▄▄▄
 
@@ -79,21 +81,21 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 
 	// #region ████████ Positioning: Positioning DOM Element in Local and Global (XROOT) Space ████████ ~
 	// #region ░░░░░░░ Local Space ░░░░░░░ ~
-	get x() { return U.pInt(U.get(this.elem, "x", "px")) }
-	get y() { return U.pInt(U.get(this.elem, "y", "px")) }
+	get x() { return U.pInt(this.rendered ? U.get(this.elem, "x", "px") : this.vars.x) }
+	get y() { return U.pInt(this.rendered ? U.get(this.elem, "y", "px") : this.vars.y) }
 	get pos(): Point { return {x: this.x, y: this.y} }
 
-	get height() { return U.pInt(U.get(this.elem, "height", "px")) }
-	get width() { return U.pInt(U.get(this.elem, "width", "px")) }
+	get height() { return U.pInt(this.rendered ? U.get(this.elem, "height", "px") : this.vars.height) }
+	get width() { return U.pInt(this.rendered ? U.get(this.elem, "width", "px") : this.vars.width) }
 	get size() { return (this.height + this.width) / 2 }
 
-	get rotation() { return U.cycleAngle(U.pFloat(U.get(this.elem, "rotation"), 2), [-180, 180]) }
-	get scale() { return U.pFloat(U.get(this.elem, "scale"), 2) || 1 }
+	get rotation() { return U.cycleAngle(U.pFloat(this.rendered ? U.get(this.elem, "rotation") : this.vars.rotation, 2), [-180, 180]) }
+	get scale() { return U.pFloat(this.rendered ? U.get(this.elem, "scale") : this.vars.scale, 2) || 1 }
 
 	get origin() {
 		return {
-			x: -1 * (gsap.getProperty(this.elem, "xPercent") as number / 100) * this.width,
-			y: -1 * (gsap.getProperty(this.elem, "yPercent") as number / 100) * this.height
+			x: -1 * U.pInt((this.rendered ? U.get(this.elem, "xPercent") : this.vars.xPercent)) * this.width,
+			y: -1 * U.pInt((this.rendered ? U.get(this.elem, "yPercent") : this.vars.yPercent)) * this.height
 		};
 	}
 	// #endregion ░░░░[Local Space]░░░░
@@ -315,16 +317,18 @@ export class XBaseContainer extends XBaseItem implements XParent {
 	}
 
 	// #region ████████ Parenting: Adopting & Managing Child XItems ████████ ~
-	adoptElem(elem: XItem|HTMLElement|JQuery<HTMLElement>) {
+	adoptElem(elem: XBaseItem|HTMLElement|JQuery<HTMLElement>) {
 		if (!this.rendered) { return }
-		let elem$;
-		if (elem instanceof XItem) {
+		let elem$: JQuery<HTMLElement>;
+		if (elem instanceof XBaseItem) {
 			if (!elem.rendered) { return }
 			({elem$} = elem);
 		} else if (elem instanceof HTMLElement) {
 			elem$ = $(elem);
+		} else {
+			elem$ = elem;
 		}
-		(elem$ ?? $(elem)).appendTo(this.elem);
+		elem$.appendTo(this.elem);
 	}
 
 	async adopt<T extends XItem>(children: T): Promise<T & XKid>
@@ -388,7 +392,7 @@ export class XROOT extends XBaseContainer {
 			id: "XROOT",
 			classes: ["XROOT"],
 			template: U.getTemplatePath("xroot"),
-			xParent: null,
+			isFreezingRotate: false,
 			vars: {
 				xPercent: 0,
 				yPercent: 0,
@@ -405,11 +409,15 @@ export class XROOT extends XBaseContainer {
 	override xParent = null;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
+	constructor() {
+		super(null, {});
+	}
+
 	static #XROOT: XROOT;
 	static get XROOT() { return XROOT.#XROOT }
 	static async InitializeXROOT() {
 		XROOT.XROOT?.kill();
-		XROOT.#XROOT = new XROOT({id: "XROOT"});
+		XROOT.#XROOT = new XROOT();
 		await XROOT.#XROOT.render();
 		return XROOT.#XROOT;
 	}
@@ -439,7 +447,6 @@ export default class XItem extends XBaseItem {
 			id: "XITEM",
 			classes: ["x-item"],
 			template: U.getTemplatePath("xitem"),
-			xParent: XROOT.XROOT,
 			isFreezingRotate: false,
 			vars: {}
 		};
@@ -453,4 +460,8 @@ export default class XItem extends XBaseItem {
 	declare options: ApplicationOptions & Required<XOptions.Item>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
+	constructor(xParent: XParent, xOptions: XOptions.Item) {
+		super (xParent, xOptions);
+	}
 }

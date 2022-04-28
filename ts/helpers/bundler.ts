@@ -4,8 +4,7 @@ import {getTemplatePath} from "./templates.js";
 
 import {default as XItem, XBaseContainer, XROOT} from "../xclasses/xitem.js";
 import {default as XGroup, XPool, XRoll, XArm, XOrbit} from "../xclasses/xgroup.js";
-import {default as XDie, XMod} from "../xclasses/xterm.js";
-import {XGhost, XMutator, XInfo} from "../xclasses/xmod.js";
+import {default as XDie, XMod, XGhost, XMutator, XInfo} from "../xclasses/xterm.js";
 import {default as XPad} from "../xclasses/xpad.js";
 // #endregion ▮▮▮▮[IMPORTS]▮▮▮▮
 

@@ -151,10 +151,9 @@ class XPing {
 
 	constructor(point: Point, label: string, context:XParent = XROOT.XROOT, color = "random") {
 		this.color = color === "random" ? U.randElem(Object.keys(C.colors)) : color;
-		this.xItem = new XItem({
+		this.xItem = new XItem(context, {
 			id: XPing.newPingID,
 			classes: ["x-ping"],
-			xParent: context,
 			vars: {
 				height: 100,
 				width: 100,
@@ -264,8 +263,7 @@ export class XDisplay extends XItem {
 	#stepFuncs: Map<WatchTerm["id"],StepFunc> = new Map();
 	get watchData() { return this.#watchData }
 	constructor(xOptions: Partial<XOptions.Item>) {
-		xOptions.xParent = XROOT.XROOT;
-		super(xOptions);
+		super(XROOT.XROOT, xOptions);
 	}
 
 	#watchItems: Map<string,XItem> = new Map();
@@ -343,8 +341,7 @@ const DBFUNCS = {
 	},
 	InitializeDisplay: async (): Promise<XDisplay> => {
 		const xDisplay = new XDisplay({
-			id: "DISPLAY",
-			xParent: XROOT.XROOT
+			id: "DISPLAY"
 		});
 		await xDisplay.render();
 		return xDisplay;

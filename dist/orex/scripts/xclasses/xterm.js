@@ -2,9 +2,7 @@
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { 
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U, 
-// ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XROOT, XItem, XTermType
+U, XItem, XTermType
  } from "../helpers/bundler.js";
 export default class XDie extends XItem {
     // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
@@ -12,7 +10,6 @@ export default class XDie extends XItem {
         const defaultXOptions = {
             id: U.getUID("XDIE"),
             classes: ["x-die"],
-            xParent: XROOT.XROOT,
             template: U.getTemplatePath("xdie"),
             isFreezingRotate: true,
             type: XTermType.BasicDie,
@@ -30,8 +27,24 @@ export default class XDie extends XItem {
         return U.objMerge(super.defaultOptions, defaultXOptions);
     }
     static REGISTRY = new Map();
-    get type() { return this.options.type; }
-    get value$() { return $(`#${this.id} .die-val`); }
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
+        this.options.vars = {
+            ...this.options.vars,
+            ...{
+                "height": this.options.dieSize,
+                "width": this.options.dieSize,
+                "--die-size": `${this.options.dieSize}px`,
+                "--die-color-fg": this.options.numColor,
+                "--die-color-bg": this.options.dieColor,
+                "--die-color-stroke": this.options.strokeColor
+            }
+        };
+        this.#type = this.options.type;
+        this.#value = this.options.value;
+    }
+    #type;
+    get type() { return this.#type; }
     #value = 0;
     get value() { return this.#value; }
     set value(val) {
@@ -40,6 +53,7 @@ export default class XDie extends XItem {
             this.value$.html(this.face);
         }
     }
+    get value$() { return $(`#${this.id} .die-val`); }
     get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value]; }
     get isRolled() { return this.value > 0; }
     roll() { this.value = U.randInt(1, 10); }
@@ -54,20 +68,6 @@ export default class XDie extends XItem {
             return this;
         });
         return this._renderPromise;
-    }
-    constructor(xOptions) {
-        xOptions.type ??= XTermType.BasicDie;
-        xOptions.isFreezingRotate ??= true;
-        super(xOptions);
-        this.options.vars = {
-            ...this.options.vars,
-            ...{
-                "--die-size": `${this.options.dieSize}px`,
-                "--die-color-fg": this.options.numColor,
-                "--die-color-bg": this.options.dieColor,
-                "--die-color-stroke": this.options.strokeColor
-            }
-        };
     }
     getData() {
         const context = super.getData();
@@ -84,7 +84,6 @@ export class XMod extends XItem {
         const defaultXOptions = {
             id: U.getUID("XMOD"),
             classes: ["x-mod"],
-            xParent: XROOT.XROOT,
             template: U.getTemplatePath("xmod"),
             isFreezingRotate: true,
             type: XTermType.Modifier,
@@ -98,6 +97,9 @@ export class XMod extends XItem {
         return U.objMerge(super.defaultOptions, defaultXOptions);
     }
     static REGISTRY = new Map();
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
+    }
     _value = 0;
     get value$() { return $(`#${this.id} .die-val`); }
     get type() { return this.options.type; }
@@ -106,9 +108,6 @@ export class XMod extends XItem {
         this._value = val;
         this.value$.html(`${val}`);
     }
-    constructor(xOptions) {
-        super(xOptions);
-    }
     getData() {
         const context = super.getData();
         const faceNum = this.value === 10 ? 0 : (this.value || " ");
@@ -116,5 +115,62 @@ export class XMod extends XItem {
             value: faceNum
         });
         return context;
+    }
+}
+export class XGhost extends XMod {
+    // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
+    static get defaultOptions() {
+        const defaultXOptions = {
+            id: U.getUID("XGHOST"),
+            classes: ["x-ghost"],
+            template: U.getTemplatePath("xmod"),
+            isFreezingRotate: true,
+            type: XTermType.Modifier,
+            value: 0,
+            vars: {}
+        };
+        return U.objMerge(super.defaultOptions, defaultXOptions);
+    }
+    static REGISTRY = new Map();
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
+    }
+}
+export class XMutator extends XMod {
+    // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
+    static get defaultOptions() {
+        const defaultXOptions = {
+            id: U.getUID("XMUTATOR"),
+            classes: ["x-mutator"],
+            template: U.getTemplatePath("xmod"),
+            isFreezingRotate: true,
+            type: XTermType.Modifier,
+            value: 0,
+            vars: {}
+        };
+        return U.objMerge(super.defaultOptions, defaultXOptions);
+    }
+    static REGISTRY = new Map();
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
+    }
+}
+export class XInfo extends XMod {
+    // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
+    static get defaultOptions() {
+        const defaultXOptions = {
+            id: U.getUID("XINFO"),
+            classes: ["x-info"],
+            template: U.getTemplatePath("xmod"),
+            isFreezingRotate: true,
+            type: XTermType.Modifier,
+            value: 0,
+            vars: {}
+        };
+        return U.objMerge(super.defaultOptions, defaultXOptions);
+    }
+    static REGISTRY = new Map();
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
     }
 }

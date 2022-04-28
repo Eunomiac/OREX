@@ -49,7 +49,6 @@ export default class XGroup extends XBaseContainer {
 			id: U.getUID("XGROUP"),
 			classes: ["x-group"],
 			template: U.getTemplatePath("xitem"),
-			xParent: XROOT.XROOT,
 			isFreezingRotate: false,
 			vars: {}
 		};
@@ -62,6 +61,10 @@ export default class XGroup extends XBaseContainer {
 	declare options: ApplicationOptions & Required<XOptions.Group>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
+	constructor(xParent: XParent, xOptions: XOptions.Group) {
+		super (xParent, xOptions);
+	}
 }
 // #endregion ▄▄▄▄▄ XGroup ▄▄▄▄▄
 
@@ -75,15 +78,20 @@ const MINANGLETOTWEEN = 5;
 const ARMFADEINDURATION = 3;
 export class XArm extends XGroup {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
-	static override get defaultOptions(): ApplicationOptions & Required<Omit<XOptions.Arm,"heldItem">> {
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Arm> {
 
-		const defaultXOptions: Required<Omit<XOptions.Arm, "heldItem">> = {
+		const defaultXOptions: Required<XOptions.Arm> = {
 			id: U.getUID("XARM"),
 			classes: ["x-arm"],
-			xParent: XROOT.XROOT,
 			template: U.getTemplatePath("xarm"),
 			isFreezingRotate: false,
-			vars: {}
+			vars: {
+				xPercent: 0,
+				yPercent: 0,
+				transformOrigin: "100% 50%",
+				height: 0,
+				rotation: 0
+			}
 		};
 		return U.objMerge(
 			super.defaultOptions,
@@ -96,41 +104,53 @@ export class XArm extends XGroup {
 	declare xParent: XOrbit;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
-	// get armNum() { return this.xParent.getArmNumber(this) }
+	constructor(xParent: XOrbit, heldItem: XItem, xOptions: XOptions.Group) {
+		xOptions.vars ??= {};
+		xOptions.vars.width = xParent.orbitRadius;
+		super(xParent, xOptions);
+		this.#heldItem = heldItem;
+		this.adopt(this.heldItem);
+	}
 
-	#isFadingIn = false;
-	tweenFadeIn(delay = 0): void {
-		if (this.#isFadingIn) { return }
-		this.#isFadingIn = true;
+	#currentAnimation: Anim | null = null;
+
+	fadeIn(): void {
+		if (this.#currentAnimation) { return }
+		const delay: number = (this.homeAngle / 360) * ARMFADEINDURATION / 3;
+		DB.display(`[${this.id}.fadeIn(${delay})], homeAngle: `, `${this.homeAngle}`);
 		const self = this;
-		gsap.timeline({delay})
+		this.#currentAnimation = gsap.timeline({
+			id: `${self.id}.TWEENFADEIN(${self.homeAngle})`,
+			delay,
+			onComplete() {
+				self.#currentAnimation = null;
+				self.tweenHome();
+			}
+		})
 			.fromTo(
-				this.elem,
+				self.elem,
 				{
-					width: this.homeWidth * 10,
-					rotation: this.homeAngle - 50
+					width: self.homeWidth * 0.1,
+					rotation: self.homeAngle - 50
 				},
 				{
-					width: this.homeWidth,
-					rotation: this.homeAngle,
+					id: `${self.id}.tweenFadeIn(Arm)`,
+					width: self.homeWidth,
+					rotation: self.homeAngle,
 					duration: ARMFADEINDURATION,
-					ease: "bounce",
-					onComplete() {
-						self.#isFadingIn = false;
-						self.tweenToHomeWidth();
-						self.tweenToHomeAngle();
-					}
+					ease: "back"
 				},
 				0
 			)
 			.fromTo(
-				this.heldItem.elem,
+				self.heldItem.elem,
 				{
 					opacity: 0,
-					scale: 5,
-					rotation: -1 * this.global.rotation
+					scale: 0,
+					rotation: -1 * self.global.rotation
 				},
 				{
+					id: `${self.id}.tweenFadeIn(HeldItem = ${self.heldItem.id})`,
 					opacity: 1,
 					scale: 1,
 					duration: ARMFADEINDURATION / 1.5,
@@ -139,65 +159,41 @@ export class XArm extends XGroup {
 				0
 			);
 	}
-	#toHomeWidthTween?: gsap.core.Timeline;
-	get toHomeWidthTween(): gsap.core.Timeline {
-		const self = this;
-		return (this.#toHomeWidthTween = this.#toHomeWidthTween
-			?? gsap.timeline({paused: true})
-				.to(
-					this.elem,
-					{
-						width() { return this.homeWidth },
-						duration: MAXWIDTHTWEENDURATION,
-						ease: "power2",
-						onComplete() { self.tweenToHomeWidth() }
-					}
-				));
-	}
-	tweenToHomeWidth() {
-		if (this.#isFadingIn) { return }
-		this.toHomeWidthTween.invalidate();
-		this.toHomeWidthTween.restart();
-		this.toHomeWidthTween.pause();
-		const deltaWidth = Math.abs(this.homeWidth - this.width);
-		if (deltaWidth <= MINWIDTHTOTWEEN) {
-			this.set({width: this.homeWidth});
+
+	generateHomeTween() {
+		if (Math.abs(this.width - this.homeWidth) <= MINWIDTHTOTWEEN
+			&& Math.abs(this.rotation - this.homeAngle) <= MINANGLETOTWEEN) {
+			return null;
 		}
-		const timeScale = 1 / gsap.utils.clamp(0.25, 1, deltaWidth / this.homeWidth);
-		this.toHomeWidthTween.timeScale(timeScale);
-		this.toHomeWidthTween.play();
+		const self = this;
+		return gsap.to(this.elem, {
+			id: `${this.id}-tweenHome`,
+			width: this.homeWidth,
+			rotation: this.homeAngle,
+			duration: 0.5,
+			ease: "sine.inOut",
+			paused: true,
+			onComplete() {
+				self.#currentAnimation = null;
+				self.tweenHome();
+			}
+		});
 	}
 
-	#toHomeAngleTween?: gsap.core.Timeline;
-	get toHomeAngleTween(): gsap.core.Timeline {
-		const self = this;
-		return (this.#toHomeAngleTween = this.#toHomeAngleTween
-			?? gsap.timeline({paused: true})
-				.to(
-					this.elem,
-					{
-						rotation() { return this.homeAngle },
-						duration: MAXANGLETWEENDURATION,
-						ease: "sine.inOut",
-						onComplete() { self.tweenToHomeAngle() }
-					}
-				)
-		);
-	}
-	tweenToHomeAngle() {
-		if (this.#isFadingIn) { return }
-		this.toHomeAngleTween.invalidate();
-		this.toHomeAngleTween.restart();
-		this.toHomeAngleTween.pause();
-		const deltaAngle = Math.abs(this.homeAngle - this.rotation);
-		if (deltaAngle <= MINANGLETOTWEEN) {
-			this.set({rotation: this.homeAngle});
+	#tweenHomeStaging: gsap.core.Tween | null = null;
+	tweenHome(): void {
+		if (this.#currentAnimation) {
+			this.#tweenHomeStaging?.kill();
+			this.#tweenHomeStaging = this.generateHomeTween();
+		} else if (this.#tweenHomeStaging) {
+			this.#currentAnimation = this.#tweenHomeStaging;
+			this.#tweenHomeStaging = null;
+			this.#currentAnimation.play();
+		} else {
+			this.#currentAnimation = this.generateHomeTween();
+			this.#currentAnimation?.play();
 		}
-		const timeScale = 1 / gsap.utils.clamp(0.05, 1, deltaAngle / 360);
-		this.toHomeAngleTween.timeScale(timeScale);
-		this.toHomeAngleTween.play();
 	}
-
 
 	override async render(): Promise<this> {
 		if (this._renderPromise) { return this._renderPromise }
@@ -208,10 +204,9 @@ export class XArm extends XGroup {
 			.then(() => {
 				if (this.heldItem.isVisible) {
 					this.snapToHeldItem();
-					this.tweenToHomeWidth();
-					this.tweenToHomeAngle();
+					this.tweenHome();
 				} else {
-					this.tweenFadeIn();
+					this.fadeIn();
 				}
 				return this;
 			});
@@ -221,24 +216,11 @@ export class XArm extends XGroup {
 	#heldItem: XItem;
 	get heldItem() { return this.#heldItem }
 	get heldItemSize() {
-		return this.heldItem.size;
-	}
-
-	constructor(xParent: XOrbit, xOptions: Partial<XOptions.Arm>) {
-		xOptions.xParent = xParent;
-		xOptions.vars ??= {};
-		xOptions.vars.transformOrigin = "right";
-		xOptions.vars.height = 0;
-		xOptions.vars.width = xOptions.xParent.orbitRadius;
-		xOptions.vars.rotation = 0;
-		delete xOptions.vars.left;
-		super(xOptions);
-		this.#heldItem = xOptions.heldItem;
-		this.adopt(this.heldItem);
+		return this.heldItem.size ?? 40;
 	}
 
 	get homeWidth() { return this.xParent.orbitRadius }
-	get homeAngle() { return this.xParent.getArmAngle(this) ?? gsap.utils.random(-180, 180) }
+	get homeAngle() { return U.pInt(this.xParent.getArmAngle(this) ?? gsap.utils.random(-180, 180, 1)) }
 
 	get positionOfHeldItem(): Point {
 		return MotionPathPlugin.getRelativePosition(this.xParent.elem, this.heldItem.elem, [0.5, 0.5], [0.5, 0.5]);
@@ -279,7 +261,6 @@ export class XOrbit extends XGroup {
 			name: XOrbitType.Main,
 			classes: ["x-orbit"],
 			template: U.getTemplatePath("xitem"),
-			xParent: XROOT.XROOT,
 			isFreezingRotate: false,
 			radiusRatio: 1,
 			rotationScaling: 1,
@@ -295,6 +276,19 @@ export class XOrbit extends XGroup {
 	declare options: ApplicationOptions & Required<XOptions.Orbit>;
 	declare xParent: XPool;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
+	constructor(xParent: XPool, xOptions: XOptions.Orbit) {
+		xOptions.name ??= XOrbitType.Main;
+		xOptions.id ??= xOptions.name;
+		xOptions.radiusRatio ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].radiusRatio;
+		xOptions.rotationScaling ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].rotationScaling;
+		super(xParent, xOptions);
+		this.#orbitType = xOptions.name as XOrbitType;
+		this.#radiusRatio = xOptions.radiusRatio;
+		this.#rotationScaling = Math.abs(xOptions.rotationScaling);
+		this.#rotationAngle = xOptions.rotationScaling > 0 ? "+=360" : "-=360";
+		this.#rotationDuration = 10 * this.#radiusRatio * this.#rotationScaling;
+	}
 
 	#radiusRatio: number;
 	get radiusRatio() { return this.#radiusRatio }
@@ -323,7 +317,7 @@ export class XOrbit extends XGroup {
 		return this.#armAngles ?? this.updateArmAngles();
 	}
 	updateArmAngles(): Map<XArm,number> {
-		const totalArmWeight = this.arms.map((arm) => arm.heldItemSize).reduce((tot, val) => tot + val, 0);
+		const totalArmWeight = this.arms.map((arm) => arm.heldItemSize ?? 40).reduce((tot, val) => tot + val, 0);
 		const anglePerWeight = 360 / totalArmWeight;
 		this.#armAngles = new Map();
 		let usedWeight = 0;
@@ -331,30 +325,9 @@ export class XOrbit extends XGroup {
 			usedWeight += arm.heldItemSize;
 			this.#armAngles!.set(arm, (usedWeight - (0.5 * arm.heldItemSize)) * anglePerWeight);
 		});
+		DB.display("updateArmAngles():", this.#armAngles.values());
 		return this.#armAngles;
 	}
-
-	constructor(xParent: XPool, xOptions: Partial<XOptions.Orbit>) {
-		xOptions.name ??= XOrbitType.Main;
-		xOptions.id ??= xOptions.name;
-		xOptions.xParent = xParent;
-		xOptions.radiusRatio ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].radiusRatio;
-		xOptions.rotationScaling ??= C.xGroupOrbitalDefaults[xOptions.name as XOrbitType].rotationScaling;
-		xOptions.vars = {
-			height: xOptions.xParent.height,
-			width: xOptions.xParent.width,
-			left: 0.5 * xOptions.xParent.width,
-			top: 0.5 * xOptions.xParent.height,
-			...xOptions.vars
-		};
-		super(xOptions);
-		this.#orbitType = xOptions.name as XOrbitType;
-		this.#radiusRatio = xOptions.radiusRatio;
-		this.#rotationScaling = Math.abs(xOptions.rotationScaling);
-		this.#rotationAngle = xOptions.rotationScaling > 0 ? "+=360" : "-=360";
-		this.#rotationDuration = 10 * this.#radiusRatio * this.#rotationScaling;
-	}
-
 
 	protected startRotating(duration = 10) {
 		DB.title("STARTING ROTATING");
@@ -367,7 +340,7 @@ export class XOrbit extends XGroup {
 			ease: "none",
 			onUpdate() {
 				self.xTerms.forEach((xItem) => {
-					if (xItem.options.isFreezingRotate && xItem.xParent instanceof XArm) {
+					if (xItem.isFreezingRotate) {
 						xItem.set({rotation: -1 * xItem.xParent.global.rotation});
 					}
 				});
@@ -391,30 +364,32 @@ export class XOrbit extends XGroup {
 
 	protected fadeInArms() {
 		this.updateArmAngles();
-		let armNum = 0;
-		for (const xArm of this.armAngles.keys()) {
-			xArm.tweenFadeIn(armNum * 0.5);
-			armNum++;
-		}
+		this.armAngles.forEach((_, xArm) => xArm.fadeIn());
 	}
 
 	protected updateArms() {
 		this.updateArmAngles();
 		if (this.rendered) {
 			this.arms.forEach((xArm) => {
-				xArm.tweenToHomeWidth();
-				xArm.tweenToHomeAngle();
+				xArm.tweenHome();
 			});
 		}
 	}
 
 	override async render(): Promise<this> {
 		if (this._renderPromise) { return this._renderPromise }
+		this.options.vars = {
+			height: this.xParent.height,
+			width: this.xParent.width,
+			left: 0.5 * this.xParent.width,
+			top: 0.5 * this.xParent.height,
+			...this.options.vars
+		};
 		const superPromise = super.render();
 		this._renderPromise = superPromise
 			.then(async () => {
 				this.startRotating();
-				this.updateArms();
+				this.fadeInArms();
 				return this;
 			});
 		return this._renderPromise;
@@ -425,8 +400,15 @@ export class XOrbit extends XGroup {
 	override async adopt<T extends XItem>(xItem: T | T[]): Promise<T & XKid | Array<T & XKid>> {
 		const promises = ([xItem].flat() as T[])
 			.map((heldItem) => {
-				const xArm = new XArm(this, {heldItem});
-				return super.adopt(xArm).then(() => heldItem);
+				let xArm: XParent | XItem = heldItem;
+				if (!(heldItem instanceof XArm)) {
+					if (this.xItems.includes(heldItem)) {
+						xArm = heldItem.xParent;
+					} else {
+						xArm = new XArm(this, heldItem, {});
+					}
+				}
+				return super.adopt(xArm as XArm).then(() => (xArm as XArm).heldItem as T);
 			});
 		return (promises.length === 1 ? promises[0] : Promise.all(promises))
 			.then((result) => {
@@ -446,7 +428,6 @@ export class XPool extends XGroup {
 			id: U.getUID("XPOOL"),
 			classes: ["x-pool"],
 			template: U.getTemplatePath("xitem"),
-			xParent: XROOT.XROOT,
 			isFreezingRotate: false,
 			size: 200,
 			orbitals: {
@@ -464,18 +445,19 @@ export class XPool extends XGroup {
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
+	constructor(xParent: XParent, xOptions: XOptions.Pool) {
+		super(xParent, xOptions);
+		for (const [orbitName, orbitSpecs] of Object.entries(this.options.orbitals)) {
+			this.#orbitalSpecs.set(orbitName as XOrbitType, orbitSpecs as XOrbitSpecs);
+		}
+	}
+
 	#orbitals: Map<XOrbitType, XOrbit> = new Map();
 	#orbitalSpecs: Map<XOrbitType, XOrbitSpecs> = new Map();
 
 	get orbitals() { return this.#orbitals }
 	get xOrbits(): XOrbit[] { return Array.from(this.orbitals.values()) }
 
-	constructor(xOptions: Partial<XOptions.Pool>) {
-		super(xOptions);
-		for (const [orbitName, orbitSpecs] of Object.entries(this.options.orbitals)) {
-			this.#orbitalSpecs.set(orbitName as XOrbitType, orbitSpecs as XOrbitSpecs);
-		}
-	}
 	override async adopt<T extends XOrbit>(xItem: T): Promise<T & XKid>
 	override async adopt<T extends XOrbit>(xItem: T[]): Promise<T & XKid>
 	override async adopt<T extends XItem>(xItem: T, xOrbitType: XOrbitType): Promise<T & XKid>
@@ -518,7 +500,6 @@ export class XRoll extends XPool {
 			id: U.getUID("XROLL"),
 			classes: ["x-roll"],
 			template: U.getTemplatePath("xitem"),
-			xParent: XROOT.XROOT,
 			isFreezingRotate: false,
 			...C.xRollStyles.defaults,
 			orbitals: {
@@ -536,6 +517,19 @@ export class XRoll extends XPool {
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
+	constructor(xParent: XParent, xOptions: XOptions.Roll) {
+		super(xParent, xOptions);
+		this.options.vars = {
+			...this.options.vars,
+			...{
+				...this.options.position,
+				"height": this.options.size,
+				"width": this.options.size,
+				"--bg-color": this.options.color
+			}
+		};
+	}
+
 	#hasRolled = false;
 	get hasRolled() { return this.#hasRolled }
 	get diceRolls(): XDieValue[] {
@@ -548,18 +542,6 @@ export class XRoll extends XPool {
 	get dice$() { return $(`#${this.id} .x-die`) }
 	get diceVals$() { return $(`#${this.id} .x-die .die-val`) }
 
-	constructor(xOptions: Partial<XOptions.Roll>) {
-		super(xOptions);
-		this.options.vars = {
-			...this.options.vars,
-			...{
-				"height": this.options.size,
-				"width": this.options.size,
-				"--bg-color": this.options.color,
-				...this.options.position
-			}
-		};
-	}
 
 	// Rolls all XDie in the XRoll.
 	rollDice(isForcingReroll = false, isAnimating = true) {
@@ -620,7 +602,6 @@ export class XSource extends XPool {
 			classes: ["x-roll"],
 			isFreezingRotate: false,
 			template: U.getTemplatePath("xitem"),
-			xParent: XROOT.XROOT,
 			...C.xRollStyles.defaults,
 			orbitals: {
 				[XOrbitType.Main]: C.xGroupOrbitalDefaults[XOrbitType.Main]
@@ -637,8 +618,8 @@ export class XSource extends XPool {
 	declare xParent: XGroup;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
 
-	constructor(xOptions: Partial<XOptions.Source>) {
-		super(xOptions);
+	constructor(xParent: XGroup, xOptions: XOptions.Source) {
+		super(xParent, xOptions);
 	}
 }
 // #endregion ▄▄▄▄▄ XRoll ▄▄▄▄▄

@@ -1,5 +1,6 @@
 
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
+import { XTermType } from "../scripts/helpers/bundler.js";
 import { 
 // ▮▮▮▮▮▮▮ External Libraries ▮▮▮▮▮▮▮
 // ====== GreenSock Animation ======

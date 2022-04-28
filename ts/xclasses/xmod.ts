@@ -13,35 +13,42 @@ import {
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 
 class XMod extends XItem implements XTerm {
-	type: XTermType;
-	static override get defaultOptions() {
-		return U.objMerge(super.defaultOptions, {
-			classes: ["x-mod"]
-		});
-	}
-	declare xParent: XGroup;
-	declare options: Required<XOptions.Mod>;
+	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
+	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Mod> {
 
-	constructor(xOptions: Partial<XOptions.Mod>) {
-		xOptions.type ??= XTermType.Modifier;
-		super(xOptions);
+		const defaultXOptions: Required<XOptions.Mod> = {
+			id: U.getUID("XMOD"),
+			classes: ["x-mod"],
+			template: U.getTemplatePath("xmod"),
+			isFreezingRotate: true,
+			type: XTermType.Modifier,
+			value: 0,
+			vars: {
+				fontSize: "calc(1.2 * var(--die-size))",
+				fontFamily: "Oswald",
+				textAlign: "center"
+			}
+		};
+		return U.objMerge(
+			super.defaultOptions,
+			defaultXOptions
+		);
+	}
+	static override REGISTRY: Map<string, XMod> = new Map();
+	declare options: ApplicationOptions & Required<XOptions.Mod>;
+	declare xParent: XParent;
+	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
+
+	constructor(xParent: XParent, xOptions: XOptions.Mod) {
+		super(xParent, xOptions);
 		this.type = this.options.type;
 	}
+
+	type: XTermType;
 
 	ApplyEffect(xRoll: XRoll) {
 		return xRoll;
 	}
-
 }
 
-export class XGhost extends XMod {
 
-}
-
-export class XMutator extends XMod {
-
-}
-
-export class XInfo extends XMod {
-
-}

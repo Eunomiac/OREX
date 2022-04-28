@@ -7,24 +7,30 @@ U,
 XItem, XTermType
  } from "../helpers/bundler.js";
 class XMod extends XItem {
-    type;
+    // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
     static get defaultOptions() {
-        return U.objMerge(super.defaultOptions, {
-            classes: ["x-mod"]
-        });
+        const defaultXOptions = {
+            id: U.getUID("XMOD"),
+            classes: ["x-mod"],
+            template: U.getTemplatePath("xmod"),
+            isFreezingRotate: true,
+            type: XTermType.Modifier,
+            value: 0,
+            vars: {
+                fontSize: "calc(1.2 * var(--die-size))",
+                fontFamily: "Oswald",
+                textAlign: "center"
+            }
+        };
+        return U.objMerge(super.defaultOptions, defaultXOptions);
     }
-    constructor(xOptions) {
-        xOptions.type ??= XTermType.Modifier;
-        super(xOptions);
+    static REGISTRY = new Map();
+    constructor(xParent, xOptions) {
+        super(xParent, xOptions);
         this.type = this.options.type;
     }
+    type;
     ApplyEffect(xRoll) {
         return xRoll;
     }
-}
-export class XGhost extends XMod {
-}
-export class XMutator extends XMod {
-}
-export class XInfo extends XMod {
 }
