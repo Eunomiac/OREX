@@ -142,23 +142,6 @@ const UUIDLOG: Array<[string, string, number]> = [];
 const GMID = (): string | false => game?.user?.find((user) => user.isGM)?.id ?? false;
 // #endregion ▄▄▄▄▄ GETTERS ▄▄▄▄▄
 
-// #region ████████ TYPESCRIPT: Type Data & Other TypeScript-Related Utilities ████████ ~
-
-// #region ░░░░░░░[Types]░░░░ Typescript Type Definitions ░░░░░░░ ~
-
-// #endregion ░░░░[Types]░░░░
-
-// #region ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░ ~
-enum Dir {
-	U = "U",
-	L = "L",
-	R = "R",
-	D = "D"
-}
-// #endregion ░░░░[Enums]░░░░
-
-// #endregion 🟩🟩🟩 TYPESCRIPT 🟩🟩🟩
-
 // #region ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████ ~
 
 const isNumber = (ref: unknown): ref is number => typeof ref === "number" && !isNaN(ref);
@@ -172,6 +155,8 @@ const isPosInt = (ref: unknown): ref is posInt => isInt(ref) && ref >= 0;
 const isIndex = (ref: unknown): ref is Index<unknown> => isList(ref) || isArray(ref);
 const isIterable = (ref: unknown): ref is Iterable<unknown> => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref: unknown): ref is HTMLCode => typeof ref === "string" && /^<.*>$/u.test(ref);
+const isHexColor = (ref: unknown): ref is HEXColor => typeof ref === "string" && /^#(([0-9a-fA-F]{2}){3,4}|[0-9a-fA-F]{3,4})$/.test(ref);
+const isRGBColor = (ref: unknown): ref is RGBColor => typeof ref === "string" && /^rgba?\((\d{1,3},){1,2}?\d{1,3},\d{1,3}(\.\d+)?\)$/.test(ref);
 const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
 const isDefined = (ref: unknown): ref is NonNullable<unknown> | null => !isUndefined(ref);
 const isEmpty = (ref: Index<unknown>): boolean => !(() => { for (const i in ref) { return true } return false })();
@@ -846,6 +831,53 @@ const drawCirclePath = (radius: number, origin: Point) => {
 };
 const formatAsClass = (str: string) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^-/, "").trim().toLowerCase();
 const getGSAngleDelta = (startAngle: number, endAngle: number) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
+
+const getColorVals = (red?: string | number | number[], green?: number, blue?: number, alpha?: number): number[] | null => {
+	if (isRGBColor(red)) {
+		[red, green, blue, alpha] = red
+			.replace(/[^\d.,]/g, "")
+			.split(/,/)
+			.map((color) => (isUndefined(color) ? undefined : parseFloat(color)));
+	}
+	if (isHexColor(red)) {
+		if ([4,5].includes(red.length)) {
+			red = red.replace(/([^#])/g, "$1$1");
+		}
+		[red, green, blue, alpha] = red
+			.match(/[^#]{2}/g)
+			?.map((val) => parseInt(val, 16)) ?? [];
+	}
+	if ([red, green, blue].every((color) => /^\d+$/.test(`${color}`))) {
+		return [red, green, blue, alpha]
+			.filter((color) => /^[\d.]+$/.test(`${color}`)) as number[];
+	}
+	return null;
+};
+const getRGBString = (red: string | number, green?: number, blue?: number, alpha?: number): RGBColor | null => {
+	if (isRGBColor(red) || isHexColor(red)) {
+		[red, green, blue, alpha] = getColorVals(red) ?? [];
+	}
+	if ([red, green, blue].every((color) => /^[.\d]+$/.test(`${color}`))) {
+		let colorString = "rgb";
+		const colors = [red, green, blue];
+		if (/^[.\d]+$/.test(`${alpha}`)) {
+			colors.push(alpha as number >= 1 ? pInt(alpha) : pFloat(alpha, 2));
+			colorString += "a";
+		}
+		return `${colorString}(${colors.join(", ")})`;
+	}
+	return null;
+};
+const getContrastingColor = (...colorVals: [string] | number[]): RGBColor | null => {
+	const [red, green, blue] = getColorVals(...colorVals) ?? [];
+	if ([red, green, blue].every(isNumber)) {
+		const YIQ = ((red * 299) + (green * 587) + (blue * 114)) / 1000;
+		return (YIQ >= 128) ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0)";
+	}
+	return null;
+};
+const getRandomColor = (): RGBColor => getRGBString(gsap.utils.random(0, 255, 1), gsap.utils.random(0, 255, 1), gsap.utils.random(0, 255, 1))!;
+
 // #endregion ▄▄▄▄▄ HTML ▄▄▄▄▄
 
 // #region ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████ ~
@@ -916,6 +948,8 @@ export default {
 	getRawCirclePath, drawCirclePath,
 	formatAsClass,
 	getGSAngleDelta,
+
+	getColorVals, getRGBString, getContrastingColor, getRandomColor,
 
 	// ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
 	sleep

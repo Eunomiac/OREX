@@ -4,6 +4,8 @@ type posInt = number;
 type posFloat = number;
 
 type HTMLCode = string;
+type HEXColor = string;
+type RGBColor = string;
 type jQueryTextTerm = string | number | boolean | ((this: Element, index: number, text: string) => string | number | boolean);
 
 type keyFunc = (key: number | string, val?: unknown) => unknown;

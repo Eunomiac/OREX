@@ -134,17 +134,6 @@ const UUIDLOG = [];
 // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
 
 const GMID = () => game?.user?.find((user) => user.isGM)?.id ?? false;
-// ████████ TYPESCRIPT: Type Data & Other TypeScript-Related Utilities ████████
-// ░░░░░░░[Types]░░░░ Typescript Type Definitions ░░░░░░░
-// ░░░░░░░[Enums]░░░░ TypeScript Enumerables ░░░░░░░
-var Dir;
-(function (Dir) {
-    Dir["U"] = "U";
-    Dir["L"] = "L";
-    Dir["R"] = "R";
-    Dir["D"] = "D";
-})(Dir || (Dir = {}));
-
 // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
 const isNumber = (ref) => typeof ref === "number" && !isNaN(ref);
 const isArray = (ref) => Array.isArray(ref);
@@ -157,6 +146,8 @@ const isPosInt = (ref) => isInt(ref) && ref >= 0;
 const isIndex = (ref) => isList(ref) || isArray(ref);
 const isIterable = (ref) => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref) => typeof ref === "string" && /^<.*>$/u.test(ref);
+const isHexColor = (ref) => typeof ref === "string" && /^#(([0-9a-fA-F]{2}){3,4}|[0-9a-fA-F]{3,4})$/.test(ref);
+const isRGBColor = (ref) => typeof ref === "string" && /^rgba?\((\d{1,3},){1,2}?\d{1,3},\d{1,3}(\.\d+)?\)$/.test(ref);
 const isUndefined = (ref) => ref === undefined;
 const isDefined = (ref) => !isUndefined(ref);
 const isEmpty = (ref) => !(() => { for (const i in ref) {
@@ -851,6 +842,51 @@ const drawCirclePath = (radius, origin) => {
 };
 const formatAsClass = (str) => `${str}`.replace(/([A-Z])|\s/g, "-$1").replace(/^-/, "").trim().toLowerCase();
 const getGSAngleDelta = (startAngle, endAngle) => signNum(roundNum(getAngleDelta(startAngle, endAngle), 2)).replace(/^(.)/, "$1=");
+const getColorVals = (red, green, blue, alpha) => {
+    if (isRGBColor(red)) {
+        [red, green, blue, alpha] = red
+            .replace(/[^\d.,]/g, "")
+            .split(/,/)
+            .map((color) => (isUndefined(color) ? undefined : parseFloat(color)));
+    }
+    if (isHexColor(red)) {
+        if ([4, 5].includes(red.length)) {
+            red = red.replace(/([^#])/g, "$1$1");
+        }
+        [red, green, blue, alpha] = red
+            .match(/[^#]{2}/g)
+            ?.map((val) => parseInt(val, 16)) ?? [];
+    }
+    if ([red, green, blue].every((color) => /^\d+$/.test(`${color}`))) {
+        return [red, green, blue, alpha]
+            .filter((color) => /^[\d.]+$/.test(`${color}`));
+    }
+    return null;
+};
+const getRGBString = (red, green, blue, alpha) => {
+    if (isRGBColor(red) || isHexColor(red)) {
+        [red, green, blue, alpha] = getColorVals(red) ?? [];
+    }
+    if ([red, green, blue].every((color) => /^[.\d]+$/.test(`${color}`))) {
+        let colorString = "rgb";
+        const colors = [red, green, blue];
+        if (/^[.\d]+$/.test(`${alpha}`)) {
+            colors.push(alpha >= 1 ? pInt(alpha) : pFloat(alpha, 2));
+            colorString += "a";
+        }
+        return `${colorString}(${colors.join(", ")})`;
+    }
+    return null;
+};
+const getContrastingColor = (...colorVals) => {
+    const [red, green, blue] = getColorVals(...colorVals) ?? [];
+    if ([red, green, blue].every(isNumber)) {
+        const YIQ = ((red * 299) + (green * 587) + (blue * 114)) / 1000;
+        return (YIQ >= 128) ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0)";
+    }
+    return null;
+};
+const getRandomColor = () => getRGBString(gsap.utils.random(0, 255, 1), gsap.utils.random(0, 255, 1), gsap.utils.random(0, 255, 1));
 // ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
 const sleep = (duration) => new Promise((resolve) => { setTimeout(resolve, duration >= 100 ? duration : duration * 1000); });
 // ████████ EXPORTS ████████
@@ -906,6 +942,7 @@ unhyphenate, pluralize, oxfordize, ellipsize, pad,
     getRawCirclePath, drawCirclePath,
     formatAsClass,
     getGSAngleDelta,
+    getColorVals, getRGBString, getContrastingColor, getRandomColor,
     // ████████ ASYNC: Async Functions, Asynchronous Flow Control ████████
     sleep
 };

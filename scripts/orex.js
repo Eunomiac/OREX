@@ -1,5 +1,4 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
-import { XTermType } from "../scripts/helpers/bundler.js";
 import { 
 // #region ▮▮▮▮▮▮▮ External Libraries ▮▮▮▮▮▮▮ ~
 // #region ====== GreenSock Animation ====== ~
@@ -10,7 +9,7 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin,
 preloadTemplates, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XROOT, XItem, XArm, XOrbit, XOrbitType, XGroup, XPool, XRoll, XDie, 
+XROOT, XItem, XArm, XOrbit, XOrbitType, XGroup, XPool, XRoll, XDie, XTermType, 
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮ ~
 DB, DBFUNCS
@@ -97,19 +96,70 @@ Hooks.once("ready", async () => {
         id: "ROLL",
         color: "lime",
         size: 300,
-        position: { x: 400, y: 400 },
+        position: { x: 900, y: 500 },
         vars: { opacity: 1 }
     });
-    const DICE = [...new Array(6)].map((_, i) => new XDie(ROLL, { type: XTermType.BasicDie, value: i + 1 }));
-    ROLL.adopt(DICE, XOrbitType.Main);
+    const DICE = [...new Array(20)].map((_, i) => new XDie(ROLL, { type: XTermType.BasicDie, value: (i % 9) + 1 }));
+    ROLL.adopt(DICE.slice(0, 8), XOrbitType.Main);
+    ROLL.adopt(DICE.slice(9, 16), XOrbitType.Outer);
+    ROLL.adopt(DICE.slice(17, 20), XOrbitType.Inner);
     await ROLL.render();
     const ORBIT = ROLL.orbitals.get(XOrbitType.Main);
     const ARMS = DICE.map((die) => die.xParent);
+    const MakeFloatDie = async (_, index) => {
+        const dieColor = U.getRandomColor();
+        const diePos = {
+            x: gsap.utils.random(200, 1400, 1),
+            y: gsap.utils.random(50, 900, 1)
+        };
+        if (U.coinFlip()) {
+            if (diePos.x <= (ROLL.x + (ROLL.width / 2) + 100)
+                && diePos.x >= (ROLL.x - (ROLL.width / 2) - 100)) {
+                diePos.x += gsap.utils.random([-1, 1]) * ((ROLL.width / 2) + 100);
+            }
+        }
+        else {
+            if (diePos.y <= (ROLL.y + (ROLL.height / 2) + 100)
+                && diePos.y >= (ROLL.y - (ROLL.height / 2) - 100)) {
+                diePos.y += gsap.utils.random([-1, 1]) * ((ROLL.height / 2) + 100);
+            }
+        }
+        const floatDie = new XDie(XROOT.XROOT, {
+            id: "FloatDie",
+            type: "BasicDie",
+            value: index,
+            dieColor,
+            numColor: U.getContrastingColor(dieColor) ?? "rgba(0, 0, 0, 1)",
+            vars: {
+                ...diePos,
+                opacity: 1
+            }
+        });
+        return floatDie.render();
+    };
+    const ToggleTimeScale = (scaling = 0.05) => {
+        if (gsap.globalTimeline.timeScale() === 1) {
+            gsap.globalTimeline.timeScale(scaling);
+        }
+        else {
+            gsap.globalTimeline.timeScale(1);
+        }
+    };
+    const FLOATDICE = await Promise.all([...new Array(6)].map(MakeFloatDie));
+    await U.sleep(5);
+    while (FLOATDICE.length) {
+        const thisDie = FLOATDICE.shift();
+        await U.sleep(1);
+        ROLL.adopt(thisDie, gsap.utils.random([XOrbitType.Main, XOrbitType.Inner, XOrbitType.Outer]));
+    }
     Object.assign(globalThis, {
         ROLL,
         DICE,
         ORBIT,
-        ARMS
+        ARMS,
+        FLOATDICE,
+        MakeFloatDie,
+        ToggleTimeScale
     });
     // await Promise.all(DICE.map((die) => die.render()));
     return;

@@ -8,8 +8,6 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
-
-
 export default class XDie extends XItem implements XTerm {
 
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
@@ -23,9 +21,9 @@ export default class XDie extends XItem implements XTerm {
 			type: XTermType.BasicDie,
 			value: 0,
 			dieSize: 40,
-			dieColor: "white",
-			strokeColor: "black",
-			numColor: "black",
+			dieColor: "rgba(255, 255, 255, 1)",
+			strokeColor: "rgba(0, 0, 0, 1)",
+			numColor: "rgba(0, 0, 0, 1)",
 			vars: {
 				fontSize: "calc(1.2 * var(--die-size))",
 				fontFamily: "Oswald",

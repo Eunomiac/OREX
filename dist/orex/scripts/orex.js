@@ -1,6 +1,5 @@
 
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
-import { XTermType } from "../scripts/helpers/bundler.js";
 import { 
 // ▮▮▮▮▮▮▮ External Libraries ▮▮▮▮▮▮▮
 // ====== GreenSock Animation ======
@@ -9,7 +8,7 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin,
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 preloadTemplates, U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XROOT, XItem, XArm, XOrbit, XOrbitType, XGroup, XPool, XRoll, XDie, 
+XROOT, XItem, XArm, XOrbit, XOrbitType, XGroup, XPool, XRoll, XDie, XTermType, 
 // ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮
 DB, DBFUNCS
 
