@@ -8,9 +8,9 @@ gsap, Dragger, InertiaPlugin, MotionPathPlugin,
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
 preloadTemplates, U, 
 // ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮
-XROOT, XItem, XArm, XOrbit, XOrbitType, XGroup, XPool, XRoll, XDie, XTermType, 
+XROOT, XItem, XArm, XOrbit, XGroup, XPool, XRoll, XDie, 
 // ▮▮▮▮▮▮▮[Debugging & Tests]▮▮▮▮▮▮▮
-DB, DBFUNCS
+DB, DBFUNCS, DBCOMMANDS
 
  } from "./helpers/bundler.js";
 // ====== GreenSock Animation ======

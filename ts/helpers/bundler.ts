@@ -15,7 +15,7 @@ export {default as C} from "./config.js";
 // #endregion ░░░░[Utilities & Constants]░░░░
 // #region ░░░░░░░ Debugging ░░░░░░░ ~
 import {default as DB} from "./debugger.js";
-export {DBFUNCS, XDisplay} from "./debugger.js";
+export {DBFUNCS, XDisplay, DBCOMMANDS} from "./debugger.js";
 // #endregion ░░░░[Debugging]░░░░
 // #region ░░░░░░░ GSAP Animation ░░░░░░░ ~
 export {

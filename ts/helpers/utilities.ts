@@ -156,7 +156,7 @@ const isIndex = (ref: unknown): ref is Index<unknown> => isList(ref) || isArray(
 const isIterable = (ref: unknown): ref is Iterable<unknown> => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref: unknown): ref is HTMLCode => typeof ref === "string" && /^<.*>$/u.test(ref);
 const isHexColor = (ref: unknown): ref is HEXColor => typeof ref === "string" && /^#(([0-9a-fA-F]{2}){3,4}|[0-9a-fA-F]{3,4})$/.test(ref);
-const isRGBColor = (ref: unknown): ref is RGBColor => typeof ref === "string" && /^rgba?\((\d{1,3},){1,2}?\d{1,3},\d{1,3}(\.\d+)?\)$/.test(ref);
+const isRGBColor = (ref: unknown): ref is RGBColor => typeof ref === "string" && /^rgba?\((\d{1,3},\s*){1,2}?\d{1,3},\s*\d{1,3}(\.\d+)?\)$/.test(ref);
 const isUndefined = (ref: unknown): ref is undefined => ref === undefined;
 const isDefined = (ref: unknown): ref is NonNullable<unknown> | null => !isUndefined(ref);
 const isEmpty = (ref: Index<unknown>): boolean => !(() => { for (const i in ref) { return true } return false })();
@@ -872,7 +872,7 @@ const getContrastingColor = (...colorVals: [string] | number[]): RGBColor | null
 	const [red, green, blue] = getColorVals(...colorVals) ?? [];
 	if ([red, green, blue].every(isNumber)) {
 		const YIQ = ((red * 299) + (green * 587) + (blue * 114)) / 1000;
-		return (YIQ >= 128) ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0)";
+		return (YIQ >= 128) ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0.8)";
 	}
 	return null;
 };
@@ -890,7 +890,8 @@ export default {
 	GMID, getUID: UUIDify,
 
 	// ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
-	isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
+	isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable,
+	isHTMLCode, isRGBColor, isHexColor,
 	isUndefined, isDefined, isEmpty, hasItems, isInstance,
 	areEqual,
 	pFloat, pInt, radToDeg, degToRad,

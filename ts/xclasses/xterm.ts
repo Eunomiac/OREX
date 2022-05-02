@@ -4,7 +4,7 @@ import {
 	U,
 	// #endregion ▮▮▮▮[Utility]▮▮▮▮
 	// #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-	XROOT, XItem, XGroup, XPool, XRoll, XTermType
+	XROOT, XItem, XArm, XGroup, XPool, XRoll, XTermType
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
@@ -68,6 +68,10 @@ export default class XDie extends XItem implements XTerm {
 			this.value$.html(this.face);
 		}
 	}
+	protected get db$() { return $(`#${this.id} .debug-data`) }
+	get dbData() { return this.db$.html() }
+	set dbData(val: unknown) { this.db$.html(`${val}`) }
+
 	protected get value$() { return $(`#${this.id} .die-val`) }
 	get face(): XDieFace { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value] as XDieFace }
 
@@ -92,7 +96,8 @@ export default class XDie extends XItem implements XTerm {
 		const faceNum = this.value === 10 ? 0 : (this.value || " ");
 
 		Object.assign(context, {
-			value: faceNum
+			value: faceNum,
+			dbHtml: this.xParent instanceof XArm ? this.xParent.homeRotation : ""
 		});
 
 		return context;

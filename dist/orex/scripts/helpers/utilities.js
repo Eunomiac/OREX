@@ -147,7 +147,7 @@ const isIndex = (ref) => isList(ref) || isArray(ref);
 const isIterable = (ref) => typeof ref === "object" && ref !== null && Symbol.iterator in ref;
 const isHTMLCode = (ref) => typeof ref === "string" && /^<.*>$/u.test(ref);
 const isHexColor = (ref) => typeof ref === "string" && /^#(([0-9a-fA-F]{2}){3,4}|[0-9a-fA-F]{3,4})$/.test(ref);
-const isRGBColor = (ref) => typeof ref === "string" && /^rgba?\((\d{1,3},){1,2}?\d{1,3},\d{1,3}(\.\d+)?\)$/.test(ref);
+const isRGBColor = (ref) => typeof ref === "string" && /^rgba?\((\d{1,3},\s*){1,2}?\d{1,3},\s*\d{1,3}(\.\d+)?\)$/.test(ref);
 const isUndefined = (ref) => ref === undefined;
 const isDefined = (ref) => !isUndefined(ref);
 const isEmpty = (ref) => !(() => { for (const i in ref) {
@@ -882,7 +882,7 @@ const getContrastingColor = (...colorVals) => {
     const [red, green, blue] = getColorVals(...colorVals) ?? [];
     if ([red, green, blue].every(isNumber)) {
         const YIQ = ((red * 299) + (green * 587) + (blue * 114)) / 1000;
-        return (YIQ >= 128) ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0)";
+        return (YIQ >= 128) ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0.8)";
     }
     return null;
 };
@@ -894,7 +894,8 @@ export default {
     // ████████ GETTERS: Basic Data Lookup & Retrieval ████████
     GMID, getUID: UUIDify,
     // ████████ TYPES: Type Checking, Validation, Conversion, Casting ████████
-    isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable, isHTMLCode,
+    isNumber, isSimpleObj, isList, isArray, isFunc, isInt, isFloat, isPosInt, isIterable,
+    isHTMLCode, isRGBColor, isHexColor,
     isUndefined, isDefined, isEmpty, hasItems, isInstance,
     areEqual,
     pFloat, pInt, radToDeg, degToRad,

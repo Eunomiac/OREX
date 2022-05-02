@@ -27,6 +27,7 @@ export default class XGroup extends XBaseContainer {
 // 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪
 const TWEEN_DURATION_AT_1000 = 6;
 const TWEEN_DURATION_AT_360 = 6;
+const MIN_TWEEN_DURATION = 1;
 const MINWIDTHTOTWEEN = 10;
 const MINANGLETOTWEEN = 5;
 const ARMFADEINDURATION = 3;
@@ -67,9 +68,10 @@ export class XArm extends XGroup {
         this.#currentAnimation = gsap.timeline({
             id: `${self.id}.TWEENFADEIN(${self.homeRotation})`,
             delay,
-            onComplete() {
-                self.#currentAnimation = null;
-                self.tweenHome();
+            onUpdate() {
+                if (self.heldItem instanceof XDie) {
+                    self.heldItem.dbData = self.homeRotation;
+                }
             }
         })
             .fromTo(self.elem, {
@@ -80,7 +82,11 @@ export class XArm extends XGroup {
             width: self.homeWidth,
             rotation: self.homeRotation,
             duration: ARMFADEINDURATION,
-            ease: "back"
+            ease: "back",
+            onComplete() {
+                self.#currentAnimation = null;
+                self.tweenHome();
+            }
         }, 0)
             .fromTo(self.heldItem.elem, {
             // opacity: 0,
@@ -93,14 +99,15 @@ export class XArm extends XGroup {
             duration: ARMFADEINDURATION / 1.5,
             ease: "power2"
         }, 0);
+        this.xParent.updateArms();
     }
     getHomeTweenDur() {
         const deltaWidth = Math.abs(this.width - this.homeWidth);
-        const deltaRotation = Math.abs(this.rotation - this.homeRotation);
-        if (deltaWidth <= MINWIDTHTOTWEEN && deltaRotation <= MINANGLETOTWEEN) {
-            return null;
-        }
-        return Math.max((deltaWidth / 1000) * TWEEN_DURATION_AT_1000, (deltaRotation / 360) * TWEEN_DURATION_AT_360);
+        const deltaRotation = Math.abs(U.getAngleDelta(this.rotation, this.homeRotation, [-180, 180]));
+        // if (deltaWidth <= MINWIDTHTOTWEEN && deltaRotation <= MINANGLETOTWEEN) {
+        // 	return null;
+        // }
+        return Math.max(MIN_TWEEN_DURATION, (deltaWidth / 1000) * TWEEN_DURATION_AT_1000, (deltaRotation / 360) * TWEEN_DURATION_AT_360);
     }
     generateHomeTween() {
         const tweenDur = this.getHomeTweenDur();
@@ -108,34 +115,40 @@ export class XArm extends XGroup {
             return null;
         }
         const self = this;
+        const newRotation = this.rotation + U.getAngleDelta(this.rotation, this.homeRotation, [-180, 180]);
         return gsap.to(this.elem, {
             id: `${this.id}-tweenHome`,
             width: this.homeWidth,
-            rotation: this.homeRotation,
+            rotation: newRotation,
             duration: tweenDur,
             ease: "power4.inOut",
             paused: true,
+            onUpdate() {
+                if (self.heldItem instanceof XDie) {
+                    self.heldItem.dbData = `${self.homeRotation}<br>${U.pInt(self.rotation)}`;
+                }
+            },
             onComplete() {
+                self.set({ rotation: U.cycleAngle(newRotation, [-180, 180]) });
                 self.#currentAnimation = null;
                 self.tweenHome();
             }
         });
     }
-    #tweenHomeStaging = null;
+    // #tweenHomeStaging: gsap.core.Tween | null = null;
     tweenHome() {
         if (this.#currentAnimation) {
-            this.#tweenHomeStaging?.kill();
-            this.#tweenHomeStaging = this.generateHomeTween();
-        }
-        else if (this.#tweenHomeStaging) {
-            this.#currentAnimation = this.#tweenHomeStaging;
-            this.#tweenHomeStaging = null;
-            this.#currentAnimation.play();
+            // this.#tweenHomeStaging?.kill();
+            // this.#tweenHomeStaging = this.generateHomeTween();
+            // } else if (this.#tweenHomeStaging) {
+            // this.#currentAnimation = this.#tweenHomeStaging;
+            // this.#tweenHomeStaging = null;
         }
         else {
-            this.#currentAnimation = this.generateHomeTween();
-            this.#currentAnimation?.play();
+            // this.#currentAnimation = this.generateHomeTween();
+            this.generateHomeTween()?.play();
         }
+        // this.#currentAnimation?.play();
     }
     async render() {
         if (this._renderPromise) {
@@ -268,7 +281,7 @@ export class XOrbit extends XGroup {
         let usedWeight = 0;
         this.arms.forEach((arm) => {
             usedWeight += arm.heldItemSize;
-            this.#armAngles.set(arm, (usedWeight - (0.5 * arm.heldItemSize)) * anglePerWeight);
+            this.#armAngles.set(arm, U.cycleAngle((usedWeight - (0.5 * arm.heldItemSize)) * anglePerWeight, [-180, 180]));
         });
         DB.display("updateArmAngles():", this.#armAngles.values());
         return this.#armAngles;

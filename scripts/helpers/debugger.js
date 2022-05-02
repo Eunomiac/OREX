@@ -8,7 +8,9 @@ import { default as gsap, MotionPathPlugin, GSDevTools } from "/scripts/greensoc
 import { C, U, 
 // #endregion ▮▮▮▮[Utility]▮▮▮▮
 // #region ▮▮▮▮▮▮▮[XItems]▮▮▮▮▮▮▮ ~
-XROOT, XItem } from "./bundler.js";
+XROOT, XItem, XOrbitType, XTermType, XDie, XRoll
+// #endregion ▮▮▮▮[XItems]▮▮▮▮
+ } from "./bundler.js";
 gsap.registerPlugin(GSDevTools);
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
 // #region ████████ XLogger: Formatted Logging to Console ████████ ~
@@ -262,24 +264,13 @@ export class XDisplay extends XItem {
 const DB_SETTINGS = {};
 const DBFUNCS = {
     GSDevTools,
-    getRollPos: (pos, size) => {
-        if (XROOT.XROOT instanceof XItem) {
-            const { height, width } = XROOT.XROOT;
-            return [
-                { x: 0.5 * width, y: 0.5 * height },
-                { x: 0.75 * size, y: 0.75 * size },
-                { x: width - (0.75 * size), y: 0.75 * size },
-                { x: width - (0.75 * size), y: height - (0.75 * size) },
-                { x: 0.75 * size, y: height - (0.75 * size) }
-            ][pos];
+    ToggleTimeScale: (scaling = 0.05) => {
+        if (gsap.globalTimeline.timeScale() === 1) {
+            gsap.globalTimeline.timeScale(scaling);
         }
         else {
-            DB.error("Attempt to getRollPos() before XROOT.XROOT Rendered.");
-            return { x: 0, y: 0 };
+            gsap.globalTimeline.timeScale(1);
         }
-    },
-    DB_Set: (key, val) => {
-        DB_SETTINGS[key] = val;
     },
     InitializeDisplay: async () => {
         const xDisplay = new XDisplay({
@@ -287,85 +278,146 @@ const DBFUNCS = {
         });
         await xDisplay.render();
         return xDisplay;
+    },
+    MakeRoll: async (position, size, dice, dieSize = 40) => {
+        const ROLL = new XRoll(XROOT.XROOT, {
+            id: "ROLL",
+            color: U.getRandomColor(),
+            size,
+            position,
+            vars: { opacity: 1 }
+        });
+        Object.entries(dice).forEach(([orbit, numDice]) => {
+            ROLL.adopt([...new Array(numDice)].map((_, i) => new XDie(ROLL, { type: XTermType.BasicDie, dieSize, value: U.cycleNum(i + 1, [1, 11]) })), orbit);
+        });
+        await ROLL.render();
+        return ROLL;
+    },
+    MakeFloatDice: async (numDice = 1, dieSize = 40) => {
+        const makeDie = async (_, index) => {
+            const dieColor = U.getRandomColor();
+            const floatDie = new XDie(XROOT.XROOT, {
+                id: "FloatDie",
+                type: "BasicDie",
+                value: U.cycleNum(index, [1, 11]),
+                dieColor,
+                numColor: U.getContrastingColor(dieColor) ?? "rgba(0, 0, 0, 1)",
+                dieSize,
+                vars: {
+                    x: gsap.utils.random(200, 1400, 1),
+                    y: gsap.utils.random(50, 900, 1),
+                    opacity: 1
+                }
+            });
+            return floatDie.render();
+        };
+        const FLOATDICE = await Promise.all([...new Array(numDice)].map(makeDie));
+        return FLOATDICE;
     }
 };
 // #endregion ▄▄▄▄▄ DBFUNCS ▄▄▄▄▄
+// #region ████████ DBCOMMANDS: Functions Triggered via Macro Dialogue Boxes ████████ ~
+const dialogData = {
+    rollSize: 200,
+    dieSize: 40,
+    menuQueue: [],
+    queueMenu: (menu) => dialogData.menuQueue.push(menu),
+    renderNextMenu: () => {
+        const nextMenu = dialogData.menuQueue.shift();
+        if (nextMenu instanceof Dialog) {
+            nextMenu.render(true);
+        }
+    },
+    clearMenus: () => { dialogData.menuQueue.length = 0; }
+};
+const dialogMenus = {
+    Position: (points, prompt = "Select position:") => new Dialog({
+        "title": "Position",
+        "content": `<p>${prompt}</p>`,
+        "default": "",
+        "buttons": Object.fromEntries(points.map(({ x, y }) => {
+            return [
+                `${x}x${y}`,
+                {
+                    icon: "<i class=\"fas fa-bullseye-arrow\"></i>",
+                    label: `${x}, ${y}`,
+                    callback: () => {
+                        dialogData.position = { x, y };
+                        dialogData.renderNextMenu();
+                    }
+                }
+            ];
+        }))
+    }),
+    Dice: () => {
+        const html = `
+		<div>
+			<label>Main Dice:</label><input id="main-dice" type="number" value=0 />
+			<label>Inner Dice:</label><input id="inner-dice" type="number" value=0 />
+			<label>Outer Dice:</label><input id="outer-dice" type="number" value=0 />
+			<label>Floating Dice:</label><input id="floating-dice" type="number" value=0 /
+		</div>`;
+        return new Dialog({
+            "title": "Dice",
+            "content": html,
+            "default": "",
+            "buttons": {
+                submit: {
+                    icon: "<i class=\"fas fa-check\"></i>",
+                    label: "Submit",
+                    callback: async (elem) => {
+                        dialogData.rollDice = {
+                            [XOrbitType.Main]: U.pInt($(elem).find("#main-dice")[0].value),
+                            [XOrbitType.Inner]: U.pInt($(elem).find("#inner-dice")[0].value),
+                            [XOrbitType.Outer]: U.pInt($(elem).find("#outer-dice")[0].value)
+                        };
+                        dialogData.floatDice = U.pInt($(elem).find("#floating-dice")[0].value);
+                        const ROLL = await DBFUNCS.MakeRoll(dialogData.position, dialogData.rollSize, dialogData.rollDice, dialogData.dieSize);
+                        const FLOATDICE = await DBFUNCS.MakeFloatDice(dialogData.floatDice, dialogData.dieSize);
+                        Object.assign(globalThis, { ROLL, FLOATDICE });
+                    }
+                }
+            }
+        });
+    }
+};
+const DBCOMMANDS = {
+    SpawnRoll: async (pos, dice) => {
+        if (pos) {
+            dialogData.position = pos;
+        }
+        else {
+            dialogData.queueMenu(dialogMenus.Position([
+                { x: 300, y: 300 },
+                { x: 700, y: 300 },
+                { x: 1300, y: 300 },
+                { x: 300, y: 500 },
+                { x: 700, y: 500 },
+                { x: 1300, y: 500 },
+                { x: 300, y: 700 },
+                { x: 700, y: 700 },
+                { x: 1300, y: 700 }
+            ]));
+        }
+        if (dice) {
+            dialogData.rollDice = {
+                [XOrbitType.Main]: U.pInt(dice[0]),
+                [XOrbitType.Inner]: U.pInt(dice[1]),
+                [XOrbitType.Outer]: U.pInt(dice[2])
+            };
+            dialogData.floatDice = U.pInt(dice[3]);
+            const ROLL = await DBFUNCS.MakeRoll(dialogData.position, dialogData.rollSize, dialogData.rollDice, dialogData.dieSize);
+            const FLOATDICE = await DBFUNCS.MakeFloatDice(dialogData.floatDice, dialogData.dieSize);
+            Object.assign(globalThis, { ROLL, FLOATDICE });
+        }
+        else {
+            dialogData.queueMenu(dialogMenus.Dice());
+        }
+        dialogData.renderNextMenu();
+    }
+};
+// #endregion ▄▄▄▄▄ DBCOMMANDS ▄▄▄▄▄
 // #region 🟩🟩🟩 TEST CASES 🟩🟩🟩
-// const TESTS = {
-// 	XArmSnapping: async () => {
-// 		DB.display("XArm Snap Test Initializing ...");
-// 		DB.groupTitle("Creating 'TestDie' and 'FloatingDice'");
-// 		const TestIndex = 1;
-// 		const diePromises = await Promise.all([
-// 			{x: 300, y: 200},
-// 			{x: 200, y: 200},
-// 			{x: 400, y: 700},
-// 			{x: 800, y: 400},
-// 			{x: 800, y: 700},
-// 			{x: 50, y: 500}
-// 		].map((dieParams, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
-// 			id: i === TestIndex ? "TestDie" : `F-Die-${i}`,
-// 			type: XTermType.BasicDie,
-// 			color: i === TestIndex ? "darkgreen" : "blue",
-// 			strokeColor: i === TestIndex ? "lime" : "cyan",
-// 			numColor: i === TestIndex ? "lime" : "cyan",
-// 			value: i as XDieValue
-// 		}, {
-// 			...dieParams
-// 		})));
-// 		const TestDie = diePromises[TestIndex];
-// 		const FloatingDice = [
-// 			...diePromises.slice(0, TestIndex),
-// 			...diePromises.slice(TestIndex + 1)
-// 		];
-// 		DB.groupLog("Initializing 'TestDie' and 'FloatingDice'");
-// 		// await Promise.all([TestDie, ...FloatingDice].map((die) => die.initialize()));
-// 		DB.groupEnd();
-// 		DB.groupLog("Creating 'MainRoll'");
-// 		const MainRoll = await FACTORIES.XRoll.Make(
-// 			XROOT.XROOT,
-// 			{id: "Roll"},
-// 			{
-// 				x: 500,
-// 				y: 400,
-// 				height: 200,
-// 				width: 200
-// 			}
-// 		);
-// 		DB.groupEnd();
-// 		DB.groupLog("Creating MainRoll Dice");
-// 		const Die = await FACTORIES.XDie.Make(XROOT.XROOT, {
-// 			id: "Roll-Die",
-// 			type: XTermType.BasicDie,
-// 			color: "white",
-// 			numColor: "darkred",
-// 			strokeColor: "darkred",
-// 			value: 1
-// 		});
-// 		const RollDice = await Promise.all([
-// 			"yellow",
-// 			"orange",
-// 			"crimson",
-// 			"lime",
-// 			"cyan"
-// 		].map((color, i) => FACTORIES.XDie.Make(XROOT.XROOT, {
-// 			id: "Roll-Die",
-// 			type: XTermType.BasicDie,
-// 			color,
-// 			value: i+2 as XDieValue
-// 		})));
-// 		DB.groupEnd();
-// 		DB.groupLog("Initializing MainRoll");
-// 		// await MainRoll.initialize();
-// 		DB.groupEnd();
-// 		DB.groupLog("Adding Dice");
-// 		await MainRoll.addXItems({[XOrbitType.Main]: [Die, ...RollDice]});
-// 		DB.groupEnd();
-// 		DB.groupDisplay("Fetching Arm");
-// 		const Orbit = MainRoll.orbitals.get(XOrbitType.Main)!;
-// 		const [Arm] = Orbit.arms;
-// 		DB.log("XArm", Arm);
-// 		DB.groupEnd();
 // 		const dbDisplay = XDisplay.Display;
 // 		[Die, ...RollDice].forEach((xDie) => {
 // 			const xArm = xDie.xParent;
@@ -426,129 +478,5 @@ const DBFUNCS = {
 // 		// 	});
 // 		// 	console.log(JSON.stringify(posData, null, 2).replace(/"/g, ""));
 // 		// };
-// 		Object.assign(globalThis, {
-// 			ROLL: MainRoll,
-// 			DICE: Object.fromEntries(FloatingDice.map((die) => [`${die.value}`, die])),
-// 			TestDie,
-// 			ROLLDICE: [Die, ...RollDice],
-// 			Orbit, getPosData, dbDisplay});
-// 		DB.log("Setup Complete.");
-// 		DB.groupDisplay("Starting Timeouts...");
-// 		await U.sleep(U.randInt(1, 5));
-// 		DB.groupEnd();
-// 		DB.groupEnd();
-// 		// await U.sleep(10);
-// 		// DB.log("Slowing Timeline");
-// 		// gsap.globalTimeline.timeScale(0.01);
-// 		// getPosData();
-// 	}
-// };
-// #region ====== TESTS ARCHIVE ====== ~
-// const TESTS_ARCHIVE = {
-// 	nestedPositionTest: async () => {
-// 		const TranslateBox = await FACTORIES.XPool.Make(XROOT.XROOT, {
-// 			id: "translate-box",
-// 			classes: ["translate-box"]
-// 		}, {xPercent: 0, yPercent: 0});
-// 		// await TranslateBox.initialize();
-// 		TranslateBox.to({
-// 			x: "+=500",
-// 			duration: 5,
-// 			ease: "power3.inOut",
-// 			repeat: -1,
-// 			yoyo: true
-// 		});
-// 		const ScaleBox = await FACTORIES.XGroup.Make(TranslateBox, {
-// 			id: "scale-box-1",
-// 			classes: ["scale-box"]
-// 		}, {
-// 			xPercent: 0,
-// 			yPercent: 0
-// 		});
-// 		// await ScaleBox.initialize();
-// 		ScaleBox.to({
-// 			scale: 2,
-// 			duration: 15,
-// 			ease: "sine.inOut",
-// 			repeat: -1,
-// 			yoyo: true
-// 		});
-// 		const ExtraScaleBox = await FACTORIES.XGroup.Make(ScaleBox, {
-// 			id: "scale-box-2",
-// 			classes: ["extra-scale-box"]
-// 		}, {
-// 			xPercent: 0,
-// 			yPercent: 0
-// 		});
-// 		// await ExtraScaleBox.initialize();
-// 		ExtraScaleBox.to({
-// 			scale: 3,
-// 			duration: 5,
-// 			ease: "sine.inOut",
-// 			repeat: -1,
-// 			yoyo: true
-// 		});
-// 		const RotateBox = await FACTORIES.XGroup.Make(ExtraScaleBox, {
-// 			id: "rotate-box-1",
-// 			classes: ["rotate-box"]
-// 		}, {
-// 			xPercent: 0,
-// 			yPercent: 0
-// 		});
-// 		// await RotateBox.initialize();
-// 		RotateBox.to({
-// 			rotation: "+=360",
-// 			duration: 2,
-// 			ease: "none",
-// 			repeat: -1
-// 		});
-// 		const CounterRotateBox = await FACTORIES.XGroup.Make(RotateBox, {
-// 			id: "rotate-box-2",
-// 			classes: ["rotate-box"]
-// 		}, {
-// 			xPercent: 0,
-// 			yPercent: 0
-// 		});
-// 		// await CounterRotateBox.initialize();
-// 		CounterRotateBox.to({
-// 			rotation: "-=360",
-// 			duration: 2,
-// 			ease: "power4.inOut",
-// 			repeat: -1
-// 		});
-// 		// await Promise.all([TranslateBox, ScaleBox, ExtraScaleBox, RotateBox, CounterRotateBox].map((xItem) => xItem.initialize()));
-// 		const TestDie = await FACTORIES.XGroup.Make(CounterRotateBox, {id: "test-die"}, {height: 40, width: 40, background: "lime"});
-// 		const dieMarkers = await Promise.all([
-// 			{x: 0.5, y: 0, background: "yellow"},
-// 			{x: 0, y: 1, background: "cyan"},
-// 			{x: 1, y: 1, background: "magenta"}
-// 		].map(({x, y, background}, i) => FACTORIES.XItem.Make(TestDie, {
-// 			id: `die-marker-${i + 1}`,
-// 			classes: ["x-marker"]
-// 		}, {
-// 			height: 10,
-// 			width: 10,
-// 			x: x * 50,
-// 			y: y * 50,
-// 			background
-// 		})));
-// 		// await Promise.all(dieMarkers.map((marker) => marker.initialize()));
-// 		const xMarkers = await Promise.all(["yellow", "cyan", "magenta"]
-// 			.map((background, i) => FACTORIES.XItem.Make(XROOT.XROOT, {
-// 				id: `x-marker-${i + 1}`,
-// 				classes: ["x-marker"]
-// 			}, {
-// 				height: 10,
-// 				width: 10,
-// 				x: 100 + (20 * i),
-// 				y: 500 + (40 * i),
-// 				background
-// 			})));
-// 		// await Promise.all(xMarkers.map((marker) => marker.initialize()));
-// 		xMarkers.forEach((marker, i) => marker.set(dieMarkers[i].pos));
-// 		DB.log("Test Die Objs =>", dieMarkers, xMarkers, TranslateBox, ScaleBox, RotateBox, TestDie);
-// 	}
-// };
-// #endregion ___ TESTS ARCHIVE ___
 // #endregion 🟩🟩🟩 TEST CASES 🟩🟩🟩
-export { DB as default, DBFUNCS };
+export { DB as default, DBFUNCS, DBCOMMANDS };

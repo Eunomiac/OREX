@@ -2,7 +2,7 @@
 // ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮
 import { 
 // ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮
-U, XItem, XTermType
+U, XItem, XArm, XTermType
  } from "../helpers/bundler.js";
 export default class XDie extends XItem {
     // ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮
@@ -53,6 +53,9 @@ export default class XDie extends XItem {
             this.value$.html(this.face);
         }
     }
+    get db$() { return $(`#${this.id} .debug-data`); }
+    get dbData() { return this.db$.html(); }
+    set dbData(val) { this.db$.html(`${val}`); }
     get value$() { return $(`#${this.id} .die-val`); }
     get face() { return [" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "X"][this.#value]; }
     get isRolled() { return this.value > 0; }
@@ -73,7 +76,8 @@ export default class XDie extends XItem {
         const context = super.getData();
         const faceNum = this.value === 10 ? 0 : (this.value || " ");
         Object.assign(context, {
-            value: faceNum
+            value: faceNum,
+            dbHtml: this.xParent instanceof XArm ? this.xParent.homeRotation : ""
         });
         return context;
     }

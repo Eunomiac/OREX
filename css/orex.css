@@ -48,13 +48,22 @@
         opacity: 0.5; }
       #XROOT .x-die svg .side {
         opacity: 0.3; }
+    #XROOT .x-die .debug-data {
+      position: absolute;
+      display: block;
+      top: -28px;
+      width: 100%;
+      color: yellow;
+      font-family: Voltaire;
+      font-size: 12px;
+      text-align: right; }
     #XROOT .x-die .die-val {
       position: absolute;
       height: 100%;
       width: 100%;
       color: var(--die-color-fg);
       font-size: calc(var(--die-size) / 2);
-      line-height: var(--die-size);
+      line-height: 2.2em;
       font-family: Oswald;
       text-align: center;
       z-index: 2; }
