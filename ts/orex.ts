@@ -38,7 +38,7 @@ Hooks._hooks.init.unshift(() => {
 	DB.groupDisplay("BOOTING DEV-MODE");
 });
 
-// #region ████████ ON INIT: On-Initialization Hook ████████
+// #region ████████ ON INIT: On-Initialization Hook ████████ ~
 Hooks.once("init", async () => {
 	DB.groupEnd();
 	DB.log("DEV-MODE BOOTED");

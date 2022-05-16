@@ -1,10 +1,11 @@
 // #region ▮▮▮▮▮▮▮ IMPORTS ▮▮▮▮▮▮▮ ~
 import { 
 // #region ▮▮▮▮▮▮▮[Utility]▮▮▮▮▮▮▮ ~
-U, XItem, XArm, XTermType
+U, XItem, XTermType
 // #endregion ▮▮▮▮[XItems]▮▮▮▮
  } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
+// #region 🟩🟩🟩 XDie: An XItem Representing a Randomized XTerm (i.e. a d10) 🟩🟩🟩 ~
 export default class XDie extends XItem {
     // #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
     static get defaultOptions() {
@@ -78,12 +79,14 @@ export default class XDie extends XItem {
         const context = super.getData();
         const faceNum = this.value === 10 ? 0 : (this.value || " ");
         Object.assign(context, {
-            value: faceNum,
-            dbHtml: this.xParent instanceof XArm ? this.xParent.homeRotation : ""
+            value: faceNum
+            /* dbHtml: this.xParent instanceof XArm ? this.xParent.homeRotation : "" */
         });
         return context;
     }
 }
+// #endregion 🟩🟩🟩 XDie 🟩🟩🟩
+// #region 🟩🟩🟩 XMod: An XItem Representing a Static XTerm (e.g. mods, effects) 🟩🟩🟩 ~
 export class XMod extends XItem {
     // #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
     static get defaultOptions() {
@@ -124,7 +127,9 @@ export class XMod extends XItem {
         return context;
     }
 }
-export class XGhost extends XMod {
+// #endregion 🟩🟩🟩 XMod 🟩🟩🟩
+// #region 🟥🟥🟥 XPack: An XMod Representing a Collection of XItems (e.g. a trait, representing some number of XDie) 🟥🟥🟥 ~
+export class XPack extends XMod {
     // #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
     static get defaultOptions() {
         const defaultXOptions = {
@@ -144,7 +149,9 @@ export class XGhost extends XMod {
         super(xParent, xOptions);
     }
 }
-export class XMutator extends XMod {
+// #endregion 🟥🟥🟥 XPack 🟥🟥🟥
+// #region 🟥🟥🟥 XEffect: An XMod that Attaches to an Existing XTerm or XGroup to Change/Negate It 🟥🟥🟥 ~
+export class XEffect extends XMod {
     // #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
     static get defaultOptions() {
         const defaultXOptions = {
@@ -164,7 +171,9 @@ export class XMutator extends XMod {
         super(xParent, xOptions);
     }
 }
-export class XInfo extends XMod {
+// #endregion 🟥🟥🟥 XEffect 🟥🟥🟥
+// #region 🟥🟥🟥 XTip: A Strictly Informational XTerm to be Rendered & Animated 🟥🟥🟥 ~
+export class XTip extends XMod {
     // #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
     static get defaultOptions() {
         const defaultXOptions = {
@@ -184,3 +193,4 @@ export class XInfo extends XMod {
         super(xParent, xOptions);
     }
 }
+// #endregion 🟥🟥🟥 XTip 🟥🟥🟥

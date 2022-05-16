@@ -4,7 +4,7 @@ import {getTemplatePath} from "./templates.js";
 
 import {default as XItem, XBaseContainer, XROOT} from "../xclasses/xitem.js";
 import {default as XGroup, XPool, XRoll, XArm, XOrbit} from "../xclasses/xgroup.js";
-import {default as XDie, XMod, XGhost, XMutator, XInfo} from "../xclasses/xterm.js";
+import {default as XDie, XMod, XPack, XEffect, XTip} from "../xclasses/xterm.js";
 import {default as XPad} from "../xclasses/xpad.js";
 // #endregion ▮▮▮▮[IMPORTS]▮▮▮▮
 
@@ -29,7 +29,7 @@ export {default as preloadTemplates} from "./templates.js";
 // #endregion ░░░░[GSAP Animation]░░░░
 
 // #region ████████ XItems ████████
-export {DB, XItem, XBaseContainer, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XDie, XMod, XGhost, XMutator, XInfo, XPad};
+export {DB, XItem, XBaseContainer, XGroup, XROOT, XPool, XRoll, XArm, XOrbit, XDie, XMod, XPack as XGhost, XEffect as XMutator, XTip as XInfo, XPad};
 // #endregion ▄▄▄▄▄ XItems ▄▄▄▄▄
 // #endregion ▄▄▄▄▄ EXPORTS ▄▄▄▄▄
 

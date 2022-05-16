@@ -8,6 +8,8 @@ import {
 	// #endregion ▮▮▮▮[XItems]▮▮▮▮
 } from "../helpers/bundler.js";
 // #endregion ▮▮▮▮ IMPORTS ▮▮▮▮
+
+// #region 🟩🟩🟩 XDie: An XItem Representing a Randomized XTerm (i.e. a d10) 🟩🟩🟩 ~
 export default class XDie extends XItem implements XTerm {
 
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
@@ -96,15 +98,16 @@ export default class XDie extends XItem implements XTerm {
 		const faceNum = this.value === 10 ? 0 : (this.value || " ");
 
 		Object.assign(context, {
-			value: faceNum,
-			dbHtml: this.xParent instanceof XArm ? this.xParent.homeRotation : ""
+			value: faceNum
+			/* dbHtml: this.xParent instanceof XArm ? this.xParent.homeRotation : "" */
 		});
 
 		return context;
 	}
 }
+// #endregion 🟩🟩🟩 XDie 🟩🟩🟩
 
-
+// #region 🟩🟩🟩 XMod: An XItem Representing a Static XTerm (e.g. mods, effects) 🟩🟩🟩 ~
 export class XMod extends XItem implements XTerm {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Mod> {
@@ -158,7 +161,10 @@ export class XMod extends XItem implements XTerm {
 		return context;
 	}
 }
-export class XGhost extends XMod {
+// #endregion 🟩🟩🟩 XMod 🟩🟩🟩
+
+// #region 🟥🟥🟥 XPack: An XMod Representing a Collection of XItems (e.g. a trait, representing some number of XDie) 🟥🟥🟥 ~
+export class XPack extends XMod {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Ghost> {
 
@@ -176,7 +182,7 @@ export class XGhost extends XMod {
 			defaultXOptions
 		);
 	}
-	static override REGISTRY: Map<string, XGhost> = new Map();
+	static override REGISTRY: Map<string, XPack> = new Map();
 	declare options: ApplicationOptions & Required<XOptions.Ghost>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
@@ -186,8 +192,10 @@ export class XGhost extends XMod {
 	}
 
 }
+// #endregion 🟥🟥🟥 XPack 🟥🟥🟥
 
-export class XMutator extends XMod {
+// #region 🟥🟥🟥 XEffect: An XMod that Attaches to an Existing XTerm or XGroup to Change/Negate It 🟥🟥🟥 ~
+export class XEffect extends XMod {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Mutator> {
 
@@ -205,7 +213,7 @@ export class XMutator extends XMod {
 			defaultXOptions
 		);
 	}
-	static override REGISTRY: Map<string, XMutator> = new Map();
+	static override REGISTRY: Map<string, XEffect> = new Map();
 	declare options: ApplicationOptions & Required<XOptions.Mutator>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
@@ -214,8 +222,10 @@ export class XMutator extends XMod {
 		super(xParent, xOptions);
 	}
 }
+// #endregion 🟥🟥🟥 XEffect 🟥🟥🟥
 
-export class XInfo extends XMod {
+// #region 🟥🟥🟥 XTip: A Strictly Informational XTerm to be Rendered & Animated 🟥🟥🟥 ~
+export class XTip extends XMod {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Info> {
 
@@ -233,7 +243,7 @@ export class XInfo extends XMod {
 			defaultXOptions
 		);
 	}
-	static override REGISTRY: Map<string, XInfo> = new Map();
+	static override REGISTRY: Map<string, XTip> = new Map();
 	declare options: ApplicationOptions & Required<XOptions.Info>;
 	declare xParent: XParent;
 	// #endregion ▮▮▮▮[Virtual Overrides]▮▮▮▮
@@ -242,3 +252,4 @@ export class XInfo extends XMod {
 		super(xParent, xOptions);
 	}
 }
+// #endregion 🟥🟥🟥 XTip 🟥🟥🟥

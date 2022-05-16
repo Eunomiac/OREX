@@ -33,9 +33,9 @@ import {
 									- XSets have to be given priority when it comes to rendering, since one die could belong to, say, a run and a set
 			🟦XDie = a single die, either rolled or unrolled
 			🟦XMod = a term representing some effect on any XGroup it is contained in
-				🟨XGhost = a modifier represented by a bonus XItem rendered in its XGroup
-				🟨XMutator = a modifier that attaches to an existing XItem to change/negate it
-				🟨XInfo = a strictly informational XTerm to be rendered and animated
+				🟨XPack = an XTerm representing a collection of XItems (e.g. a trait, representing some number of XDie)
+				🟨XEffect = a modifier that attaches to an existing XItem to change/negate it
+				🟨XTip = a strictly informational XTerm to be rendered and animated
 			🔵XPad = a hover-over time trigger that applies some effect to a held (dragged-over) XItem
 */
 // #endregion ▮▮▮▮[SCHEMA]▮▮▮▮
@@ -68,15 +68,14 @@ export default class XGroup extends XBaseContainer {
 }
 // #endregion ▄▄▄▄▄ XGroup ▄▄▄▄▄
 
-
 // #region 🟪🟪🟪 XArm: Helper XItem Used to Position Rotating XItems in XOrbits 🟪🟪🟪 ~
 
 const TWEEN_DURATION_AT_1000 = 6;
 const TWEEN_DURATION_AT_360 = 6;
-const MIN_TWEEN_DURATION = 1;
+const MIN_TWEEN_DURATION = 0.5;
 const MINWIDTHTOTWEEN = 10;
-const MINANGLETOTWEEN = 5;
-const ARMFADEINDURATION = 3;
+const MINANGLETOTWEEN = 1;
+const ARMFADEINDURATION = 1.5;
 export class XArm extends XGroup {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Arm> {
@@ -114,20 +113,21 @@ export class XArm extends XGroup {
 	}
 
 	#currentAnimation: Anim | null = null;
+	#rotationDestination = 0;
 
 	fadeIn(): void {
 		if (this.#currentAnimation) { return }
 		const delay: number = (this.homeRotation / 360) * ARMFADEINDURATION / 3;
-		DB.display(`[${this.id}.fadeIn(${delay})], homeAngle: `, `${this.homeRotation}`);
+		// DB.display(`[${this.id}.fadeIn(${delay})], homeAngle: `, `${this.homeRotation}`);
 		const self = this;
 		this.#currentAnimation = gsap.timeline({
 			id: `${self.id}.TWEENFADEIN(${self.homeRotation})`,
-			delay,
-			onUpdate() {
-				if (self.heldItem instanceof XDie) {
-					self.heldItem.dbData = self.homeRotation;
-				}
-			}
+			delay
+			// onUpdate() {
+			// if (self.heldItem instanceof XDie) {
+			// self.heldItem.dbData = self.homeRotation;
+			// }
+			// }
 		})
 			.fromTo(
 				self.elem,
@@ -140,7 +140,8 @@ export class XArm extends XGroup {
 					width: self.homeWidth,
 					rotation: self.homeRotation,
 					duration: ARMFADEINDURATION,
-					ease: "back",
+					ease: "back.out(3)",
+					delay: ARMFADEINDURATION * 0.1,
 					onComplete() {
 						self.#currentAnimation = null;
 						self.tweenHome();
@@ -151,7 +152,7 @@ export class XArm extends XGroup {
 			.fromTo(
 				self.heldItem.elem,
 				{
-					// opacity: 0,
+					opacity: 0,
 					scale: 0,
 					rotation: -1 * self.global.rotation
 				},
@@ -164,15 +165,15 @@ export class XArm extends XGroup {
 				},
 				0
 			);
-		this.xParent.updateArms();
+		// this.xParent.updateArms();
 	}
 
 	getHomeTweenDur(): number | null {
 		const deltaWidth = Math.abs(this.width - this.homeWidth);
 		const deltaRotation = Math.abs(U.getAngleDelta(this.rotation, this.homeRotation, [-180, 180]));
-		// if (deltaWidth <= MINWIDTHTOTWEEN && deltaRotation <= MINANGLETOTWEEN) {
-		// 	return null;
-		// }
+		if (deltaWidth <= MINWIDTHTOTWEEN && deltaRotation <= MINANGLETOTWEEN) {
+			return null;
+		}
 		return Math.max(
 			MIN_TWEEN_DURATION,
 			(deltaWidth / 1000) * TWEEN_DURATION_AT_1000,
@@ -181,10 +182,14 @@ export class XArm extends XGroup {
 	}
 
 	generateHomeTween() {
+		if (!this.elem) { return null }
+		if (this.isHome) { return null }
 		const tweenDur = this.getHomeTweenDur();
 		if (tweenDur === null) { return null }
 		const self = this;
-		const newRotation = this.rotation + U.getAngleDelta(this.rotation, this.homeRotation, [-180, 180]);
+		const newRotation = U.pInt(this.rotation + U.getAngleDelta(this.rotation, this.homeRotation, [-180, 180]));
+		this.#rotationDestination = newRotation;
+		// DB.display(`GENERATING [${self.id}-tweenHome] Cur: ${U.pInt(this.rotation)}, Home: ${U.pInt(this.homeRotation)}, New: ${U.pInt(newRotation)}`, self);
 		return gsap.to(this.elem, {
 			id: `${this.id}-tweenHome`,
 			width: this.homeWidth,
@@ -192,31 +197,48 @@ export class XArm extends XGroup {
 			duration: tweenDur,
 			ease: "power4.inOut",
 			paused: true,
-			onUpdate() {
-				if (self.heldItem instanceof XDie) {
-					self.heldItem.dbData = `${self.homeRotation}<br>${U.pInt(self.rotation)}`;
-				}
-			},
+			// onStart() {
+			// DB.display(`START [${self.id}-tweenHome] From: ${U.pInt(self.rotation)}, To: ${U.pInt(newRotation)}, Dur: ${U.pFloat(tweenDur,2)}`, self);
+			// self.#rotationDestination = newRotation;
+			// },
+			// onInterrupt() {
+			// DB.display(`INTERRUPT [${self.id}-tweenHome] At: ${U.pInt(self.rotation)} (${this.progress()} to ${U.pInt(newRotation)})`);
+			// },
+			// onUpdate() {
+			// if (self.heldItem instanceof XDie) {
+			// self.heldItem.dbData = `${self.homeRotation}<br>${U.pInt(self.rotation)}`;
+			// }
+			// },
 			onComplete() {
-				self.set({rotation: U.cycleAngle(newRotation, [-180, 180])});
 				self.#currentAnimation = null;
+				self.#rotationDestination = U.cycleAngle(self.rotation, [-180, 180]);
+				if (self.#rotationDestination === self.homeRotation) {
+					self.set({rotation: self.#rotationDestination});
+				}
+				// if (self.isHome) {
+				// DB.display(`END [${self.id}-tweenHome] At: ${U.pInt(self.rotation)} (To: ${U.pInt(newRotation)}) --> Correcting to ${U.pInt(self.#rotationDestination)}`, self);
+				// } else {
 				self.tweenHome();
+				// }
 			}
 		});
 	}
 
+	get isHome() {
+		return U.pInt(U.cycleAngle(this.rotation, [-180, 180])) === U.pInt(U.cycleAngle(this.homeRotation, [-180, 180]))
+			&& U.pInt(this.width) === U.pInt(this.homeWidth);
+	}
+
 	// #tweenHomeStaging: gsap.core.Tween | null = null;
 	tweenHome(): void {
-		if (this.#currentAnimation) {
-			// this.#tweenHomeStaging?.kill();
-			// this.#tweenHomeStaging = this.generateHomeTween();
+		if (this.isHome || this.#currentAnimation) { return }
+		// this.#tweenHomeStaging?.kill();
+		// this.#tweenHomeStaging = this.generateHomeTween();
 		// } else if (this.#tweenHomeStaging) {
-			// this.#currentAnimation = this.#tweenHomeStaging;
-			// this.#tweenHomeStaging = null;
-		} else {
-			// this.#currentAnimation = this.generateHomeTween();
-			this.generateHomeTween()?.play();
-		}
+		// this.#currentAnimation = this.#tweenHomeStaging;
+		// this.#tweenHomeStaging = null;
+		// this.#currentAnimation = this.generateHomeTween();
+		this.generateHomeTween()?.play();
 		// this.#currentAnimation?.play();
 	}
 
@@ -243,8 +265,8 @@ export class XArm extends XGroup {
 				});
 				if (this.heldItem.isVisible) {
 					this.heldItem.set({x: 0, y: 0, rotation: this.heldItem.rotation - this.global.rotation, immediateRender: true});
-					this.xParent.updateArms();
-					this.tweenHome();
+					// this.xParent.updateArms();
+					// this.tweenHome();
 				} else {
 					this.fadeIn();
 				}
@@ -294,7 +316,7 @@ export class XArm extends XGroup {
 }
 // #endregion ░░░░[XArm]░░░░
 
-// #region 🟥🟥🟥 XOrbit: A Single Orbital Containing XItems & Parented to an XPool 🟥🟥🟥 ~
+// #region 🟪🟪🟪 XOrbit: A Single Orbital Containing XItems & Parented to an XPool 🟪🟪🟪 ~
 export class XOrbit extends XGroup {
 
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
@@ -362,6 +384,7 @@ export class XOrbit extends XGroup {
 		return this.#armAngles ?? this.updateArmAngles();
 	}
 	updateArmAngles(fixedXArm?: XArm): Map<XArm,number> {
+		const currentArmAngles = new Map(this.#armAngles);
 		const totalArmWeight = this.arms.map((arm) => arm.heldItemSize).reduce((tot, val) => tot + val, 0);
 		const anglePerWeight = 360 / totalArmWeight;
 		const armAngles: number[] = [];
@@ -466,7 +489,7 @@ export class XOrbit extends XGroup {
 }
 // #endregion ▄▄▄▄▄ XOrbit ▄▄▄▄▄
 
-// #region 🟥🟥🟥 XPool: An XGroup Containing Drag-&-Droppable XTerms Contained in XOrbits 🟥🟥🟥 ~
+// #region 🟩🟩🟩 XPool: An XGroup Containing Drag-&-Droppable XTerms Contained in XOrbits 🟩🟩🟩 ~
 export class XPool extends XGroup {
 	// #region ▮▮▮▮▮▮▮[Virtual Overrides] Overriding Necessary Virtual Properties ▮▮▮▮▮▮▮ ~
 	static override get defaultOptions(): ApplicationOptions & Required<XOptions.Pool> {

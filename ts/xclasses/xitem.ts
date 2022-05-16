@@ -89,7 +89,7 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 	get width() { return U.pInt(this.rendered ? U.get(this.elem, "width", "px") : this.vars.width) }
 	get size() { return (this.height + this.width) / 2 }
 
-	get rotation() { return U.cycleAngle(U.pFloat(this.rendered ? U.get(this.elem, "rotation") : this.vars.rotation, 2), [-180, 180]) }
+	get rotation() { return /* U.cycleAngle( */U.pFloat(this.rendered ? U.get(this.elem, "rotation") : this.vars.rotation, 2)/* , [-180, 180]) */ }
 	get scale() { return U.pFloat(this.rendered ? U.get(this.elem, "scale") : this.vars.scale, 2) || 1 }
 
 	get origin() {
@@ -121,7 +121,7 @@ class XBaseItem extends Application implements DOMRenderer, Tweenable {
 					totalRotation += xParent.rotation;
 					({xParent} = xParent);
 				}
-				return U.cycleAngle(totalRotation, [-180, 180]);
+				return /* U.cycleAngle( */totalRotation/* , [-180, 180]) */;
 			},
 			get scale() {
 				let totalScale = self.scale,
